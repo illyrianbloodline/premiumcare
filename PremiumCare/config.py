@@ -20,7 +20,8 @@ DB_CONFIG = {
 SECRET_KEY = os.getenv("SECRET_KEY", "7f3a9c2d1e4b5a6c8f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2")
 import os
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyDc9zNtRjty09M2z5I6KgSYFoWQvRy722w")
+import os
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
 GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
 GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
