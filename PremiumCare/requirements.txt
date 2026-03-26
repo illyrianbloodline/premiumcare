@@ -32,6 +32,6 @@ apscheduler==3.10.4
 
 # ── Utilities ─────────────────────────────────────────────────
 python-dotenv==1.0.1
-Pillow==10.3.0
+Pillow
 flask-limiter==3.5.0
 limits==3.12.0
