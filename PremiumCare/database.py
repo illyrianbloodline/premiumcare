@@ -1,13 +1,13 @@
 """
 MedPlatform – Database Layer
 """
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import psycopg
+from psycopg.extras import RealDictCursor
 from config import DB_CONFIG
 from datetime import date, datetime, timedelta
 
 def get_conn():
-    return psycopg2.connect(**DB_CONFIG)
+    return psycopg.connect(**DB_CONFIG)
 
 def setup():
     conn = get_conn()
