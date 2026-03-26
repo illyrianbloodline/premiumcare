@@ -8,7 +8,7 @@ flask-bcrypt==1.0.1
 werkzeug==3.0.3
 
 # ── Database ───────────────────────────────────────────────────
-psycopg2-binary==2.9.9
+psycopg[binary]
 
 # ── AI providers ──────────────────────────────────────────────
 groq==0.9.0
