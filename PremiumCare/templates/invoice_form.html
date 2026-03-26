@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-receipt me-2 text-secondary"></i>{{ t.h_invoice }}</h5>
+    <a href="{{ '/billing' }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+    </a>
+</div>
+<div class="card" style="max-width:700px;">
+    <div class="card-body">
+        <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                {% if not patient %}
+                <div class="col-12">
+                    <label class="form-label fw-semibold">{{ t.lbl_patient }} *</label>
+                    <select name="patient_id" class="form-select" required>
+                        <option value="">{{ t.misc_select_patient }}</option>
+                        {% for p in patients %}
+                        <option value="{{ p.id }}">{{ p.first_name }} {{ p.last_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                <input type="hidden" name="patient_id" value="{{ patient.id }}">
+                <div class="col-12">
+                    <div class="alert alert-light border">
+                        <i class="bi bi-person-circle me-2 text-primary"></i>
+                        <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ t.lbl_doctor }}</label>
+                    <select name="doctor_id" class="form-select">
+                        <option value="">—</option>
+                        {% for s in staff %}
+                        <option value="{{ s.id }}">{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">{{ t.lbl_invoice_date }} *</label>
+                    <input type="date" name="invoice_date" class="form-control" value="{{ today }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">{{ t.lbl_due_date }}</label>
+                    <input type="date" name="due_date" class="form-control">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">{{ t.lbl_services }}</label>
+                    <textarea name="items" class="form-control" rows="4"
+                              placeholder="Consultation – €50&#10;Blood test – €25&#10;ECG – €30"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.misc_total_amount }}</label>
+                    <input type="number" name="total_amount" class="form-control" step="0.01" min="0" value="0.00">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.misc_amount_paid }}</label>
+                    <input type="number" name="amount_paid" class="form-control" step="0.01" min="0" value="0.00">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.th_status }}</label>
+                    <select name="status" class="form-select">
+                        <option value="unpaid" selected>{{ t.opt_unpaid }}<option>
+                        <option value="partial">{{ t.opt_partial }}</option>
+                        <option value="paid">{{ t.opt_paid }}</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">{{ t.misc_notes }}</label>
+                    <textarea name="notes" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Create Invoice
+                    </button>
+                    <a href="{{ '/billing' }}" class="btn btn-outline-secondary">{{ t.cancel }}</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-shield-plus me-2 text-success"></i>Vaccinations
+        <small class="text-muted fw-normal ms-2">{{ patient.first_name }} {{ patient.last_name }}</small>
+    </h5>
+    <a href="{{ '/patients/' + (patient.id)|string }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+    </a>
+</div>
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-plus-circle me-2 text-success"></i>{{ t.h_record_vax }}</div>
+            <div class="card-body">
+                <form method="POST" action="{{ '/patients/' + (patient.id)|string + '/vaccinations/new' }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_vaccine }} *</label>
+                        <input type="text" name="vaccine_name" class="form-control" required
+                               list="vaccine-list" placeholder="e.g. COVID-19, Flu...">
+                        <datalist id="vaccine-list">
+                            <option>{{ t.opt_covid_pfizer }}</option><option>{{ t.opt_covid_moderna }}</option>
+                            <option>{{ t.opt_influenza }}</option><option>{{ t.opt_hep_b }}</option>
+                            <option>MMR</option><option>{{ t.opt_tetanus }}</option>
+                            <option>HPV</option><option>{{ t.opt_pneumo }}</option>
+                        </datalist>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.th_dose }}</label>
+                        <select name="dose" class="form-select">
+                            <option>1st dose</option><option>2nd dose</option>
+                            <option>3rd dose</option><option>{{ t.opt_booster }}</option>
+                            <option>{{ t.opt_annual }}</option><option>{{ t.opt_single }}</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_date_given }} *</label>
+                        <input type="date" name="date_given" class="form-control" value="{{ today }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_batch }}</label>
+                        <input type="text" name="batch_number" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_next_due }}</label>
+                        <input type="date" name="next_due_date" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.misc_notes }}</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-shield-check me-1"></i>Record
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-list-check me-2"></i>Vaccination History ({{ items|length }})</div>
+            <div class="card-body p-0">
+                {% if items %}
+                <table class="table table-hover mb-0">
+                    <thead><tr>
+                        <th class="ps-3">{{ t.th_vaccine }}</th><th>{{ t.th_dose }}</th><th>{{ t.th_date_given }}</th>
+                        <th>{{ t.th_batch }}</th><th>{{ t.th_next_due }}</th><th>{{ t.th_doctor }}</th>
+                        <th class="text-end pe-3">{{ t.th_actions }}</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for v in items %}
+                    <tr>
+                        <td class="ps-3 fw-semibold">{{ v.vaccine_name }}</td>
+                        <td><span class="badge bg-success">{{ v.dose or '—' }}</span></td>
+                        <td style="font-size:.85rem;">{{ v.date_given.strftime('%d %b %Y') if v.date_given else '—' }}</td>
+                        <td class="text-muted" style="font-size:.85rem;">{{ v.batch_number or '—' }}</td>
+                        <td style="font-size:.85rem;">
+                            {% if v.next_due_date %}
+                            <span class="{% if v.next_due_date <= today %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                                {{ v.next_due_date.strftime('%d %b %Y') }}
+                                {% if v.next_due_date <= today %}<i class="bi bi-exclamation-circle ms-1"></i>{% endif %}
+                            </span>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="text-muted" style="font-size:.85rem;">{{ v.doctor_name or '—' }}</td>
+                        <td class="text-end pe-3">
+                            <form method="POST" action="{{ '/vaccinations/' + (v.id)|string + '/delete' }}"
+                                  class="d-inline" onsubmit="return confirm('{{ t.confirm_delete }}')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="p-4 text-center text-muted">
+                    <i class="bi bi-shield-plus" style="font-size:2rem;"></i>
+                    <p class="mt-2">{{ t.empty_vaccinations }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

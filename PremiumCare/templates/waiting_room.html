@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Salla e Pritjes — {{ practice_name }}{% endblock %}
+{% block page_title %}{{ t.page_waiting_room }}{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="topbar">
+  <div class="d-flex align-items-center gap-3">
+    <h5 class="mb-0 fw-bold">
+      <i class="bi bi-clock-history me-2 text-warning"></i>Salla e Pritjes
+    </h5>
+    {% set waiting_count     = queue|selectattr('status','eq','waiting')|list|length %}
+    {% set with_doctor_count = queue|selectattr('status','eq','with_doctor')|list|length %}
+    {% if waiting_count > 0 %}
+    <span class="badge" style="background:#f59e0b;color:#fff;font-size:.75rem;">{{ waiting_count }} duke pritur</span>
+    {% endif %}
+    {% if with_doctor_count > 0 %}
+    <span class="badge bg-primary" style="font-size:.75rem;">{{ with_doctor_count }} tek mjeku</span>
+    {% endif %}
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <span id="refreshCountdown" style="font-size:.73rem;color:#94a3b8;">{{ t.misc_auto_refresh_s }}</span>
+    <button onclick="location.reload()" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-clockwise me-1"></i>Rifresko
+    </button>
+    
+  </div>
+</div>
+
+<!-- Stats strip -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 text-center py-3" style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:12px;">
+      <div style="font-size:2rem;font-weight:800;color:#fff;line-height:1;">{{ waiting_count }}</div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.85);">{{ t.misc_waiting }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 text-center py-3" style="background:linear-gradient(135deg,#2d6fd4,#1a3a8f);border-radius:12px;">
+      <div style="font-size:2rem;font-weight:800;color:#fff;line-height:1;">{{ with_doctor_count }}</div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.85);">{{ t.misc_with_doctor }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 text-center py-3" style="background:linear-gradient(135deg,#059669,#047857);border-radius:12px;">
+      <div style="font-size:2rem;font-weight:800;color:#fff;line-height:1;">{{ queue|length }}</div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.85);">{{ t.misc_total_queue }}</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="row g-3">
+  <!-- Queue: visual cards -->
+  <div class="col-lg-8">
+    {% if queue %}
+    <div class="row g-3" id="queueCards">
+      {% for q in queue %}
+      <div class="col-md-6">
+        <div class="card border-0 h-100" style="border:2px solid
+          {% if q.status=='with_doctor' %}#bfdbfe{% else %}#e2e8f0{% endif %} !important;border-radius:14px;">
+          <div class="card-body p-4">
+
+            <!-- Status + timer -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <span style="padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:700;
+                background:{% if q.status=='with_doctor' %}#eff6ff;color:#1d4ed8
+                {% else %}#fffbeb;color:#92400e{% endif %};">
+                {% if q.status=='with_doctor' %}
+                  <i class="bi bi-person-check me-1"></i>Tek Mjeku
+                {% else %}
+                  <i class="bi bi-clock me-1"></i>Duke Pritur
+                {% endif %}
+              </span>
+
+            </div>
+
+            <!-- Patient info -->
+            <div style="font-size:1rem;font-weight:800;color:#0f172a;margin-bottom:3px;">
+              {{ q.patient_name }}
+            </div>
+            {% if q.doctor_name %}
+            <div style="font-size:.8rem;color:#64748b;margin-bottom:6px;">
+              <i class="bi bi-person-badge me-1"></i>Dr. {{ q.doctor_name }}
+            </div>
+            {% endif %}
+            {% if q.reason %}
+            <div style="font-size:.8rem;color:#475569;background:#f8fafc;border-radius:8px;
+                        padding:6px 10px;margin-bottom:12px;">
+              {{ q.reason }}
+            </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="d-flex gap-2 flex-wrap">
+              {% if q.status == 'waiting' %}
+              <form method="POST" action="/waiting-room/{{ q.id }}/status" class="flex-1">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="status" value="with_doctor">
+                <button type="submit" class="btn btn-sm btn-primary fw-semibold w-100" style="font-size:.78rem;">
+                  <i class="bi bi-person-check me-1"></i>Tek Mjeku
+                </button>
+              </form>
+              {% endif %}
+              <form method="POST" action="/waiting-room/{{ q.id }}/remove">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-success fw-semibold" style="font-size:.78rem;">
+                  <i class="bi bi-box-arrow-right me-1"></i>Lësho
+                </button>
+              </form>
+            </div>
+
+            <!-- Checked in time -->
+            <div style="font-size:.68rem;color:#cbd5e1;margin-top:10px;">
+              Regjistruar {{ q.checked_in_at.strftime('%H:%M') }}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5" style="border:1.5px dashed #e2e8f0;border-radius:14px;">
+      <i class="bi bi-check-circle" style="font-size:3rem;color:#e2e8f0;display:block;margin-bottom:10px;"></i>
+      <h6 class="fw-bold" style="color:#94a3b8;">{{ t.h_waiting_empty }}</h6>
+      <p style="font-size:.82rem;color:#cbd5e1;">{{ t.empty_queue }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Check-in panel -->
+  <div class="col-lg-4">
+    <div class="card border-0" style="border:1px solid #e8edf2 !important;border-radius:14px;">
+      <div class="card-header py-3 px-4" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;border-radius:14px 14px 0 0;">
+        <span class="fw-bold" style="font-size:.9rem;color:#166534;">
+          <i class="bi bi-person-plus me-2"></i>Regjistro Pacientin
+        </span>
+      </div>
+      <div class="card-body p-4">
+        <form method="POST" action="/waiting-room/checkin">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">{{ t.lbl_patient }} *</label>
+            <select name="patient_id" class="form-select" required>
+              <option value="">{{ t.ph_search_patient }}</option>
+              {% for p in patients %}
+              <option value="{{ p.id }}">{{ p.first_name }} {{ p.last_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">{{ t.lbl_doctor }}</label>
+            <select name="doctor_id" class="form-select">
+              <option value="">{{ t.opt_any_available }}</option>
+              {% for s in staff if s.active and s.role in ('doctor','admin') %}
+              <option value="{{ s.id }}">Dr. {{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-4">
+            <label style="font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">{{ t.lbl_reason_visit }}</label>
+            <input type="text" name="reason" class="form-control"
+                   placeholder="{{ t.ph_followup_chest }}">
+          </div>
+          <button type="submit" class="btn btn-success w-100 fw-bold">
+            <i class="bi bi-person-check me-2"></i>Regjistro
+          </button>
+        </form>
+      </div>
+
+      <!-- Quick stats panel -->
+      <div class="card-footer py-3 px-4" style="background:#f8fafc;border-top:1px solid #e8edf2;border-radius:0 0 14px 14px;">
+        <div style="font-size:.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">{{ t.h_today_stats }}</div>
+        <div class="d-flex gap-4">
+          <div>
+            <div style="font-size:1.2rem;font-weight:800;color:#0f172a;">{{ queue|length }}</div>
+            <div style="font-size:.7rem;color:#94a3b8;">{{ t.h_in_queue }}</div>
+          </div>
+          <div>
+
+          </div>
+          <div>
+            <div style="font-size:1.2rem;font-weight:800;color:#0f172a;">{{ with_doctor_count }}</div>
+            <div style="font-size:.7rem;color:#94a3b8;">{{ t.h_with_doctor }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh with countdown
+var countdown = 30;
+var interval = setInterval(function() {
+  countdown--;
+  var el = document.getElementById('refreshCountdown');
+  if (el) el.textContent = 'Rifreskim automatik në ' + countdown + 's';
+  if (countdown <= 0) location.reload();
+}, 1000);
+
+
+</script>
+{% endblock %}

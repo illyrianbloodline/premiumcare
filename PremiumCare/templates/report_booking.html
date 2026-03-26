@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-check me-2 text-warning"></i>{{ t.h_booking_report }}</h5>
+    <div class="d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print">
+            <i class="bi bi-printer me-1"></i>Print
+        </button>
+        <a href="{{ '/reports' }}" class="btn btn-outline-secondary btn-sm no-print">
+            <i class="bi bi-arrow-left me-1"></i>Reports
+        </a>
+    </div>
+</div>
+<div class="row g-3 mb-3 no-print">
+    <div class="col-12">
+        <form method="GET" class="d-flex gap-2 align-items-end flex-wrap">
+            <div><label class="form-label mb-1" style="font-size:.8rem;">{{ t.lbl_from }}</label>
+                <input type="date" name="start" class="form-control form-control-sm" value="{{ start }}"></div>
+            <div><label class="form-label mb-1" style="font-size:.8rem;">To</label>
+                <input type="date" name="end" class="form-control form-control-sm" value="{{ end }}"></div>
+            <div><label class="form-label mb-1" style="font-size:.8rem;">{{ t.lbl_doctor }}</label>
+                <select name="doctor_id" class="form-select form-select-sm">
+                    <option value="">{{ t.opt_all }}</option>
+                    {% for s in staff %}<option value="{{ s.id }}" {% if doctor_id and doctor_id|int==s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+                </select></div>
+            <button type="submit" class="btn btn-warning btn-sm text-dark">{{ t.btn_update }}</button>
+        </form>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header fw-semibold">
+        Appointments {{ start }} to {{ end }}
+        <span class="badge bg-secondary ms-2">{{ rows|length }} total</span>
+        <span class="badge bg-success ms-1">{{ rows|selectattr('status','eq','scheduled')|list|length }} scheduled</span>
+        <span class="badge bg-danger ms-1">{{ rows|selectattr('status','eq','cancelled')|list|length }} cancelled</span>
+    </div>
+    <div class="card-body p-0">
+        {% if rows %}
+        <table class="table table-hover mb-0" style="font-size:.87rem;">
+            <thead><tr>
+                <th class="ps-3">{{ t.th_date }}</th><th>{{ t.th_time }}</th><th>{{ t.th_patient }}</th>
+                <th>{{ t.misc_phone }}</th><th>{{ t.th_doctor }}</th><th>{{ t.misc_type }}</th><th>{{ t.th_status }}</th>
+            </tr></thead>
+            <tbody>
+            {% for r in rows %}
+            <tr {% if r.status=='cancelled' %}class="text-muted"{% endif %}>
+                <td class="ps-3">{{ r.appointment_date.strftime('%a %d %b %Y') if r.appointment_date else '—' }}</td>
+                <td>{{ r.start_time.strftime('%H:%M') if r.start_time else '—' }}</td>
+                <td {% if r.status!='cancelled' %}class="fw-semibold"{% endif %}>{{ r.patient_name }}</td>
+                <td class="text-muted">{{ r.phone or '—' }}</td>
+                <td class="text-muted">{{ r.doctor_name or '—' }}</td>
+                <td>{{ r.appointment_type or 'Standard' }}</td>
+                <td>
+                    <span class="badge
+                        {% if r.status=='scheduled' %}bg-success
+                        {% elif r.status=='completed' %}bg-primary
+                        {% elif r.status=='cancelled' %}bg-danger
+                        {% elif r.status=='no-show' %}bg-warning text-dark
+                        {% else %}bg-secondary{% endif %}">
+                        {{ r.status }}
+                        {% if r.cancelled_by == 'patient' %} (by patient){% endif %}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-muted">{{ t.empty_appointments2 }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

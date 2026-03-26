@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block page_title %}{{ t.nav_patients }}{% endblock %}
+
+{% block extra_head %}
+<style>
+:root {
+  --p-ink:   #0d1f2d;
+  --p-mid:   #334155;
+  --p-soft:  #64748b;
+  --p-fog:   #f1f5f9;
+  --p-line:  #e2e8f0;
+  --p-blue:  #2d6fd4;
+  --p-green: #059669;
+  --p-red:   #dc2626;
+  --p-amber: #d97706;
+}
+.reg-hero {
+  background: linear-gradient(135deg,#0c1a2e 0%,#1a3570 100%);
+  border-radius:16px; padding:24px 32px; margin-bottom:22px;
+  display:flex; align-items:center; justify-content:space-between; gap:20px;
+  position:relative; overflow:hidden;
+}
+.reg-hero::after {
+  content:''; position:absolute; right:-40px; top:-60px;
+  width:200px; height:200px; border-radius:50%;
+  background:rgba(255,255,255,.035); pointer-events:none;
+}
+.reg-hero-title { font-size:1.25rem; font-weight:800; color:#fff; }
+.reg-hero-sub   { font-size:.78rem; color:rgba(255,255,255,.5); margin-top:3px; }
+.reg-kpi-row    { display:flex; gap:14px; }
+.reg-kpi { padding:10px 18px; text-align:center; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:12px; min-width:72px; }
+.reg-kpi-val { font-size:1.5rem; font-weight:800; color:#fff; line-height:1; }
+.reg-kpi-lbl { font-size:.6rem; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.07em; margin-top:3px; }
+.reg-kpi.blue  .reg-kpi-val { color:#60a5fa; }
+.reg-kpi.red   .reg-kpi-val { color:#f87171; }
+.reg-kpi.green .reg-kpi-val { color:#4ade80; }
+.reg-toolbar {
+  background:#fff; border:1.5px solid var(--p-line); border-radius:14px;
+  padding:14px 20px; margin-bottom:18px;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.reg-search-wrap { flex:1; min-width:220px; position:relative; }
+.reg-search-wrap .srch-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--p-soft); font-size:.9rem; pointer-events:none; }
+.reg-search { width:100%; padding:9px 12px 9px 36px; border:1.5px solid var(--p-line); border-radius:10px; font-size:.85rem; outline:none; font-family:inherit; color:var(--p-ink); transition:border-color .15s; }
+.reg-search:focus { border-color:var(--p-blue); box-shadow:0 0 0 3px rgba(45,111,212,.1); }
+.reg-btn { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:10px; font-size:.82rem; font-weight:600; border:1.5px solid var(--p-line); cursor:pointer; text-decoration:none; transition:all .15s; white-space:nowrap; background:#fff; color:var(--p-mid); }
+.reg-btn:hover         { border-color:var(--p-blue); color:var(--p-blue); background:#f0f7ff; }
+.reg-btn.primary       { background:var(--p-blue); border-color:var(--p-blue); color:#fff; }
+.reg-btn.primary:hover { background:#1a5ab8; color:#fff; border-color:#1a5ab8; }
+.reg-panel { background:#fff; border:1.5px solid var(--p-line); border-radius:16px; overflow:hidden; }
+.reg-panel-hdr { padding:11px 22px; background:var(--p-fog); border-bottom:1.5px solid var(--p-line); display:grid; grid-template-columns:2.5fr 1fr 1fr 1fr auto; gap:12px; }
+.reg-panel-hdr span { font-size:.67rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--p-soft); }
+.reg-row { display:grid; grid-template-columns:2.5fr 1fr 1fr 1fr auto; gap:12px; align-items:center; padding:13px 22px; border-bottom:1px solid #f8fafc; transition:background .1s; cursor:pointer; animation:rowIn .25s ease both; text-decoration:none; color:inherit; }
+@keyframes rowIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+.reg-row:last-child { border-bottom:none; }
+.reg-row:hover { background:#f8fafc; }
+.reg-identity { display:flex; align-items:center; gap:12px; }
+.reg-av { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.85rem; font-weight:800; color:#fff; flex-shrink:0; }
+.av-0{background:linear-gradient(135deg,#2d6fd4,#1a3570)} .av-1{background:linear-gradient(135deg,#059669,#065f46)} .av-2{background:linear-gradient(135deg,#7c3aed,#4c1d95)} .av-3{background:linear-gradient(135deg,#dc2626,#991b1b)} .av-4{background:linear-gradient(135deg,#d97706,#92400e)} .av-5{background:linear-gradient(135deg,#0369a1,#0c4a6e)}
+.reg-name     { font-size:.87rem; font-weight:700; color:var(--p-ink); }
+.reg-name-sub { font-size:.7rem; color:var(--p-soft); margin-top:2px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.reg-tag { display:inline-flex; align-items:center; gap:3px; padding:1px 7px; border-radius:10px; font-size:.66rem; font-weight:700; }
+.reg-tag.allergy { background:#fee2e2; color:#991b1b; }
+.reg-tag.blood   { background:#fff1f2; color:#be123c; }
+.reg-row-actions { display:flex; gap:4px; opacity:0; transition:opacity .15s; }
+.reg-row:hover .reg-row-actions { opacity:1; }
+.reg-act { width:29px; height:29px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:.76rem; border:1.5px solid var(--p-line); cursor:pointer; text-decoration:none; transition:all .12s; background:#fff; color:var(--p-soft); }
+.reg-act:hover      { border-color:var(--p-blue); color:var(--p-blue); background:#f0f7ff; }
+.reg-act.edit:hover { border-color:var(--p-amber); color:var(--p-amber); background:#fffbeb; }
+.letter-div { padding:5px 22px; background:var(--p-fog); font-size:.66rem; font-weight:800; color:var(--p-soft); text-transform:uppercase; letter-spacing:.1em; border-bottom:1px solid var(--p-line); }
+.reg-empty { padding:72px 24px; text-align:center; }
+.reg-empty-ring { width:76px; height:76px; border-radius:50%; background:linear-gradient(135deg,#f1f5f9,#e2e8f0); display:inline-flex; align-items:center; justify-content:center; font-size:1.9rem; margin-bottom:16px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set total = patients|length %}
+
+<div class="reg-hero">
+  <div>
+    <div class="reg-hero-title"><i class="bi bi-people-fill me-2" style="opacity:.7;"></i>{{ t.nav_patients }}</div>
+    <div class="reg-hero-sub">{% if search %}"{{ search }}" — {{ total }} {{ t.misc_all|lower }}{% else %}{{ t.misc_active }} · {{ t.patients_title }}{% endif %}</div>
+  </div>
+  <div class="reg-kpi-row">
+    <div class="reg-kpi blue"><div class="reg-kpi-val">{{ total }}</div><div class="reg-kpi-lbl">{{ t.misc_all }}</div></div>
+    <div class="reg-kpi green"><div class="reg-kpi-val"><i class="bi bi-shield-check" style="font-size:1.1rem;"></i></div><div class="reg-kpi-lbl">{{ t.misc_active }}</div></div>
+  </div>
+</div>
+
+<div class="reg-toolbar">
+  <form method="GET" action="/patients" class="reg-search-wrap" id="searchForm">
+    <i class="bi bi-search srch-icon"></i>
+    <input type="text" name="q" class="reg-search" id="searchInput"
+           placeholder="{{ t.patients_search }}" value="{{ search }}" autocomplete="off">
+  </form>
+  {% if search %}<a href="/patients" class="reg-btn"><i class="bi bi-x"></i>{{ t.misc_clear }}</a>{% endif %}
+  <div style="flex:1;"></div>
+  {% if has_perm('patients_edit') %}
+
+<a href="/patients/new" class="reg-btn primary"><i class="bi bi-plus-lg"></i>{{ t.patients_new }}</a>
+
+    <!-- Bulk import buttons -->
+    <a href="/patients/import-template" class="reg-btn"
+       style="background:#fff;border:1.5px solid #2d6fd4;color:#2d6fd4;display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;font-size:.82rem;font-weight:600;text-decoration:none;transition:all .15s;"
+       onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fff'">
+      <i class="bi bi-download"></i> Shkarko Shabllonin
+    </a>
+
+    <form method="POST" action="/patients/import" enctype="multipart/form-data" style="display:inline-flex;align-items:center;gap:6px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label style="background:#059669;color:#fff;border:none;border-radius:9px;padding:8px 16px;font-size:.82rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;"
+             onmouseover="this.style.background='#047857'" onmouseout="this.style.background='#059669'">
+        <i class="bi bi-upload"></i> Ngarko Excel
+        <input type="file" name="import_file" accept=".xlsx" style="display:none;"
+               onchange="this.closest('form').submit()">
+      </label>
+    </form>
+  {% endif %}
+  <a href="/patients/duplicates" class="reg-btn" title="{{ t.page_archived }}"><i class="bi bi-copy"></i></a>
+  <a href="/patients/archived" class="reg-btn" title="{{ t.page_archived }}"><i class="bi bi-archive"></i></a>
+</div>
+
+<div class="reg-panel">
+  {% if patients %}
+  <div class="reg-panel-hdr">
+    <span>{{ t.th_name }}</span>
+    <span>{{ t.th_dob }}</span>
+    <span>{{ t.misc_phone }}</span>
+    <span>{{ t.misc_insurance_nr }}</span>
+    <span></span>
+  </div>
+  {% set ns = namespace(last_letter='') %}
+  {% for p in patients %}
+    {% set letter = p.last_name[0]|upper if p.last_name else '#' %}
+    {% if letter != ns.last_letter and not search %}
+    <div class="letter-div">{{ letter }}</div>{% set ns.last_letter = letter %}
+    {% endif %}
+    {% set av = 'av-' ~ (loop.index0 % 6) %}
+    {% set initials = (p.first_name[0]|upper if p.first_name else '') + (p.last_name[0]|upper if p.last_name else '') %}
+    {% if p.dob %}{% set age = ((today - p.dob).days // 365) %}{% else %}{% set age = none %}{% endif %}
+    <div class="reg-row" onclick="location.href='/patients/{{ p.id }}'" style="animation-delay:{{ loop.index0 * 16 }}ms;">
+      <div class="reg-identity">
+        <div class="reg-av {{ av }}">{{ initials }}</div>
+        <div>
+          <div class="reg-name">{{ p.last_name }}, {{ p.first_name }}</div>
+          <div class="reg-name-sub">
+            {% if p.blood_type %}<span class="reg-tag blood"><i class="bi bi-droplet-fill" style="font-size:.58rem;"></i>{{ p.blood_type }}</span>{% endif %}
+            {% if p.drug_allergies %}<span class="reg-tag allergy"><i class="bi bi-exclamation-triangle-fill" style="font-size:.58rem;"></i>{{ t.pf_drug_allergy }}</span>{% endif %}
+            {% if p.medical_history %}<span>{{ p.medical_history[:38] }}{% if p.medical_history|length > 38 %}…{% endif %}</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      <div>
+        {% if p.dob %}<div style="font-size:.82rem;color:var(--p-mid);">{{ p.dob.strftime('%d/%m/%Y') }}</div><div style="font-size:.7rem;color:var(--p-soft);">{{ age }} {{ t.pv_age }}</div>{% else %}<span style="color:var(--p-soft);">—</span>{% endif %}
+      </div>
+      <div style="font-size:.82rem;color:var(--p-mid);">
+        {% if p.phone %}<a href="tel:{{ p.phone }}" onclick="event.stopPropagation();" style="color:inherit;text-decoration:none;"><i class="bi bi-telephone" style="font-size:.68rem;margin-right:3px;"></i>{{ p.phone }}</a>{% else %}—{% endif %}
+      </div>
+      <div>
+        {% if p.insurance_nr %}<div style="font-size:.75rem;font-weight:600;color:var(--p-green);"><i class="bi bi-shield-check" style="font-size:.68rem;"></i> {{ p.insurance_nr }}</div>{% else %}<span style="font-size:.72rem;color:var(--p-soft);">—</span>{% endif %}
+        {% if p.risk_score %}<div style="font-size:.67rem;margin-top:2px;color:{% if p.risk_score >= 8 %}#dc2626{% elif p.risk_score >= 6 %}#d97706{% else %}#059669{% endif %};">● {{ p.risk_score }}/10</div>{% endif %}
+      </div>
+      <div class="reg-row-actions" onclick="event.stopPropagation();">
+        <a href="/patients/{{ p.id }}" class="reg-act" title="{{ t.btn_view }}"><i class="bi bi-eye"></i></a>
+        {% if has_perm('patients_edit') %}
+        <a href="/patients/{{ p.id }}/edit" class="reg-act edit" title="{{ t.edit }}"><i class="bi bi-pencil"></i></a>
+        <form method="POST" action="/patients/{{ p.id }}/archive" style="display:inline;" onsubmit="event.stopPropagation();return confirm('{{ t.misc_confirm_del }}')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="reg-act" type="submit" title="{{ t.btn_unarchive }}"><i class="bi bi-archive"></i></button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+  {% elif search %}
+  <div class="reg-empty">
+    <div class="reg-empty-ring">🔍</div>
+    <div style="font-weight:700;font-size:.95rem;color:var(--p-ink);margin-bottom:6px;">{{ t.no_results }}</div>
+    <div style="font-size:.82rem;color:var(--p-soft);margin-bottom:16px;">"{{ search }}"</div>
+    <a href="/patients" class="reg-btn">{{ t.misc_clear }}</a>
+  </div>
+  {% else %}
+  <div class="reg-empty">
+    <div class="reg-empty-ring">👤</div>
+    <div style="font-weight:700;font-size:.95rem;color:var(--p-ink);margin-bottom:6px;">{{ t.empty_patients }}</div>
+    {% if has_perm('patients_edit') %}
+    <a href="/patients/new" class="reg-btn primary" style="margin-top:12px;"><i class="bi bi-plus-lg me-1"></i>{{ t.cta_register_patient }}</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if patients %}
+<div style="text-align:center;padding:12px;font-size:.75rem;color:var(--p-soft);margin-top:6px;">
+  {{ total }} {{ t.nav_patients|lower }} · <a href="/patients/archived" style="color:var(--p-soft);">{{ t.page_archived }}</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var st;
+document.getElementById('searchInput').addEventListener('input', function(){
+  clearTimeout(st);
+  var v = this.value;
+  st = setTimeout(function(){ document.getElementById('searchForm').submit(); }, 380);
+});
+</script>
+
+{% if session.get('import_result') %}
+{% set ir = session.get('import_result') %}
+<div id="importResultModal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:16px;width:540px;max-width:96vw;max-height:85vh;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.3);display:flex;flex-direction:column;animation:fadeInUp .2s ease;">
+
+    <style>@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}</style>
+
+    <!-- Header -->
+    <div style="padding:20px 24px;background:{% if ir.created > 0 and not ir.errors %}linear-gradient(135deg,#047857,#10b981){% elif ir.created > 0 %}linear-gradient(135deg,#92400e,#d97706){% else %}linear-gradient(135deg,#991b1b,#dc2626){% endif %};display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <i class="bi bi-{% if ir.created > 0 and not ir.errors %}check-circle-fill{% elif ir.created > 0 %}exclamation-triangle-fill{% else %}x-circle-fill{% endif %}" style="color:#fff;font-size:1.5rem;"></i>
+        <div>
+          <div style="color:#fff;font-weight:800;font-size:1rem;">Rezultati i Importit</div>
+          <div style="color:rgba(255,255,255,.8);font-size:.78rem;margin-top:2px;">
+            {% if ir.created > 0 %}✓ {{ ir.created }} pacientë u importuan{% endif %}{% if ir.skipped > 0 %} &nbsp;·&nbsp; {{ ir.skipped }} u kaluan{% endif %}
+          </div>
+        </div>
+      </div>
+      <button onclick="closeImportModal()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:1.2rem;line-height:1;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.35)'" onmouseout="this.style.background='rgba(255,255,255,.2)'">×</button>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:20px 24px;overflow-y:auto;flex:1;">
+
+      {% if ir.created > 0 and not ir.errors %}
+      <div style="text-align:center;padding:20px 0;">
+        <div style="font-size:3rem;margin-bottom:10px;">🎉</div>
+        <div style="font-size:1rem;font-weight:700;color:#0f172a;">Të gjithë pacientët u importuan!</div>
+        <div style="font-size:.85rem;color:#64748b;margin-top:6px;">{{ ir.created }} rekorde u shtuan në sistem me sukses.</div>
+      </div>
+
+      {% else %}
+        {% if ir.created > 0 %}
+        <div style="padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;margin-bottom:14px;font-size:.83rem;color:#166534;display:flex;align-items:center;gap:8px;">
+          <i class="bi bi-check-circle-fill"></i>
+          <strong>{{ ir.created }} pacientë u importuan me sukses.</strong>
+        </div>
+        {% endif %}
+
+        {% if ir.errors %}
+        <div style="font-size:.83rem;font-weight:700;color:#991b1b;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          {{ ir.errors|length }} rreshta kishin gabime dhe nuk u importuan:
+        </div>
+        {% for err in ir.errors %}
+        <div style="display:flex;gap:10px;padding:10px 14px;background:#fff1f2;border:1px solid #fecdd3;border-radius:9px;margin-bottom:6px;">
+          <i class="bi bi-x-circle-fill" style="color:#dc2626;flex-shrink:0;margin-top:1px;"></i>
+          <span style="font-size:.82rem;color:#7f1d1d;line-height:1.6;">{{ err }}</span>
+        </div>
+        {% endfor %}
+        <div style="margin-top:14px;padding:11px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;font-size:.8rem;color:#78350f;display:flex;gap:8px;align-items:flex-start;">
+          <i class="bi bi-lightbulb-fill" style="flex-shrink:0;margin-top:1px;"></i>
+          <span>Korrigjoni gabimet në Excel dhe ngarkoni skedarin përsëri.{% if ir.created > 0 %} <strong>Rreshtat e suksesshëm tashmë janë ruajtur — mos i ngarkoni përsëri.</strong>{% endif %}</span>
+        </div>
+        {% endif %}
+      {% endif %}
+
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:14px 24px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;flex-shrink:0;">
+      <button onclick="closeImportModal()" style="padding:9px 28px;background:#2d6fd4;color:#fff;border:none;border-radius:9px;font-size:.88rem;font-weight:700;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2d6fd4'">
+        Mbyll
+      </button>
+    </div>
+
+  </div>
+</div>
+<script>
+function closeImportModal() {
+  document.getElementById('importResultModal').style.opacity = '0';
+  document.getElementById('importResultModal').style.transition = 'opacity .2s';
+  setTimeout(function() {
+    document.getElementById('importResultModal').remove();
+    // Clear session key so it doesn't reappear on refresh
+    fetch('/patients/import-result/clear', {method:'POST', headers:{'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content}});
+  }, 200);
+}
+// Close on backdrop click
+document.getElementById('importResultModal').addEventListener('click', function(e) {
+  if (e.target === this) closeImportModal();
+});
+</script>
+{% endif %}
+
+{% endblock %}

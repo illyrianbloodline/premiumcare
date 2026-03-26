@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-list-columns me-2 text-primary"></i>{{ t.h_transactions }}</h5>
+    <div class="d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print">
+            <i class="bi bi-printer me-1"></i>Print
+        </button>
+        <a href="/reports" class="btn btn-outline-secondary btn-sm no-print">
+            <i class="bi bi-arrow-left me-1"></i>Reports
+        </a>
+    </div>
+</div>
+<div class="row g-3 mb-3 no-print">
+    <div class="col-12">
+        <form method="GET" class="d-flex gap-2 align-items-end flex-wrap">
+            <div><label class="form-label mb-1" style="font-size:.8rem;">{{ t.lbl_from }}</label>
+                <input type="date" name="start" class="form-control form-control-sm" value="{{ start }}"></div>
+            <div><label class="form-label mb-1" style="font-size:.8rem;">To</label>
+                <input type="date" name="end" class="form-control form-control-sm" value="{{ end }}"></div>
+            <div><label class="form-label mb-1" style="font-size:.8rem;">{{ t.lbl_doctor }}</label>
+                <select name="doctor_id" class="form-select form-select-sm">
+                    <option value="">{{ t.opt_all }}</option>
+                    {% for s in staff %}<option value="{{ s.id }}" {% if doctor_id and doctor_id|int==s.id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+                </select></div>
+            <button type="submit" class="btn btn-primary btn-sm">{{ t.btn_update }}</button>
+        </form>
+    </div>
+</div>
+<div class="row g-3 mb-3">
+    <div class="col-sm-6">
+        <div class="stat-card" style="background:linear-gradient(135deg,#2d6fd4,#1a5abf);">
+            <div class="stat-num">€{{ "%.2f"|format(total) }}</div>
+            <div class="stat-label">{{ t.misc_transactions }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <div class="stat-card" style="background:linear-gradient(135deg,#6c757d,#495057);">
+            <div class="stat-num">{{ rows|length }}</div>
+            <div class="stat-label">{{ t.misc_invoices }}</div>
+        </div>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header fw-semibold">Transactions — {{ start }} to {{ end }}</div>
+    <div class="card-body p-0">
+        {% if rows %}
+        <table class="table table-hover mb-0" style="font-size:.87rem;">
+            <thead><tr>
+                <th class="ps-3">{{ t.th_date }}</th><th>{{ t.th_patient }}</th><th>{{ t.th_doctor }}</th>
+                <th>{{ t.th_items }}</th><th class="text-end pe-3">{{ t.th_total }}</th>
+            </tr></thead>
+            <tbody>
+            {% for r in rows %}
+            <tr>
+                <td class="ps-3">{{ r.invoice_date.strftime('%d %b %Y') if r.invoice_date else '—' }}</td>
+                <td class="fw-semibold">{{ r.patient_name }}</td>
+                <td class="text-muted">{{ r.doctor_name or '—' }}</td>
+                <td class="text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    {{ r.items or '—' }}
+                </td>
+                <td class="text-end pe-3 fw-semibold">€{{ "%.2f"|format(r.total_amount or 0) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+                <tr><td colspan="4" class="ps-3 fw-bold">{{ t.lbl_total }}</td>
+                <td class="text-end pe-3 fw-bold">€{{ "%.2f"|format(total) }}</td></tr>
+            </tfoot>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-muted">{{ t.empty_transactions }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

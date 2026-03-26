@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+{% block title %}Chat — {{ practice_name }}{% endblock %}
+{% block page_title %}{{ t.page_team_chat }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── Layout ── */
+  .chat-layout { display:flex; height:calc(100vh - 105px); min-height:480px; gap:0;
+    background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
+
+  /* ── Left: channel + member list ── */
+  .chat-sidebar {
+    width:210px; flex-shrink:0; background:#f8fafc;
+    border-right:1px solid #e8edf2; display:flex; flex-direction:column;
+  }
+  .chat-sidebar-hdr {
+    padding:14px 14px 10px; border-bottom:1px solid #e8edf2;
+  }
+  .chat-sidebar-hdr h6 { font-size:.72rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:.07em; color:#94a3b8; margin:0 0 10px; }
+  .channel-btn {
+    display:flex; align-items:center; gap:8px; width:100%;
+    padding:8px 10px; border-radius:8px; border:none;
+    text-align:left; font-size:.82rem; font-weight:600;
+    cursor:pointer; transition:all .12s;
+  }
+  .channel-btn.active { background:#eff6ff; color:#1d4ed8; }
+  .channel-btn:not(.active) { background:none; color:#64748b; }
+  .channel-btn:not(.active):hover { background:#f1f5f9; color:#0f172a; }
+
+  .member-list { flex:1; overflow-y:auto; padding:8px 8px 10px; }
+  .member-item {
+    display:flex; align-items:center; gap:8px;
+    padding:7px 8px; border-radius:8px; cursor:pointer;
+    font-size:.82rem; transition:background .1s;
+  }
+  .member-item:hover { background:#f1f5f9; }
+  .member-item.selected { background:#eff6ff; }
+  .member-avatar {
+    width:28px; height:28px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.7rem; font-weight:800; color:#fff;
+  }
+  .online-dot { width:8px; height:8px; border-radius:50%; background:#22c55e; margin-left:auto; flex-shrink:0; }
+  .role-pip {
+    font-size:.58rem; padding:1px 5px; border-radius:4px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.03em; margin-left:auto;
+  }
+  .role-admin       { background:#fef2f2; color:#be123c; }
+  .role-doctor      { background:#eff6ff; color:#1d4ed8; }
+  .role-nurse       { background:#f0fdf4; color:#166534; }
+  .role-receptionist{ background:#faf5ff; color:#6d28d9; }
+
+  /* ── Right: messages ── */
+  .chat-main { flex:1; display:flex; flex-direction:column; min-width:0; }
+
+  .chat-header {
+    padding:12px 16px; background:linear-gradient(135deg,#0f2347,#1a3570);
+    flex-shrink:0; display:flex; align-items:center; gap:10px;
+  }
+  .chat-header-avatar {
+    width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.15);
+    display:flex; align-items:center; justify-content:center;
+    font-size:.9rem; font-weight:800; color:#fff; flex-shrink:0;
+  }
+
+  .chat-messages {
+    flex:1; overflow-y:auto; padding:16px; display:flex;
+    flex-direction:column; gap:10px;
+  }
+
+  /* Message rows */
+  .msg-row { display:flex; gap:8px; align-items:flex-end; max-width:75%; }
+  .msg-row.mine { flex-direction:row-reverse; margin-left:auto; }
+  .msg-row.theirs { margin-right:auto; }
+
+  .msg-av {
+    width:30px; height:30px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.72rem; font-weight:800; color:#fff;
+  }
+  .msg-body { display:flex; flex-direction:column; gap:2px; }
+  .msg-name { font-size:.67rem; font-weight:700; color:#64748b; padding:0 4px; }
+  .msg-row.mine .msg-name { text-align:right; }
+  .msg-bubble {
+    padding:9px 13px; border-radius:14px; font-size:.86rem;
+    line-height:1.5; word-break:break-word; max-width:100%;
+  }
+  .msg-bubble.theirs {
+    background:#f1f5f9; color:#0f172a;
+    border-radius:14px 14px 14px 3px;
+  }
+  .msg-bubble.mine {
+    background:linear-gradient(135deg,#1d4ed8,#2d6fd4); color:#fff;
+    border-radius:14px 14px 3px 14px;
+  }
+  .msg-time { font-size:.62rem; color:#94a3b8; padding:0 4px; }
+  .msg-row.mine .msg-time { text-align:right; }
+
+  /* Date separator */
+  .date-sep { text-align:center; position:relative; margin:6px 0; }
+  .date-sep span {
+    font-size:.68rem; font-weight:600; color:#94a3b8; background:#fff;
+    padding:0 10px; position:relative; z-index:1;
+  }
+  .date-sep::before { content:''; position:absolute; top:50%; left:0; right:0;
+    height:1px; background:#e2e8f0; }
+
+  /* Input bar */
+  .chat-input-bar {
+    padding:12px 14px; border-top:1px solid #e2e8f0;
+    background:#f8fafc; flex-shrink:0;
+  }
+  .chat-to-row {
+    display:flex; align-items:center; gap:8px; margin-bottom:8px;
+    font-size:.78rem; color:#64748b;
+  }
+  .chat-to-row .to-label { font-weight:700; flex-shrink:0; }
+  .chat-to-row select {
+    flex:1; border:1.5px solid #e2e8f0; border-radius:8px;
+    padding:5px 10px; font-size:.78rem; background:#fff;
+    outline:none; cursor:pointer;
+  }
+  .chat-to-row select:focus { border-color:#2d6fd4; }
+
+  .chat-input-row { display:flex; gap:8px; align-items:flex-end; }
+  .chat-ta {
+    flex:1; border:1.5px solid #e2e8f0; border-radius:10px;
+    padding:9px 13px; font-size:.86rem; font-family:inherit;
+    resize:none; max-height:90px; min-height:40px;
+    outline:none; transition:border-color .15s; background:#fff;
+  }
+  .chat-ta:focus { border-color:#2d6fd4; }
+  .chat-send {
+    width:40px; height:40px; border-radius:10px;
+    background:#1d4ed8; border:none; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; flex-shrink:0; transition:all .15s;
+  }
+  .chat-send:hover { background:#1e40af; transform:translateY(-1px); }
+  .chat-hint { font-size:.65rem; color:#94a3b8; margin-top:5px; }
+
+  /* Empty state */
+  .chat-empty { flex:1; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:8px; color:#94a3b8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-layout">
+
+  <!-- ── Left sidebar: channels + members ── -->
+  <div class="chat-sidebar">
+    <div class="chat-sidebar-hdr">
+      <h6>{{ t.chat_channels }}</h6>
+      <button class="channel-btn active" id="btnAll" onclick="selectChannel('all')">
+        <i class="bi bi-people-fill" style="font-size:.85rem;"></i>
+        {{ t.chat_all_team }}
+      </button>
+    </div>
+
+    <div style="padding:10px 14px 6px;border-bottom:1px solid #e8edf2;">
+      <h6 style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin:0 0 8px;">{{ t.chat_direct }}</h6>
+    </div>
+    <div class="member-list">
+      {% for s in staff if s.active and s.id != user.id %}
+      {% set colors = ['#1d4ed8','#059669','#7c3aed','#c2410c','#0369a1','#166534'] %}
+      {% set color  = colors[loop.index0 % 6] %}
+      <div class="member-item" id="member-{{ s.id }}"
+           onclick="selectChannel('{{ s.id }}', '{{ s.name }}', '{{ color }}', '{{ s.role }}')">
+        <div class="msg-av" style="background:{{ color }};width:28px;height:28px;font-size:.68rem;">
+          {{ s.name[0].upper() }}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.78rem;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.name.split()[0] }}</div>
+          <div style="font-size:.65rem;color:#94a3b8;">{{ s.role }}</div>
+        </div>
+        <div class="online-dot"></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ── Right: message area ── -->
+  <div class="chat-main">
+
+    <!-- Header -->
+    <div class="chat-header" id="chatHeader">
+      <div class="chat-header-avatar" id="chatHeaderAv">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <div style="color:#fff;font-weight:800;font-size:.9rem;" id="chatHeaderName">
+          {{ t.chat_all_team }}
+        </div>
+        <div style="color:#94a3b8;font-size:.68rem;" id="chatHeaderSub">
+          {{ staff|length }} {{ t.chat_members }} · {{ practice_name }}
+        </div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+        <div style="width:8px;height:8px;border-radius:50%;background:#22c55e;"></div>
+        <span style="font-size:.68rem;color:#94a3b8;" id="liveLabel">{{ t.chat_live }}</span>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-messages" id="chatMessages">
+      {% if not messages %}
+      <div class="chat-empty">
+        <i class="bi bi-chat-dots" style="font-size:2.5rem;opacity:.25;"></i>
+        <div style="font-size:.88rem;">{{ t.chat_empty }}</div>
+      </div>
+      {% endif %}
+      {% set ns = namespace(last_date='') %}
+      {% for msg in messages %}
+      {% set is_mine = msg.sender_id == user.id %}
+      {% set colors  = ['#1d4ed8','#059669','#7c3aed','#c2410c','#0369a1','#166534'] %}
+      {% set color   = colors[loop.index0 % 6] %}
+      {% set msg_date = msg.created_at.strftime('%d/%m/%Y') %}
+      {% if msg_date != ns.last_date %}
+      <div class="date-sep"><span>{{ msg_date }}</span></div>
+      {% set ns.last_date = msg_date %}
+      {% endif %}
+      <div class="msg-row {% if is_mine %}mine{% else %}theirs{% endif %}"
+           data-id="{{ msg.id }}" data-channel="all">
+        {% if not is_mine %}
+        <div class="msg-av" style="background:{{ color }};">{{ (msg.sender_name or '?')[0].upper() }}</div>
+        {% endif %}
+        <div class="msg-body">
+          {% if not is_mine %}
+          <div class="msg-name">{{ msg.sender_name }} <span class="role-pip role-{{ msg.sender_role }}">{{ msg.sender_role[0].upper() }}</span></div>
+          {% endif %}
+          <div class="msg-bubble {% if is_mine %}mine{% else %}theirs{% endif %}">{{ msg.body }}</div>
+          <div class="msg-time">{{ msg.created_at.strftime('%H:%M') }}</div>
+        </div>
+        {% if is_mine %}
+        <div class="msg-av" style="background:#1d4ed8;">{{ (user.name or '?')[0].upper() }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input-bar">
+      <div class="chat-to-row" id="toRow" style="display:none;">
+        <span class="to-label">{{ t.chat_to }}</span>
+        <select id="recipientSelect">
+          <option value="all">{{ t.chat_all_team }}</option>
+          {% for s in staff if s.active and s.id != user.id %}
+          <option value="{{ s.id }}">{{ s.name }} ({{ s.role }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="chat-input-row">
+        <textarea id="chatInput" class="chat-ta" rows="1"
+          placeholder="{{ t.chat_placeholder_all }}"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"></textarea>
+        <button class="chat-send" onclick="sendMsg()">
+          <i class="bi bi-send-fill" style="font-size:.88rem;"></i>
+        </button>
+      </div>
+      <div class="chat-hint">{{ t.chat_hint }}</div>
+    </div>
+
+  </div><!-- /chat-main -->
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var myId    = {{ user.id }};
+var myName  = "{{ user.name }}";
+var myRole  = "{{ user.role }}";
+var lastMsgId = {{ (messages[-1].id if messages else 0) }};
+var currentChannel = 'all';   // 'all' or a staff_id string
+var channelColors  = {};
+var colorPalette   = ['#1d4ed8','#059669','#7c3aed','#c2410c','#0369a1','#166534'];
+var colorIdx       = 0;
+
+function getColor(senderId) {
+  if (!channelColors[senderId]) {
+    channelColors[senderId] = colorPalette[colorIdx % colorPalette.length];
+    colorIdx++;
+  }
+  return channelColors[senderId];
+}
+
+function scrollBottom() {
+  var el = document.getElementById('chatMessages');
+  if (el) el.scrollTop = el.scrollHeight;
+}
+scrollBottom();
+
+/* ── Channel selection ── */
+function selectChannel(channelId, name, color, role) {
+  currentChannel = channelId;
+
+  // Update sidebar highlights
+  document.querySelectorAll('.member-item').forEach(function(el) { el.classList.remove('selected'); });
+  document.getElementById('btnAll').classList.remove('active');
+  if (channelId === 'all') {
+    document.getElementById('btnAll').classList.add('active');
+  } else {
+    var m = document.getElementById('member-' + channelId);
+    if (m) m.classList.add('selected');
+  }
+
+  // Update header
+  var headerAv   = document.getElementById('chatHeaderAv');
+  var headerName = document.getElementById('chatHeaderName');
+  var headerSub  = document.getElementById('chatHeaderSub');
+  var ta         = document.getElementById('chatInput');
+  var toRow      = document.getElementById('toRow');
+  var recSel     = document.getElementById('recipientSelect');
+
+  if (channelId === 'all') {
+    headerAv.style.background   = 'rgba(255,255,255,.15)';
+    headerAv.innerHTML          = '<i class="bi bi-people-fill"></i>';
+    headerName.textContent      = '{{ t.chat_all_team }}';
+    headerSub.textContent       = '{{ staff|length }} {{ t.chat_members }} · {{ practice_name }}';
+    ta.placeholder              = '{{ t.chat_placeholder_all }}';
+    toRow.style.display         = 'none';
+    if (recSel) recSel.value    = 'all';
+  } else {
+    headerAv.style.background   = color || '#1d4ed8';
+    headerAv.innerHTML          = (name || '?')[0].toUpperCase();
+    headerName.textContent      = name || 'Direct Message';
+    headerSub.textContent       = (role || '') + ' · {{ t.chat_direct_sub }}';
+    ta.placeholder              = '{{ t.misc_send }} ' + (name ? name.split(' ')[0] : '') + '…';
+    toRow.style.display         = 'flex';
+    if (recSel) recSel.value    = channelId;
+  }
+
+  // Filter visible messages
+  filterMessages();
+  scrollBottom();
+}
+
+function filterMessages() {
+  var rows = document.querySelectorAll('.msg-row[data-channel]');
+  rows.forEach(function(row) {
+    var ch = row.getAttribute('data-channel');
+    // For now all loaded messages are group — DMs would have data-channel=userid
+    row.style.display = (currentChannel === 'all' || ch === currentChannel) ? '' : 'none';
+  });
+}
+
+/* ── Send message ── */
+function sendMsg() {
+  var ta   = document.getElementById('chatInput');
+  var body = ta.value.trim();
+  if (!body) return;
+  ta.value = '';
+  ta.style.height = '';
+
+  var recSel    = document.getElementById('recipientSelect');
+  var recipient = recSel ? recSel.value : 'all';
+
+  // Optimistic render
+  appendMsg({
+    id: Date.now(), sender_id: myId, sender_name: myName,
+    sender_role: myRole, body: body,
+    ts: new Date().toISOString(), channel: recipient
+  }, true);
+
+  fetch('/team-chat/send', {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded',
+              'X-Requested-With':'XMLHttpRequest'},
+    body: 'body=' + encodeURIComponent(body) + '&recipient=' + encodeURIComponent(recipient)
+  });
+}
+
+function appendMsg(msg, isMine) {
+  var container = document.getElementById('chatMessages');
+
+  // Remove empty state if present
+  var empty = container.querySelector('.chat-empty');
+  if (empty) empty.remove();
+
+  var color   = isMine ? '#1d4ed8' : getColor(msg.sender_id);
+  var initial = (msg.sender_name || '?')[0].toUpperCase();
+  var ts      = new Date(msg.ts).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+  var rolePip = '';
+  if (msg.sender_role) {
+    rolePip = '<span class="role-pip role-' + msg.sender_role + '">' +
+              msg.sender_role[0].toUpperCase() + '</span>';
+  }
+
+  var html = '<div class="msg-row ' + (isMine ? 'mine' : 'theirs') + '" data-id="' + msg.id + '" data-channel="all">';
+  if (!isMine) {
+    html += '<div class="msg-av" style="background:' + color + ';">' + initial + '</div>';
+  }
+  html += '<div class="msg-body">';
+  if (!isMine) {
+    html += '<div class="msg-name">' + (msg.sender_name || '') + ' ' + rolePip + '</div>';
+  }
+  html += '<div class="msg-bubble ' + (isMine ? 'mine' : 'theirs') + '">';
+  html += msg.body.replace(/\n/g, '<br>').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  html += '</div>';
+  html += '<div class="msg-time">' + ts + '</div>';
+  html += '</div>';
+  if (isMine) {
+    html += '<div class="msg-av" style="background:#1d4ed8;">' + initial + '</div>';
+  }
+  html += '</div>';
+
+  container.insertAdjacentHTML('beforeend', html);
+  if (msg.id > lastMsgId) lastMsgId = msg.id;
+  scrollBottom();
+}
+
+/* ── Auto-resize textarea ── */
+document.getElementById('chatInput').addEventListener('input', function() {
+  this.style.height = '';
+  this.style.height = Math.min(this.scrollHeight, 90) + 'px';
+});
+
+/* ── Poll new messages every 5s ── */
+setInterval(function() {
+  fetch('/api/team-chat/messages')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ok) return;
+      data.messages.forEach(function(msg) {
+        if (msg.id > lastMsgId && msg.sender_id !== myId) {
+          appendMsg(msg, false);
+        }
+      });
+    })
+    .catch(function(){});
+}, 5000);
+</script>
+{% endblock %}

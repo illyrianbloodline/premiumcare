@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block page_title %}Formularet{% endblock %}
+{% block content %}
+<style>
+.form-card{background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:20px 22px;display:flex;align-items:center;gap:16px;transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.form-card:hover{border-color:#bfdbfe;box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-2px);}
+.form-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff;flex-shrink:0;}
+.form-title{font-weight:700;font-size:.92rem;color:#111827;}
+.form-sub{font-size:.75rem;color:#6b7280;margin-top:2px;}
+.upload-zone{border:2px dashed #d1d5db;border-radius:12px;padding:32px;text-align:center;transition:all .2s;cursor:pointer;background:#fafafa;}
+.upload-zone:hover,.upload-zone.drag{border-color:#2d6fd4;background:#eff6ff;}
+.sec-hd{font-size:.72rem;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.07em;margin:24px 0 12px;}
+</style>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+  <div>
+    <h4 style="font-weight:800;margin:0;color:#111827;"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>Biblioteca e Formularëve</h4>
+    <div style="font-size:.82rem;color:#6b7280;margin-top:3px;">Shkarko formularët standard ose ngarko formularët e klinikës suaj</div>
+  </div>
+  <a href="/forms" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kthehu te Formularet</a>
+</div>
+
+<!-- Built-in forms -->
+<div class="sec-hd"><i class="bi bi-star-fill me-2" style="color:#f59e0b;"></i>Formularet Standarde</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:32px;">
+  {% for key, info in builtin_forms.items() %}
+  <div class="form-card">
+    <div class="form-icon" style="background:{{ info.color }};"><i class="bi {{ info.icon }}"></i></div>
+    <div style="flex:1;min-width:0;">
+      <div class="form-title">{{ info.title }}</div>
+      <div class="form-sub">Formular standard klinik · PDF</div>
+    </div>
+    <a href="/forms/pdf/{{ key }}" class="btn btn-sm btn-primary" style="white-space:nowrap;">
+      <i class="bi bi-download me-1"></i>Shkarko
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Custom uploaded forms -->
+{% if custom_forms %}
+<div class="sec-hd"><i class="bi bi-upload me-2" style="color:#7c3aed;"></i>Formularet e Ngarkuara</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:32px;">
+  {% for cf in custom_forms %}
+  <div class="form-card">
+    <div class="form-icon" style="background:#7c3aed;"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+    <div style="flex:1;min-width:0;">
+      <div class="form-title">{{ cf.title }}</div>
+      <div class="form-sub">Formular i ngarkuar nga klinika · PDF</div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <a href="/forms/pdf/custom/{{ cf.key }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i></a>
+      {% if user.role == 'admin' %}
+      <form method="POST" action="/forms/delete/{{ cf.key }}" onsubmit="return confirm('Fshij këtë formular?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Upload section (admin only) -->
+{% if user.role == 'admin' %}
+<div class="sec-hd"><i class="bi bi-cloud-upload me-2" style="color:#059669;"></i>Ngarko Formular të Ri</div>
+<div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:24px;max-width:600px;">
+  <form method="POST" action="/forms/upload" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3">
+      <label style="font-size:.8rem;font-weight:700;color:#374151;display:block;margin-bottom:6px;">Emri i Formularit *</label>
+      <input type="text" name="form_name" class="form-control" placeholder="p.sh. Formulari i Referimit" required style="font-size:.88rem;">
+    </div>
+    <div class="mb-4">
+      <label style="font-size:.8rem;font-weight:700;color:#374151;display:block;margin-bottom:6px;">Skedari PDF *</label>
+      <div class="upload-zone" onclick="document.getElementById('pdfFile').click()" id="dropZone">
+        <i class="bi bi-file-earmark-pdf" style="font-size:2rem;color:#dc2626;display:block;margin-bottom:8px;"></i>
+        <div style="font-weight:700;font-size:.9rem;color:#374151;" id="dropLabel">Kliko ose tërhiq PDF këtu</div>
+        <div style="font-size:.75rem;color:#9ca3af;margin-top:4px;">Vetëm skedarë .pdf · Max 20MB</div>
+      </div>
+      <input type="file" id="pdfFile" name="pdf_file" accept=".pdf" class="d-none" onchange="showFile(this)">
+    </div>
+    <button type="submit" class="btn btn-success fw-bold"><i class="bi bi-cloud-upload me-2"></i>Ngarko Formularin</button>
+  </form>
+</div>
+{% endif %}
+
+<script>
+function showFile(input){
+  var f = input.files[0];
+  if(f){
+    document.getElementById('dropLabel').textContent = '✓ ' + f.name;
+    document.getElementById('dropZone').style.borderColor = '#059669';
+    document.getElementById('dropZone').style.background = '#f0fdf4';
+  }
+}
+var dz = document.getElementById('dropZone');
+if(dz){
+  dz.addEventListener('dragover', function(e){e.preventDefault();this.classList.add('drag');});
+  dz.addEventListener('dragleave', function(){this.classList.remove('drag');});
+  dz.addEventListener('drop', function(e){
+    e.preventDefault();this.classList.remove('drag');
+    var f = e.dataTransfer.files[0];
+    if(f && f.name.endsWith('.pdf')){
+      document.getElementById('pdfFile').files = e.dataTransfer.files;
+      showFile(document.getElementById('pdfFile'));
+    }
+  });
+}
+</script>
+{% endblock %}

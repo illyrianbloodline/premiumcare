@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}{{ t.qb_title }} — {{ practice_name }}{% endblock %}
+{% block page_title %}{{ t.qb_title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.example-chip {
+  display:inline-block; padding:6px 12px; background:#f0f9ff;
+  border:1.5px solid #bae6fd; border-radius:20px; font-size:.75rem;
+  color:#0369a1; cursor:pointer; transition:all .15s; margin:3px;
+}
+.example-chip:hover { background:#e0f2fe; border-color:#38bdf8; }
+.result-table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.result-table thead th { background:#f8fafc; color:#64748b; font-size:.7rem;
+  font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  padding:10px 14px; border-bottom:1.5px solid #e2e8f0; white-space:nowrap; }
+.result-table tbody td { padding:10px 14px; border-bottom:1px solid #f1f5f9; vertical-align:top; }
+.result-table tbody tr:hover { background:#f8fafc; }
+.result-table tbody tr:last-child td { border-bottom:none; }
+.sql-block { background:#0f172a; color:#e2e8f0; border-radius:10px;
+  padding:14px 16px; font-family:monospace; font-size:.78rem;
+  line-height:1.6; white-space:pre-wrap; word-break:break-all; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topbar">
+  <h5 class="mb-0 fw-bold">
+    <i class="bi bi-database-gear me-2 text-primary"></i>{{ t.qb_title }}
+  </h5>
+</div>
+
+<!-- Query input card -->
+<div class="card border-0 mb-4" style="border:1px solid #e8edf2 !important;border-radius:14px;">
+  <div class="card-body p-4">
+    <p style="font-size:.85rem;color:#64748b;margin-bottom:16px;">
+      <i class="bi bi-info-circle me-2 text-primary"></i>{{ t.qb_hint }}
+    </p>
+    <form method="POST" id="queryForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div style="display:flex;gap:10px;margin-bottom:12px;">
+        <input type="text" name="query" id="queryInput" value="{{ query }}"
+               class="form-control" style="flex:1;font-size:.9rem;"
+               placeholder="{{ t.qb_placeholder }}" required>
+        <!-- IA-DISCLAIMER -->
+<div style="margin:.75rem 0 .5rem;padding:.55rem .9rem;background:linear-gradient(135deg,#fffbeb,#fff7ed);border:1px solid #fcd34d;border-radius:10px;font-size:.75rem;color:#78350f;display:flex;align-items:flex-start;gap:.5rem;line-height:1.5;"><i class="bi bi-shield-exclamation" style="flex-shrink:0;margin-top:1px;color:#d97706;"></i><div><strong>Vetëm mjet mbështetës. Mjeku vendos.</strong> Të gjitha vendimet klinike duhet të merren nga mjeku trajtues. Përgjigjet e ia nuk zëvendësojnë gjykimin mjekësor profesional. Mos shkruani të dhëna personale.</div></div>
+<button type="submit" class="btn btn-primary fw-bold px-4">
+          <i class="bi bi-play-fill me-1"></i>{{ t.qb_run }}
+        </button>
+      </div>
+    </form>
+
+    <!-- Example queries -->
+    <div>
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:8px;">
+        {{ t.qb_examples }}
+      </div>
+      <div>
+        {% set ex_list_en = [
+          'Patients over 65 on Lisinopril with no blood test in 6 months',
+          'Female patients with diabetes and HbA1c not checked this year',
+          'Patients with hypertension and blood pressure above 140/90',
+          'Patients with abnormal lab results in the last 30 days',
+          'Patients who missed their last appointment',
+          'Patients on Warfarin with no INR check in 3 months',
+          'New patients registered this month',
+          'Patients with penicillin allergy currently prescribed antibiotics'
+        ] %}
+        {% set ex_list_sq = [
+          'Pacientët mbi 65 vjeç me Lisinopril pa test gjaku në 6 muaj',
+          'Pacientet femra me diabet dhe HbA1c pa kontroll këtë vit',
+          'Pacientët me hipertension dhe presion gjaku mbi 140/90',
+          'Pacientët me rezultate anormale të laboratorit në 30 ditët e fundit',
+          'Pacientët që humbasin takimin e fundit',
+          'Pacientët me Warfarin pa kontroll INR në 3 muaj',
+          'Pacientët e rinj të regjistruar këtë muaj',
+          'Pacientët me alergjie ndaj penicilinës me antibiotikë aktualë'
+        ] %}
+        {% set ex_list = ex_list_sq if session.get('lang','sq') == 'sq' else ex_list_en %}
+        {% for ex in ex_list %}
+        <span class="example-chip" onclick="document.getElementById('queryInput').value='{{ ex }}'; document.getElementById('queryForm').submit();">
+          {{ ex }}
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert border-0 mb-4" style="background:#fff1f2;border:1.5px solid #fecdd3 !important;border-radius:12px;color:#be123c;">
+  <i class="bi bi-exclamation-triangle me-2"></i><strong>{{ t.misc_error_prefix }}</strong> {{ error }}
+</div>
+{% endif %}
+
+{% if results is not none %}
+<!-- Results -->
+<div class="card border-0 mb-4" style="border:1px solid #e8edf2 !important;border-radius:14px;">
+  <div class="card-header py-3 px-4" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;border-radius:14px 14px 0 0;">
+    <div class="d-flex align-items-center justify-content-between">
+      <span class="fw-bold" style="color:#166534;">
+        <i class="bi bi-check-circle me-2"></i>
+        {{ results|length }} {{ t.qb_count }}
+      </span>
+      <button onclick="exportCSV()" class="btn btn-sm btn-outline-success fw-semibold">
+        <i class="bi bi-download me-1"></i>Export CSV
+      </button>
+    </div>
+  </div>
+  <div class="card-body p-0" style="overflow-x:auto;">
+    {% if results %}
+    <table class="result-table" id="resultsTable">
+      <thead>
+        <tr>
+          {% for col in results[0].keys() %}
+          <th>{{ col }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in results %}
+        <tr>
+          {% for col, val in row.items() %}
+          <td>
+            {% if col == 'id' and row.get('first_name') %}
+            <a href="/patients/{{ val }}" style="color:#1d4ed8;font-weight:600;">{{ val }}</a>
+            {% elif val is none %}
+            <span style="color:#cbd5e1;">—</span>
+            {% elif val is string and val|length > 80 %}
+            <span title="{{ val }}">{{ val[:80] }}…</span>
+            {% else %}
+            {{ val }}
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">{{ t.qb_no_results }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- SQL used (collapsible, for transparency) -->
+{% if sql_used %}
+<div class="card border-0" style="border:1px solid #e8edf2 !important;border-radius:14px;">
+  <div class="card-header py-2 px-4 d-flex align-items-center justify-content-between"
+       style="cursor:pointer;background:#f8fafc;border-radius:14px;"
+       onclick="this.nextElementSibling.classList.toggle('d-none')">
+    <span style="font-size:.8rem;font-weight:700;color:#64748b;">
+      <i class="bi bi-code me-2"></i>{{ t.qb_sql }}
+    </span>
+    <i class="bi bi-chevron-down" style="font-size:.75rem;color:#94a3b8;"></i>
+  </div>
+  <div class="card-body p-4 d-none">
+    <div class="sql-block">{{ sql_used }}</div>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportCSV() {
+  var table = document.getElementById('resultsTable');
+  if (!table) return;
+  var rows = Array.from(table.rows).map(function(row) {
+    return Array.from(row.cells).map(function(cell) {
+      return '"' + cell.textContent.trim().replace(/"/g, '""') + '"';
+    }).join(',');
+  });
+  var csv  = rows.join('\n');
+  var blob = new Blob([csv], {type:'text/csv'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url; a.download = 'query_results.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

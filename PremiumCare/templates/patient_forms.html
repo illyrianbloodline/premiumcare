@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<style>
+:root {
+  --forms-navy: #0c1a2e;
+  --forms-blue: #2d6fd4;
+  --forms-green: #059669;
+  --forms-amber: #d97706;
+  --forms-red: #dc2626;
+}
+
+.forms-hero {
+  background: linear-gradient(135deg, #0c1a2e 0%, #1a3570 100%);
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.forms-hero-left { display: flex; align-items: center; gap: 18px; }
+.forms-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(255,255,255,.12);
+  border: 2px solid rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.3rem; font-weight: 800; color: #fff;
+  letter-spacing: 1px;
+}
+.forms-patient-name { font-size: 1.2rem; font-weight: 800; color: #fff; }
+.forms-patient-sub  { font-size: .8rem; color: rgba(255,255,255,.6); margin-top: 2px; }
+
+/* Template cards grid */
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.template-card {
+  background: #fff;
+  border: 1.5px solid #e8edf2;
+  border-radius: 14px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+  overflow: hidden;
+}
+.template-card:hover {
+  border-color: var(--forms-blue);
+  box-shadow: 0 4px 20px rgba(45,111,212,.12);
+  transform: translateY(-2px);
+}
+.template-card.selected {
+  border-color: var(--forms-blue);
+  background: linear-gradient(135deg, #eff6ff, #fff);
+}
+.template-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--forms-blue);
+  opacity: 0;
+  transition: opacity .2s;
+}
+.template-card:hover::before,
+.template-card.selected::before { opacity: 1; }
+
+.tc-icon {
+  width: 42px; height: 42px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; margin-bottom: 12px;
+}
+.tc-title { font-size: .88rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+.tc-desc  { font-size: .75rem; color: #64748b; line-height: 1.5; }
+.tc-check {
+  position: absolute; top: 12px; right: 12px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--forms-blue); color: #fff;
+  display: none; align-items: center; justify-content: center;
+  font-size: .7rem;
+}
+.template-card.selected .tc-check { display: flex; }
+
+/* Forms table */
+.forms-table { width: 100%; border-collapse: collapse; }
+.forms-table th {
+  padding: 10px 14px;
+  font-size: .7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: #94a3b8; border-bottom: 1.5px solid #e8edf2;
+  background: #f8fafc;
+}
+.forms-table td {
+  padding: 14px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: .83rem; color: #334155;
+  vertical-align: middle;
+}
+.forms-table tr:last-child td { border-bottom: none; }
+.forms-table tr:hover td { background: #f8fafc; }
+
+.form-status {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: .72rem; font-weight: 700;
+}
+.form-status.pending  { background: #fef3c7; color: #92400e; }
+.form-status.signed   { background: #dcfce7; color: #14532d; }
+.form-status.expired  { background: #fee2e2; color: #7f1d1d; }
+
+.link-copy-box {
+  background: #f1f5f9;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: .75rem;
+  font-family: monospace;
+  color: #334155;
+  word-break: break-all;
+}
+
+.send-panel {
+  background: #fff;
+  border: 1.5px solid #e8edf2;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.send-panel-header {
+  padding: 18px 22px;
+  background: linear-gradient(135deg, #f8fafc, #fff);
+  border-bottom: 1.5px solid #e8edf2;
+  font-weight: 700; font-size: .9rem; color: #0f172a;
+  display: flex; align-items: center; gap: 8px;
+}
+.send-panel-body { padding: 22px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set initials = (patient.first_name[0]|upper) + (patient.last_name[0]|upper) %}
+{% if patient.dob %}{% set age = (today - patient.dob).days // 365 %}{% else %}{% set age = 0 %}{% endif %}
+
+<!-- Hero -->
+<div class="forms-hero">
+  <div class="forms-hero-left">
+    <div class="forms-avatar">{{ initials }}</div>
+    <div>
+      <div class="forms-patient-name">{{ patient.first_name }} {{ patient.last_name }}</div>
+      <div class="forms-patient-sub">
+        {% if age %}{{ age }} {{ t.pv_age }} · {% endif %}
+        {% if patient.gender %}{{ patient.gender }} · {% endif %}
+        #{{ patient.id }}
+      </div>
+    </div>
+  </div>
+  <a href="/patients/{{ patient.id }}" class="btn btn-sm" style="background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.2);font-size:.8rem;">
+    <i class="bi bi-arrow-left me-1"></i>{{ t.btn_back }}
+  </a>
+</div>
+
+<div class="row g-4">
+
+  <!-- LEFT: Send a form -->
+  <div class="col-lg-5">
+    <div class="send-panel">
+      <div class="send-panel-header">
+        <i class="bi bi-send-check" style="color:#2d6fd4;"></i>
+        {{ t.forms_send_title|default('Send a Form to Patient') }}
+      </div>
+      <div class="send-panel-body">
+        <p style="font-size:.82rem;color:#64748b;margin-bottom:18px;">
+          {{ t.forms_send_hint|default('Select a template, then send the signing link to the patient.') }}
+        </p>
+
+        <!-- Template picker -->
+        <div class="template-grid" style="grid-template-columns:1fr 1fr;" id="templateGrid">
+          {% set icons = {
+            'consent_general':    ('bi-file-medical','#eff6ff','#2d6fd4'),
+            'consent_privacy':    ('bi-shield-lock','#f0fdf4','#059669'),
+            'consent_telehealth': ('bi-camera-video','#faf5ff','#7c3aed'),
+            'consent_photo':      ('bi-camera','#fff7ed','#ea580c'),
+            'intake_new_patient': ('bi-person-plus','#f0f9ff','#0369a1'),
+            'consent_medication': ('bi-capsule','#fef3c7','#d97706'),
+          } %}
+          {% for key, tmpl in form_templates.items() %}
+          {% set ic = icons.get(key, ('bi-file-text','#f1f5f9','#64748b')) %}
+          <div class="template-card" id="tc-{{ key }}" onclick="selectTemplate('{{ key }}','{{ tmpl.title|replace("'","\\'") }}')">
+            <div class="tc-check"><i class="bi bi-check"></i></div>
+            <div class="tc-icon" style="background:{{ ic[1] }};color:{{ ic[2] }};">
+              <i class="bi {{ ic[0] }}"></i>
+            </div>
+            <div class="tc-title">{{ tmpl.title }}</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Send form -->
+        <form method="POST" action="/patients/{{ patient.id }}/forms/send" id="sendForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="form_type" id="selectedType" value="consent_general">
+          <input type="hidden" name="form_title" id="selectedTitle" value="{{ form_templates.consent_general.title }}">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.forms_custom_title|default('Custom Title (optional)') }}</label>
+            <input type="text" name="form_title_override" class="form-control form-control-sm"
+                   placeholder="{{ form_templates.consent_general.title }}" id="titleOverride">
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 fw-semibold" style="border-radius:10px;">
+            <i class="bi bi-send me-2"></i>{{ t.forms_send_btn|default('Generate Signing Link') }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Existing forms -->
+  <div class="col-lg-7">
+    <div style="background:#fff;border:1.5px solid #e8edf2;border-radius:16px;overflow:hidden;">
+      <div style="padding:18px 22px;background:linear-gradient(135deg,#f8fafc,#fff);border-bottom:1.5px solid #e8edf2;display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-weight:700;font-size:.9rem;color:#0f172a;display:flex;align-items:center;gap:8px;">
+          <i class="bi bi-files" style="color:#2d6fd4;"></i>
+          {{ t.forms_list_title|default('Patient Forms') }}
+          <span style="background:#e8edf2;color:#475569;font-size:.7rem;font-weight:700;padding:1px 8px;border-radius:20px;">{{ forms|length }}</span>
+        </div>
+        <div style="display:flex;gap:6px;font-size:.72rem;color:#94a3b8;">
+          <span style="background:#dcfce7;color:#14532d;padding:2px 8px;border-radius:12px;font-weight:600;">✓ {{ forms|selectattr('status','eq','signed')|list|length }} {{ t.forms_signed|default('signed') }}</span>
+          <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:12px;font-weight:600;">⏳ {{ forms|selectattr('status','eq','pending')|list|length }} {{ t.forms_pending|default('pending') }}</span>
+        </div>
+      </div>
+
+      {% if not forms %}
+      <div style="padding:48px 24px;text-align:center;color:#94a3b8;">
+        <i class="bi bi-file-earmark-plus" style="font-size:2.5rem;opacity:.3;display:block;margin-bottom:12px;"></i>
+        <div style="font-size:.88rem;">{{ t.forms_empty|default('No forms sent yet. Use the panel on the left to send the first form.') }}</div>
+      </div>
+      {% else %}
+      <div style="overflow-x:auto;">
+        <table class="forms-table">
+          <thead>
+            <tr>
+              <th>{{ t.th_title }}</th>
+              <th>{{ t.th_status }}</th>
+              <th>{{ t.th_date }}</th>
+              <th>{{ t.th_actions }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in forms %}
+            <tr>
+              <td>
+                <div style="font-weight:600;color:#0f172a;">{{ f.form_title }}</div>
+                <div style="font-size:.72rem;color:#94a3b8;margin-top:2px;">{{ f.form_type|replace('_',' ')|title }}</div>
+              </td>
+              <td>
+                <span class="form-status {{ f.status }}">
+                  {% if f.status == 'signed' %}
+                  <i class="bi bi-check-circle-fill"></i> {{ t.forms_signed|default('Signed') }}
+                  {% else %}
+                  <i class="bi bi-clock"></i> {{ t.forms_pending|default('Pending') }}
+                  {% endif %}
+                </span>
+                {% if f.status == 'signed' and f.signed_by_name %}
+                <div style="font-size:.7rem;color:#64748b;margin-top:3px;">{{ f.signed_by_name }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <div style="font-size:.8rem;">{{ f.created_at.strftime('%d/%m/%Y') }}</div>
+                {% if f.signed_at %}
+                <div style="font-size:.7rem;color:#059669;">✓ {{ f.signed_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  {% if f.status == 'pending' %}
+                  <button onclick="copyLink('{{ request.host_url }}forms/{{ f.id }}/sign')"
+                          class="btn btn-xs btn-outline-primary" style="font-size:.72rem;padding:3px 8px;border-radius:6px;">
+                    <i class="bi bi-link-45deg"></i> {{ t.forms_copy_link|default('Copy Link') }}
+                  </button>
+                  {% else %}
+                  <a href="/forms/{{ f.id }}/sign" target="_blank"
+                     class="btn btn-xs btn-outline-secondary" style="font-size:.72rem;padding:3px 8px;border-radius:6px;">
+                    <i class="bi bi-eye"></i> {{ t.btn_view|default('View') }}
+                  </a>
+                  {% endif %}
+                  <form method="POST" action="/patients/{{ patient.id }}/forms/{{ f.id }}/delete"
+                        style="display:inline;" onsubmit="return confirm('{{ t.misc_confirm_del }}')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-xs btn-outline-danger" style="font-size:.72rem;padding:3px 8px;border-radius:6px;">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="copyToast" style="position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:10px 18px;border-radius:10px;font-size:.82rem;display:none;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.3);">
+  <i class="bi bi-check-circle-fill me-2" style="color:#22c55e;"></i>{{ t.forms_link_copied|default('Link copied to clipboard!') }}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectTemplate(key, title) {
+  document.querySelectorAll('.template-card').forEach(function(c){ c.classList.remove('selected'); });
+  var card = document.getElementById('tc-' + key);
+  if (card) card.classList.add('selected');
+  document.getElementById('selectedType').value  = key;
+  document.getElementById('selectedTitle').value = title;
+  document.getElementById('titleOverride').placeholder = title;
+}
+
+function copyLink(url) {
+  navigator.clipboard.writeText(url).then(function() {
+    var toast = document.getElementById('copyToast');
+    toast.style.display = 'block';
+    setTimeout(function(){ toast.style.display = 'none'; }, 2500);
+  }).catch(function() {
+    prompt('{{ t.forms_copy_manual|default("Copy this link:") }}', url);
+  });
+}
+
+// Select first template by default
+document.addEventListener('DOMContentLoaded', function() {
+  var first = document.querySelector('.template-card');
+  if (first) first.classList.add('selected');
+
+  // Override title on submit
+  document.getElementById('sendForm').addEventListener('submit', function() {
+    var ov = document.getElementById('titleOverride').value.trim();
+    if (ov) document.getElementById('selectedTitle').value = ov;
+  });
+});
+</script>
+{% endblock %}

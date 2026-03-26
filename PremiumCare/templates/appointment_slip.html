@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Appointment Slip — {{ patient.first_name }} {{ patient.last_name }}</title>
+    <style>
+        body { font-family:'Segoe UI',Arial,sans-serif; margin:0; padding:30px; font-size:13px; }
+        .header { border-bottom:3px solid #1a2942; padding-bottom:15px; margin-bottom:20px; display:flex; justify-content:space-between; }
+        .practice-name { font-size:1.4rem; font-weight:700; color:#1a2942; }
+        .patient-box { background:#f0f7ff; border-radius:8px; padding:14px; margin-bottom:20px; }
+        table { width:100%; border-collapse:collapse; }
+        thead th { background:#1a2942; color:white; padding:10px 12px; text-align:left; }
+        tbody td { padding:10px 12px; border-bottom:1px solid #eee; }
+        tbody tr:nth-child(even) { background:#f8f9fa; }
+        .footer { margin-top:30px; border-top:1px solid #ddd; padding-top:15px; font-size:11px; color:#888; display:flex; justify-content:space-between; }
+        @media print { .no-print { display:none; } }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div>
+        <div class="practice-name">{{ practice_name }}</div>
+        <div style="color:#666;">{{ t.misc_appt_schedule }}</div>
+    </div>
+    <div style="text-align:right; color:#666;">{{ today.strftime('%d %B %Y') }}</div>
+</div>
+
+<div class="patient-box">
+    <strong>{{ t.misc_patient_colon }}</strong> {{ patient.first_name }} {{ patient.last_name }}
+    {% if patient.dob %} · DOB: {{ patient.dob.strftime('%d %b %Y') }}{% endif %}
+    {% if patient.phone %} · Phone: {{ patient.phone }}{% endif %}
+</div>
+
+<p style="margin-bottom:15px; color:#555;">{{ t.misc_next_appts }}</p>
+
+{% if appointments %}
+<table>
+    <thead>
+        <tr>
+            <th>{{ t.th_date }}</th>
+            <th>{{ t.th_time }}</th>
+            <th>{{ t.th_doctor }}</th>
+            <th>{{ t.misc_type }}</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for a in appointments %}
+    <tr>
+        <td><strong>{{ a.appointment_date.strftime('%A, %d %B %Y') }}</strong></td>
+        <td>{{ a.start_time.strftime('%I:%M %p') if a.start_time else '—' }}</td>
+        <td>Dr. {{ a.doctor_name or '—' }}</td>
+        <td>{{ a.appointment_type or 'Standard' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p style="color:#888; text-align:center; padding:20px;">{{ t.misc_no_upcoming }}</p>
+{% endif %}
+
+<div style="margin-top:25px; padding:12px; background:#fff3cd; border-radius:6px; font-size:12px;">
+    <strong>{{ t.misc_please_note }}</strong> If you need to cancel or reschedule, please contact us as soon as possible.
+    Our cancellation policy requires at least 24 hours notice.
+</div>
+
+<div class="footer">
+    <div>{{ practice_name }}</div>
+    <div>Printed {{ today.strftime('%d %b %Y') }}</div>
+</div>
+
+<div class="no-print" style="text-align:center; margin-top:25px;">
+    <button onclick="window.print()" style="padding:10px 30px; background:#1a2942; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px;">
+        🖨️ Print Appointment Slip
+    </button>
+    <button onclick="window.close()" style="padding:10px 30px; background:#6c757d; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px; margin-left:10px;">
+        Close
+    </button>
+</div>
+</body>
+</html>

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-exclamation-circle me-2 text-danger"></i>{{ t.h_overdue }}</h5>
+    <div class="d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print">
+            <i class="bi bi-printer me-1"></i>Print
+        </button>
+        <a href="{{ '/reports' }}" class="btn btn-outline-secondary btn-sm no-print">
+            <i class="bi bi-arrow-left me-1"></i>Reports
+        </a>
+    </div>
+</div>
+{% if rows %}
+<div class="row g-3 mb-3">
+    <div class="col-sm-6">
+        <div class="stat-card" style="background:linear-gradient(135deg,#dc3545,#b02a37);">
+            <div class="stat-num">€{{ "%.2f"|format(total) }}</div>
+            <div class="stat-label">{{ t.misc_total_outstanding }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <div class="stat-card" style="background:linear-gradient(135deg,#6c757d,#495057);">
+            <div class="stat-num">{{ rows|length }}</div>
+            <div class="stat-label">{{ t.misc_overdue_30 }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+<div class="card">
+    <div class="card-header fw-semibold">{{ t.misc_overdue_30 }}</div>
+    <div class="card-body p-0">
+        {% if rows %}
+        <table class="table table-hover mb-0" style="font-size:.87rem;">
+            <thead><tr>
+                <th class="ps-3">{{ t.th_patient }}</th><th>{{ t.misc_phone }}</th><th>{{ t.th_doctor }}</th>
+                <th>{{ t.th_invoice_date }}</th><th>{{ t.th_days_overdue }}</th>
+                <th class="text-end">{{ t.th_total }}</th><th class="text-end pe-3">{{ t.th_outstanding }}</th>
+                <th class="no-print text-end pe-3">{{ t.th_action }}</th>
+            </tr></thead>
+            <tbody>
+            {% for r in rows %}
+            <tr {% if r.days_overdue > 90 %}class="table-danger"{% elif r.days_overdue > 60 %}class="table-warning"{% endif %}>
+                <td class="ps-3 fw-semibold">{{ r.patient_name }}</td>
+                <td class="text-muted">{{ r.phone or '—' }}</td>
+                <td class="text-muted">{{ r.doctor_name or '—' }}</td>
+                <td>{{ r.invoice_date.strftime('%d %b %Y') if r.invoice_date else '—' }}</td>
+                <td>
+                    <span class="badge {% if r.days_overdue > 90 %}bg-danger{% elif r.days_overdue > 60 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                        {{ r.days_overdue }} days
+                    </span>
+                </td>
+                <td class="text-end">€{{ "%.2f"|format(r.total_amount or 0) }}</td>
+                <td class="text-end pe-3 fw-semibold text-danger">€{{ "%.2f"|format(r.outstanding or 0) }}</td>
+                <td class="no-print text-end pe-3">
+                    <a href="{{ '/patients/' + (r.patient_id)|string + '/billing' }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+                <tr><td colspan="6" class="ps-3 fw-bold">{{ t.misc_total_outstanding2 }}</td>
+                <td class="text-end pe-3 fw-bold text-danger">€{{ "%.2f"|format(total) }}</td>
+                <td class="no-print"></td></tr>
+            </tfoot>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-check-circle text-success" style="font-size:2rem;"></i>
+            <p class="mt-2">{{ t.empty_overdue }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

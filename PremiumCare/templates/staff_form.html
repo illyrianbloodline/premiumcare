@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}{% if member %}Edit Staff{% else %}Add Staff{% endif %} — {{ practice_name }}{% endblock %}
+{% block page_title %}{% if member %}Edit Staff Member{% else %}Add Staff Member{% endif %}{% endblock %}
+
+{% block extra_head %}
+<style>
+.role-preset-btn {
+  border: 1.5px solid #dee2e6; border-radius: 8px; padding: 8px 14px;
+  cursor: pointer; font-size: .82rem; font-weight: 600; background: #fff;
+  transition: all .15s; color: #495057;
+}
+.role-preset-btn:hover { border-color: #2d6fd4; color: #2d6fd4; background: #f0f7ff; }
+.role-preset-btn.selected { border-color: #2d6fd4; background: #2d6fd4; color: #fff; }
+.perm-section { margin-bottom: 20px; }
+.perm-section-label {
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .06em;
+  color: #6c757d; font-weight: 600; margin-bottom: 8px; padding-bottom: 4px;
+  border-bottom: 1px solid #e9ecef;
+}
+.perm-card {
+  border: 1.5px solid #e9ecef; border-radius: 10px; padding: 12px 14px;
+  cursor: pointer; transition: all .15s; background: #fff;
+  display: flex; align-items: flex-start; gap: 10px; width: 100%;
+}
+.perm-card:hover { border-color: #2d6fd4; background: #f8fbff; }
+.perm-card.checked { border-color: #2d6fd4; background: #f0f7ff; }
+.perm-card input[type=checkbox] { margin-top: 3px; accent-color: #2d6fd4; flex-shrink: 0; }
+.perm-title { font-size: .85rem; font-weight: 600; line-height: 1.3; }
+.perm-desc  { font-size: .75rem; color: #6c757d; margin-top: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:860px;">
+<form method="POST" id="staffForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="row g-3">
+
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header py-2 px-4">
+        <span class="fw-semibold" style="font-size:.85rem;">
+          <i class="bi bi-person-badge me-2 text-primary"></i>Staff Details
+        </span>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" style="font-size:.83rem;">Full Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control form-control-sm" required
+                   value="{{ member.name if member else '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" style="font-size:.83rem;">Email <span class="text-danger">*</span></label>
+            <input type="email" name="email" class="form-control form-control-sm" required
+                   value="{{ member.email if member else '' }}">
+          </div>
+          {% if not member %}
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" style="font-size:.83rem;">Password <span class="text-danger">*</span></label>
+            <input type="password" name="password" class="form-control form-control-sm" required minlength="8">
+            <div class="form-text">{{ t.misc_min8 }}</div>
+          </div>
+          {% endif %}
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" style="font-size:.83rem;">{{ t.lbl_specialty }}</label>
+            <input type="text" name="specialty" class="form-control form-control-sm"
+                   placeholder="{{ t.ph_gp_specialty }}"
+                   value="{{ member.specialty if member else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" style="font-size:.83rem;">{{ t.misc_phone }}</label>
+            <input type="text" name="phone" class="form-control form-control-sm"
+                   value="{{ member.phone if member else '' }}">
+          </div>
+          {% if member %}
+          <div class="col-md-4 d-flex align-items-end pb-1">
+            <div class="form-check">
+              <input type="checkbox" name="active" class="form-check-input" id="activeCheck"
+                     {% if member.active %}checked{% endif %}>
+              <label class="form-check-label fw-semibold" for="activeCheck" style="font-size:.83rem;">{{ t.status_active }}</label>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header py-2 px-4">
+        <span class="fw-semibold" style="font-size:.85rem;">
+          <i class="bi bi-shield-check me-2 text-primary"></i>Role &amp; Permissions
+        </span>
+      </div>
+      <div class="card-body p-4">
+
+        <input type="hidden" name="role" id="roleInput" value="{{ member.role if member else 'doctor' }}">
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold" style="font-size:.83rem;">{{ t.lbl_preset }}</label>
+          <div class="d-flex flex-wrap gap-2" id="rolePresets">
+            {% for role_key in role_presets.keys() %}
+            <button type="button" class="role-preset-btn {% if (member and member.role == role_key) or (not member and role_key == 'doctor') %}selected{% endif %}"
+                    data-role="{{ role_key }}">
+              {{ role_key | title }}
+            </button>
+            {% endfor %}
+          </div>
+          <div class="form-text mt-2">{{ t.misc_preset_hint }}</div>
+        </div>
+
+        <label class="form-label fw-semibold" style="font-size:.83rem;">{{ t.lbl_permissions }}</label>
+
+        {% set sections_seen = [] %}
+        {% for key, section, label, desc in all_permissions %}
+          {% if section not in sections_seen %}
+            {% if sections_seen %}
+            </div></div>
+            {% endif %}
+            {{ sections_seen.append(section) or '' }}
+            <div class="perm-section">
+            <div class="perm-section-label">{{ section }}</div>
+            <div class="row g-2">
+          {% endif %}
+          <div class="col-md-6 col-lg-4">
+            {% set is_checked = (member_perms is defined and key in member_perms) or (not member and key in role_presets.get('doctor', [])) %}
+            <label class="perm-card {% if is_checked %}checked{% endif %}" id="perm-label-{{ key }}">
+              <input type="checkbox" name="perm_{{ key }}" value="1"
+                     class="perm-checkbox" data-key="{{ key }}"
+                     {% if is_checked %}checked{% endif %}>
+              <div>
+                <div class="perm-title">{{ label }}</div>
+                <div class="perm-desc">{{ desc }}</div>
+              </div>
+            </label>
+          </div>
+        {% endfor %}
+        </div></div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 d-flex gap-2 pb-4">
+    <button type="submit" class="btn btn-primary px-5">
+      <i class="bi bi-check me-1"></i>{% if member %}Save Changes{% else %}Add Staff Member{% endif %}
+    </button>
+    <a href="/team" class="btn btn-outline-secondary px-4">{{ t.btn_cancel }}</a>
+  </div>
+
+</div>
+</form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const PRESETS = {{ role_presets | tojson }};
+
+document.querySelectorAll('.role-preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.role-preset-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const role = btn.dataset.role;
+    document.getElementById('roleInput').value = role;
+    const granted = role === 'admin'
+      ? Array.from(document.querySelectorAll('.perm-checkbox')).map(c => c.dataset.key)
+      : (PRESETS[role] || []);
+    document.querySelectorAll('.perm-checkbox').forEach(cb => {
+      const on = granted.includes(cb.dataset.key);
+      cb.checked = on;
+      cb.closest('.perm-card').classList.toggle('checked', on);
+    });
+  });
+});
+
+document.querySelectorAll('.perm-checkbox').forEach(cb => {
+  cb.addEventListener('change', () => {
+    cb.closest('.perm-card').classList.toggle('checked', cb.checked);
+    document.querySelectorAll('.role-preset-btn').forEach(b => b.classList.remove('selected'));
+    const customBtn = document.querySelector('[data-role="custom"]');
+    if (customBtn) customBtn.classList.add('selected');
+    document.getElementById('roleInput').value = 'custom';
+  });
+});
+</script>
+{% endblock %}

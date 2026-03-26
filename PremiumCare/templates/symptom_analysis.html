@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="
+  margin-bottom:1rem;
+  padding:.65rem 1rem;
+  background:#fefce8;
+  border:1px solid #fde68a;
+  border-left:4px solid #f59e0b;
+  border-radius:10px;
+  font-size:.76rem;
+  color:#78350f;
+  line-height:1.5;
+">
+  
+  <div>{{ t.disclaimer_clinical }}</div>
+</div>
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-cpu me-2 text-primary"></i>{{ t.ai_sym_title }}
+        <small class="text-muted fw-normal ms-2">{{ patient.first_name }} {{ patient.last_name }}</small>
+    </h5>
+    <a href="{{ '/patients/' + (patient.id)|string }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-pencil-square me-2"></i>{{ t.ai_sym_label }}</div>
+            <div class="card-body">
+                <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <textarea name="symptoms" class="form-control" rows="8"
+                                  placeholder="{{ t.ai_sym_placeholder }}"
+                                  required>{{ symptoms }}</textarea>
+                    </div>
+                    <!-- IA-DISCLAIMER -->
+
+<button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-cpu me-2"></i>{{ t.ai_sym_btn }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        {% if result %}
+        <div style="margin-bottom:12px;padding:8px 14px;background:#fef3c7;border:1px solid #fcd34d;border-left:4px solid #f59e0b;border-radius:8px;font-size:.76rem;color:#92400e;display:flex;align-items:flex-start;gap:8px;line-height:1.5;">
+          <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;margin-top:1px;"></i>
+          <span>{{ t.ai_result_disclaimer }}</span>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-stars me-2"></i>{{ t.ai_sym_result }}
+            </div>
+            <div class="card-body">
+                <div id="symResult" style="white-space:pre-wrap;font-family:inherit;font-size:.9rem;margin:0;line-height:1.7;">{{ result }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if past %}
+        <div class="card">
+            <div class="card-header"><i class="bi bi-clock-history me-2"></i>{{ t.ai_sym_past }}</div>
+            <div class="card-body p-0">
+                <div class="accordion accordion-flush" id="pastAcc">
+                {% for a in past %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#a{{ a.id }}">
+                            <span style="font-size:.85rem;">
+                                <strong>{{ a.created_at.strftime('%d %b %Y %H:%M') }}</strong>
+                                <span class="text-muted ms-2">{{ a.doctor_name or '' }}</span>
+                                — {{ a.symptoms[:60] }}{% if a.symptoms|length > 60 %}…{% endif %}
+                            </span>
+                        </button>
+                    </h2>
+                    <div id="a{{ a.id }}" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <p class="fw-semibold mb-1">{{ t.ai_sym_label }}:</p>
+                            <p class="text-muted">{{ a.symptoms }}</p>
+                            <p class="fw-semibold mb-1">{{ t.ai_sym_result }}:</p>
+                            <pre style="white-space:pre-wrap;font-family:inherit;font-size:.85rem;">{{ a.ai_result }}</pre>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% block extra_js %}
+<script>
+function renderMarkdown(el) {
+  if (!el) return;
+  var html = el.innerHTML;
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*([^*
+]+)\*/g, '<em>$1</em>');
+  html = html.replace(/^[•\-]\s(.+)$/gm, '<span style="display:block;padding-left:12px;">• $1</span>');
+  el.innerHTML = html;
+}
+document.addEventListener('DOMContentLoaded', function(){
+  renderMarkdown(document.getElementById('symResult'));
+});
+</script>
+{% endblock %}

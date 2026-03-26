@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-receipt me-2 text-secondary"></i>Faturimet
+        {% if patient %}<small class="text-muted fw-normal ms-2">{{ patient.first_name }} {{ patient.last_name }}</small>{% endif %}
+    </h5>
+    <div class="d-flex gap-2">
+        {% if patient %}
+        <a href="{{ '/patients/' + (patient.id)|string + '/billing/new' }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Faturë e Re
+        </a>
+        <a href="{{ '/patients/' + (patient.id)|string }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+        </a>
+        {% else %}
+        <a href="{{ '/billing/new' }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Faturë e Re
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Summary stats -->
+{% if items %}
+{% set total_due = items | selectattr('status','ne','paid') | sum(attribute='total_amount') %}
+{% set total_paid = items | selectattr('status','eq','paid') | sum(attribute='total_amount') %}
+<div class="row g-3 mb-3">
+    <div class="col-sm-4">
+        <div class="stat-card" style="background:linear-gradient(135deg,#198754,#0f6640);">
+            <div class="stat-num">€{{ "%.2f"|format(total_paid) }}</div>
+            <div class="stat-label"><i class="bi bi-check-circle me-1"></i>{{ t.misc_total_paid }}</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="stat-card" style="background:linear-gradient(135deg,#dc3545,#b02a37);">
+            <div class="stat-num">€{{ "%.2f"|format(total_due) }}</div>
+            <div class="stat-label"><i class="bi bi-clock me-1"></i>{{ t.misc_outstanding }}</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="stat-card" style="background:linear-gradient(135deg,#2d6fd4,#1a5abf);">
+            <div class="stat-num">{{ items|length }}</div>
+            <div class="stat-label"><i class="bi bi-receipt me-1"></i>{{ t.misc_total_invoices }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if items %}
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">#</th>
+                {% if not patient %}<th>{{ t.th_patient }}</th>{% endif %}
+                <th>{{ t.th_date }}</th><th>{{ t.th_due }}</th><th>{{ t.th_items }}</th>
+                <th>{{ t.th_total }}</th><th>{{ t.th_status }}</th>
+                <th class="text-end pe-3">{{ t.th_actions }}</th>
+            </tr></thead>
+            <tbody>
+            {% for inv in items %}
+            <tr>
+                <td class="ps-3 text-muted" style="font-size:.85rem;">INV-{{ '%04d'|format(inv.id) }}</td>
+                {% if not patient %}
+                <td class="fw-semibold">{{ inv.patient_name }}</td>
+                {% endif %}
+                <td style="font-size:.85rem;">{{ inv.invoice_date.strftime('%d %b %Y') if inv.invoice_date else '—' }}</td>
+                <td style="font-size:.85rem;" class="{% if inv.status=='unpaid' and inv.due_date and inv.due_date < today %}text-danger fw-semibold{% else %}text-muted{% endif %}">
+                    {{ inv.due_date.strftime('%d %b %Y') if inv.due_date else '—' }}
+                </td>
+                <td class="text-muted" style="font-size:.85rem; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ inv.get('items','') or inv.notes or '—' }}</td>
+                <td class="fw-semibold">€{{ "%.2f"|format(inv.total_amount or 0) }}</td>
+                <td>
+                    <span class="badge {% if inv.status=='paid' %}bg-success{% elif inv.status=='partial' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                        {% if inv.status=='paid' %}E paguar{% elif inv.status=='partial' %}Pjesërisht{% elif inv.status=='unpaid' %}E papaguar{% else %}{{ inv.status }}{% endif %}
+                    </span>
+                </td>
+                <td class="text-end pe-3">
+                    <a href="{{ '/billing/' + (inv.id)|string + '/print' }}" target="_blank"
+                       class="btn btn-sm btn-outline-primary me-1">
+                        <i class="bi bi-printer"></i>
+                    </a>
+                    {% if inv.status != 'paid' %}
+                    <form method="POST" action="{{ '/billing/' + (inv.id)|string + '/pay' }}" class="d-inline">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-success me-1" title="Mark as paid">
+                            <i class="bi bi-check-circle"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ '/billing/' + (inv.id)|string + '/delete' }}"
+                          class="d-inline" onsubmit="return confirm('{{ t.confirm_delete }}')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-receipt" style="font-size:2rem;"></i>
+            <p class="mt-2">{{ t.empty_invoices2 }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const today = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

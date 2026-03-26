@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-person-lines-fill me-2 text-primary"></i>
+        {{ 'Edit Contact' if entry else 'New Contact' }}
+    </h5>
+    <a href="/address-book" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+</div>
+<div class="card" style="max-width:640px;">
+    <div class="card-body">
+        <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">{{ t.th_name }} *</label>
+                    <input type="text" name="name" class="form-control" required
+                           value="{{ entry.name if entry else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.lbl_title }}</label>
+                    <select name="title" class="form-select">
+                        <option>{{ t.opt_dr }}</option><option>{{ t.opt_prof }}</option>
+                        <option>{{ t.opt_mr }}</option><option>{{ t.opt_ms }}</option><option>{{ t.opt_mrs }}</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ t.lbl_specialty }}</label>
+                    <input type="text" name="specialty" class="form-control"
+                           value="{{ entry.specialty if entry else '' }}"
+                           list="spec-list" placeholder="{{ t.ph_specialty }}">
+                    <datalist id="spec-list">
+                        <option>{{ t.opt_gp }}</option><option>{{ t.opt_cardiology }}</option>
+                        <option>{{ t.opt_neurology }}</option><option>{{ t.opt_ortho }}</option>
+                        <option>{{ t.opt_oncology }}</option><option>{{ t.opt_derm }}</option>
+                        <option>{{ t.opt_pathology }}</option><option>{{ t.opt_radiology }}</option>
+                        <option>{{ t.opt_hospital }}</option><option>{{ t.opt_pharmacy }}</option>
+                    </datalist>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ t.lbl_provider_nr }}</label>
+                    <input type="text" name="provider_number" class="form-control"
+                           value="{{ entry.provider_number if entry else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ t.misc_phone }}</label>
+                    <input type="text" name="phone" class="form-control"
+                           value="{{ entry.phone if entry else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ t.lbl_fax }}</label>
+                    <input type="text" name="fax" class="form-control"
+                           value="{{ entry.fax if entry else '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">{{ t.th_email }}</label>
+                    <input type="email" name="email" class="form-control"
+                           value="{{ entry.email if entry else '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">{{ t.lbl_address }}</label>
+                    <input type="text" name="address" class="form-control"
+                           value="{{ entry.address if entry else '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">{{ t.misc_notes }}</label>
+                    <textarea name="notes" class="form-control" rows="2">{{ entry.notes if entry else '' }}</textarea>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Save Contact
+                    </button>
+                    <a href="/address-book" class="btn btn-outline-secondary">{{ t.btn_cancel }}</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

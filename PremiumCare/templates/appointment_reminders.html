@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-bell me-2 text-warning"></i>Appointment Reminders
+        <small class="text-muted fw-normal ms-2">{{ t.misc_next7days }}</small>
+    </h5>
+    <a href="/calendar" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Calendar
+    </a>
+</div>
+
+{% if appointments %}
+<div class="alert alert-info border-0 mb-3">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>{{ appointments|length }} appointments</strong> scheduled in the next 7 days.
+    Contact patients below to confirm their appointments.
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">{{ t.th_date_time }}</th><th>{{ t.th_patient }}</th>
+                <th>{{ t.misc_phone }}</th><th>{{ t.th_doctor }}</th><th>{{ t.misc_type }}</th>
+                <th class="text-end pe-3">{{ t.th_contact }}</th>
+            </tr></thead>
+            <tbody>
+            {% for a in appointments %}
+            <tr>
+                <td class="ps-3">
+                    <div class="fw-semibold">{{ a.appointment_date.strftime('%a %d %b') }}</div>
+                    <div class="text-muted" style="font-size:.82rem;">{{ a.start_time.strftime('%H:%M') if a.start_time else '—' }}</div>
+                </td>
+                <td class="fw-semibold">{{ a.patient_name }}</td>
+                <td class="text-muted">{{ a.phone or '—' }}</td>
+                <td class="text-muted">{{ a.doctor_name or '—' }}</td>
+                <td><span class="badge bg-light text-dark border" style="font-size:.75rem;">{{ a.appointment_type or 'Standard' }}</span></td>
+                <td class="text-end pe-3">
+                    {% if a.phone %}
+                    <a href="tel:{{ a.phone }}" class="btn btn-sm btn-outline-success me-1">
+                        <i class="bi bi-telephone"></i>
+                    </a>
+                    {% endif %}
+                    {% if a.email %}
+                    <a href="mailto:{{ a.email }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-envelope"></i>
+                    </a>
+                    {% endif %}
+                    <a href="/calendar/{{ a.id }}/print-slip" target="_blank" class="btn btn-sm btn-outline-secondary ms-1">
+                        <i class="bi bi-printer"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="p-5 text-center text-muted">
+        <i class="bi bi-calendar-check text-success" style="font-size:3rem;"></i>
+        <p class="mt-3">{{ t.empty_appointments3 }}</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

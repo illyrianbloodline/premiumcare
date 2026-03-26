@@ -1,0 +1,472 @@
+{% extends "base.html" %}
+{% block title %}{{ t.nav_ai_assistant }} — {{ practice_name }}{% endblock %}
+{% block page_title %}<i class="bi bi-stars me-2" style="color:#7c3aed;"></i>{{ t.ai_assistant }}{% endblock %}
+
+{% block extra_head %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:       #f4f3f8;
+  --card:     #ffffff;
+  --ink:      #0f0e17;
+  --ink2:     #2d2b3d;
+  --muted:    #7c7a8e;
+  --line:     #e8e6f0;
+  --purple:   #5b21b6;
+  --purpleM:  #7c3aed;
+  --purpleL:  #ede9fe;
+  --blue:     #1d4ed8;
+  --blueL:    #eff6ff;
+  --green:    #047857;
+  --greenL:   #ecfdf5;
+  --amber:    #b45309;
+  --amberL:   #fffbeb;
+  --red:      #be123c;
+  --redL:     #fff1f2;
+  --r:        12px;
+  --shadow:   0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+  --shadowL:  0 2px 8px rgba(0,0,0,.04), 0 16px 48px rgba(0,0,0,.08);
+}
+
+* { font-family: 'DM Sans', sans-serif; box-sizing: border-box; }
+
+/* Page bg */
+.ai-page { background: var(--bg); min-height: 100vh; padding: 0 0 40px; }
+
+/* Disclaimer */
+.discl {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 18px; margin-bottom: 20px;
+  background: var(--amberL); border: 1px solid #fcd34d;
+  border-left: 4px solid #f59e0b; border-radius: var(--r);
+  font-size: .76rem; color: #78350f; line-height: 1.5;
+}
+
+/* Layout */
+.ai-grid {
+  display: grid;
+  grid-template-columns: 475px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+@media(max-width:860px){ .ai-grid { grid-template-columns: 1fr; } }
+
+/* Card shell */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-hd {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #fafaf9;
+  display: flex; align-items: center; gap: 8px;
+  font-size: .7rem; font-weight: 700;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .07em;
+}
+.card-bd { padding: 14px 16px; }
+
+/* Mode grid */
+.mode-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+.mode-tile {
+  border: 1.5px solid var(--line); border-radius: 10px;
+  padding: 11px 5px 9px; cursor: pointer;
+  background: #fff; text-align: center; transition: all .14s;
+  position: relative;
+}
+.mode-tile:hover { border-color: var(--purpleM); background: var(--purpleL); transform: translateY(-1px); }
+.mode-tile.on {
+  border-color: var(--purpleM); background: var(--purpleL);
+  box-shadow: 0 0 0 3px rgba(124,58,237,.1);
+}
+.mode-tile.on::after {
+  content: '✓';
+  position: absolute; top: 5px; right: 7px;
+  font-size: .6rem; font-weight: 800; color: var(--purpleM);
+}
+.mode-tile i { font-size: 1.25rem; display: block; margin-bottom: 5px; }
+.mode-tile .tl { font-size: .72rem; font-weight: 700; color: var(--ink2); }
+.mode-tile .ts { font-size: .62rem; color: var(--muted); margin-top: 2px; }
+
+/* Inputs */
+select.inp, textarea.inp {
+  width: 100%; border: 1.5px solid var(--line); border-radius: 9px;
+  padding: 9px 12px; font-size: .84rem; font-family: 'DM Sans',sans-serif;
+  color: var(--ink2); background: #fff; outline: none;
+  transition: border-color .14s;
+}
+select.inp:focus, textarea.inp:focus { border-color: var(--purpleM); box-shadow: 0 0 0 3px rgba(124,58,237,.08); }
+textarea.inp { resize: vertical; min-height: 120px; line-height: 1.65; }
+textarea.inp::placeholder { color: #c5c3d0; font-size: .83rem; }
+
+/* Chips */
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.chip {
+  padding: 4px 11px; border-radius: 20px;
+  border: 1px solid #ddd6fe; background: var(--purpleL);
+  font-size: .7rem; font-weight: 600; color: var(--purple);
+  cursor: pointer; transition: all .12s;
+}
+.chip:hover { background: #ddd6fe; border-color: var(--purpleM); }
+
+/* Patient card */
+.pt-card {
+  margin-top: 10px; padding: 10px 12px;
+  background: var(--blueL); border: 1px solid #bfdbfe; border-radius: 9px;
+  font-size: .8rem;
+}
+
+/* Privacy badge */
+.priv {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 8px; font-size: .68rem; color: var(--muted);
+}
+
+/* Scan drop */
+.drop-zone {
+  border: 2px dashed #c4b5fd; border-radius: 10px;
+  padding: 28px 16px; text-align: center; cursor: pointer;
+  background: #fdfcff; transition: all .15s; margin-bottom: 12px;
+}
+.drop-zone:hover { border-color: var(--purpleM); background: var(--purpleL); }
+.drop-zone.ready { border-color: var(--green); background: var(--greenL); border-style: solid; }
+
+/* Submit */
+.btn-submit {
+  width: 100%; padding: 13px 20px;
+  background: linear-gradient(135deg, #5b21b6 0%, #4338ca 100%);
+  border: none; border-radius: 10px; color: #fff;
+  font-size: .88rem; font-weight: 700; font-family: 'DM Sans',sans-serif;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px;
+  transition: all .15s; letter-spacing: .01em;
+}
+.btn-submit:hover { background: linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(91,33,182,.35); }
+.btn-submit:disabled { opacity: .55; transform: none; box-shadow: none; cursor: not-allowed; }
+
+/* Result panel */
+.result-shell {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r); box-shadow: var(--shadowL);
+  overflow: hidden; display: flex; flex-direction: column;
+  min-height: 560px;
+}
+.result-hd {
+  padding: 16px 22px;
+  background: linear-gradient(135deg, #3b0764 0%, #5b21b6 60%, #4338ca 100%);
+  display: flex; align-items: center; gap: 10px;
+}
+.result-hd-title { color: #fff; font-weight: 700; font-size: .9rem; flex: 1; }
+.badge {
+  padding: 3px 10px; border-radius: 20px;
+  background: rgba(255,255,255,.15); color: #e9d5ff;
+  font-size: .67rem; font-weight: 700;
+}
+.result-body {
+  padding: 24px 26px; font-size: .875rem; line-height: 1.85;
+  color: var(--ink2); white-space: pre-wrap; overflow-y: auto; flex: 1;
+  font-family: 'DM Sans', sans-serif;
+}
+.result-body strong { color: var(--purple); font-weight: 700; }
+.result-foot {
+  padding: 11px 20px; border-top: 1px solid var(--line);
+  background: #fafaf9; display: flex; gap: 8px; flex-wrap: wrap;
+}
+.foot-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 13px; border: 1.5px solid var(--line); border-radius: 8px;
+  background: #fff; font-size: .75rem; font-weight: 600; color: var(--ink2);
+  cursor: pointer; transition: all .12s; font-family: inherit;
+}
+.foot-btn:hover { border-color: var(--purpleM); color: var(--purpleM); background: var(--purpleL); }
+
+/* Empty state */
+.empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px 36px; text-align: center;
+}
+.empty-orb {
+  width: 76px; height: 76px; border-radius: 20px;
+  background: linear-gradient(135deg, #5b21b6, #4338ca);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 22px;
+  box-shadow: 0 12px 32px rgba(91,33,182,.3);
+}
+.cap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 22px; width: 100%; max-width: 360px; }
+.cap {
+  padding: 11px 13px; background: #fafaf9; border: 1px solid var(--line);
+  border-radius: 9px; font-size: .77rem; color: var(--ink2);
+  display: flex; align-items: center; gap: 8px; text-align: left;
+  transition: all .12s;
+}
+.cap { cursor: default; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ai-page">
+
+
+
+  <form method="POST" id="aiForm" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="mode" id="modeInput" value="{{ mode or 'general' }}">
+
+    <div class="ai-grid">
+
+      <!-- ════════════════════ LEFT COLUMN ════════════════════ -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+
+        <!-- 1. Mode -->
+        <div class="card">
+          <div class="card-hd">
+            <i class="bi bi-sliders2" style="color:var(--purpleM);"></i>
+            {{ t.misc_ai_query_mode }}
+          </div>
+          <div class="card-bd">
+            <div class="mode-grid">
+              {% for val,icon,color,label,sub in [
+                ('general',      'bi-chat-dots-fill',   '#2d6fd4', t.ai_general,   'Pyetje klinike'),
+                ('differential', 'bi-diagram-3-fill',   '#059669', t.ai_diagnose,  'DDx rankuar'),
+                ('drug',         'bi-capsule-pill',     '#be123c', t.ai_drugs,     'Interaksione'),
+                ('treatment',    'bi-clipboard2-pulse', '#b45309', t.ai_treatment, 'Protokoll'),
+                ('summarise',    'bi-file-earmark-text','#5b21b6', t.ai_summarise, 'Shënime klinike'),
+                ('scan',         'bi-image-fill',       '#0369a1', t.ai_scan,      'CT · MRI · X-Ray'),
+              ] %}
+              <button type="button"
+                class="mode-tile {% if (mode==val) or (not mode and val=='general') %}on{% endif %}"
+                onclick="setMode('{{ val }}',this)">
+                <i class="{{ icon }}" style="color:{{ color }};"></i>
+                <div class="tl">{{ label }}</div>
+                <div class="ts">{{ sub }}</div>
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Patient -->
+        <div class="card">
+          <div class="card-hd">
+            <i class="bi bi-person-fill" style="color:var(--blue);"></i>
+            {{ t.misc_ai_context }}
+            <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#b0aec0;font-size:.68rem;margin-left:2px;">({{ t.misc_optional }})</span>
+          </div>
+          <div class="card-bd">
+            <select name="patient_id" class="inp" id="patSel">
+              <option value="">— {{ t.no_specific_patient }} —</option>
+              {% for p in patients_list %}
+              <option value="{{ p.id }}" {% if patient and patient.id==p.id %}selected{% endif %}>
+                {{ p.first_name }} {{ p.last_name }}
+              </option>
+              {% endfor %}
+            </select>
+            {% if patient %}
+            <div class="pt-card">
+              <strong style="color:var(--blue);">{{ patient.first_name }} {{ patient.last_name }}</strong>
+              {% if patient.medical_history %}
+              <div style="color:var(--muted);margin-top:3px;font-size:.78rem;">{{ patient.medical_history[:80] }}{% if patient.medical_history|length>80 %}…{% endif %}</div>
+              {% endif %}
+              {% if patient.drug_allergies %}
+              <div style="color:var(--red);margin-top:5px;font-size:.76rem;font-weight:700;">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ patient.drug_allergies }}
+              </div>
+              {% endif %}
+            </div>
+            {% endif %}
+
+          </div>
+        </div>
+
+        <!-- 3. Query (hidden in scan mode) -->
+        <div class="card" id="queryPanel" style="display:{% if mode=='scan' %}none{% else %}block{% endif %};">
+          <div class="card-hd">
+            <i class="bi bi-chat-square-dots-fill" style="color:var(--purpleM);"></i>
+            {{ t.misc_ai_question }}
+          </div>
+          <div class="card-bd">
+            <textarea name="query" id="qInput" class="inp"
+              placeholder="p.sh. Cili është trajtimi i linjës së parë për hipertension rezistent? Cilat barna ndërveprojnë me warfarinin?">{{ query }}</textarea>
+            <div class="chips">
+              <span class="chip" onclick="setQ('Diagnoza diferenciale për dhimbje gjoksi me dispne')">{{ t.ai_chip1 }}</span>
+              <span class="chip" onclick="setQ('Ndërveprimet e warfarinit me NSAID')">{{ t.ai_chip2 }}</span>
+              <span class="chip" onclick="setQ('Trajtimi i parë për Diabet Tip 2 HbA1c 9%')">{{ t.ai_chip3 }}</span>
+              <span class="chip" onclick="setQ('Sinjale alarmi në dhimbje shpine')">{{ t.ai_chip4 }}</span>
+              <span class="chip" onclick="setQ('Antibiotiku për UTI gjatë shtatzënisë')">{{ t.ai_chip5 }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Scan (shown in scan mode) -->
+        <div class="card" id="scanPanel" style="display:{% if mode=='scan' %}block{% else %}none{% endif %};">
+          <div class="card-hd" style="background:linear-gradient(135deg,#0c1a2e,#1e3a5f);">
+            <i class="bi bi-image-fill" style="color:#818cf8;"></i>
+            <span style="color:#e0e7ff;">{{ t.ai_scan }}</span>
+          </div>
+          <div class="card-bd">
+            <select name="scan_type" class="inp" style="margin-bottom:12px;">
+              <option value="X-Ray">{{ t.opt_xray }}</option>
+              <option value="CT Scan">{{ t.opt_ct }}</option>
+              <option value="MRI">{{ t.opt_mri }}</option>
+              <option value="Ultrasound">{{ t.opt_ultrasound }}</option>
+              <option value="ECG">{{ t.opt_ecg }}</option>
+              <option value="Pathology">{{ t.opt_path_report }}</option>
+            </select>
+            <div class="drop-zone" id="dropZone"
+                 onclick="document.getElementById('scanFile').click()"
+                 ondragover="event.preventDefault();this.classList.add('hover')"
+                 ondragleave="this.classList.remove('hover')"
+                 ondrop="handleDrop(event)">
+              <i class="bi bi-cloud-upload" style="font-size:2.2rem;color:#a78bfa;display:block;margin-bottom:8px;"></i>
+              <div style="font-weight:700;font-size:.85rem;color:var(--ink2);">Klikoni ose tërhiqni skanimin këtu</div>
+              <div style="font-size:.72rem;color:var(--muted);margin-top:4px;">PNG · JPG · TIFF · BMP · PDF · maks 20MB</div>
+              <div id="fileName" style="margin-top:10px;font-size:.78rem;font-weight:700;color:var(--green);display:none;">
+                <i class="bi bi-check-circle-fill me-1"></i><span></span>
+              </div>
+            </div>
+            <input type="file" name="scan_file" id="scanFile" style="display:none;"
+                   accept=".png,.jpg,.jpeg,.gif,.bmp,.tiff,.pdf"
+                   onchange="showFile(this)">
+            <textarea name="scan_context" class="inp"
+                      placeholder="Kontekst klinik shtesë — simptoma, indikacioni, pyetja klinike (opsional)..."
+                      style="min-height:70px;margin-top:4px;"></textarea>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn-submit" id="subBtn">
+          <i class="bi bi-stars"></i>
+          <span id="btnTxt">{{ t.btn_ask_ai }}</span>
+        </button>
+
+      </div>
+
+      <!-- ════════════════════ RIGHT COLUMN ════════════════════ -->
+      <div class="result-shell">
+        {% if result %}
+        <div style="padding:10px 18px;background:var(--amberL);border-bottom:1px solid #fde68a;display:flex;gap:8px;font-size:.74rem;color:#78350f;">
+          <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;color:#d97706;margin-top:1px;"></i>
+          <span>{{ t.ai_result_disclaimer }}</span>
+        </div>
+        <div class="result-hd">
+          <i class="bi bi-stars text-white" style="font-size:1.15rem;"></i>
+          <span class="result-hd-title">{{ t.misc_ai_response }}</span>
+          {% if patient %}<span class="badge">{{ patient.first_name }} {{ patient.last_name }}</span>{% endif %}
+          <span class="badge">{{ mode|title }}</span>
+        </div>
+        <div class="result-body" id="aiBox">{{ result }}</div>
+        <div class="result-foot">
+          {% if patient %}
+          <button type="button" class="foot-btn" onclick="location='/patients/{{ patient.id }}/symptoms'">
+            <i class="bi bi-person"></i>{{ t.ai_sym_title }}
+          </button>
+          {% endif %}
+          <button type="button" class="foot-btn" onclick="window.print()">
+            <i class="bi bi-printer"></i>{{ t.btn_print }}
+          </button>
+          <button type="button" class="foot-btn" id="copyBtn" onclick="doCopy(this)">
+            <i class="bi bi-clipboard"></i>{{ t.btn_copy }}
+          </button>
+        </div>
+
+        {% else %}
+        <div class="empty">
+          <div class="empty-orb">
+            <i class="bi bi-stars text-white" style="font-size:2.2rem;"></i>
+          </div>
+          <h5 style="font-weight:800;color:var(--ink);margin-bottom:8px;font-size:1.05rem;">{{ t.h_ai_assistant }}</h5>
+          <p style="color:var(--muted);font-size:.84rem;max-width:300px;line-height:1.7;margin:0;">{{ t.dash_ai_desc }}</p>
+          <div class="cap-grid">
+            {% for ic,col,lbl in [
+              ('bi-diagram-3-fill','#059669',t.ai_diagnose),
+              ('bi-capsule-pill','#be123c',t.ai_drugs),
+              ('bi-clipboard2-pulse','#b45309',t.ai_treatment),
+              ('bi-image-fill','#0369a1',t.ai_scan),
+            ] %}
+            <div class="cap"><i class="{{ ic }}" style="color:{{ col }};font-size:1rem;flex-shrink:0;"></i>{{ lbl }}</div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var JS_T = { thinking: {{ t.ai_thinking | tojson }}, ask: {{ t.btn_ask_ai | tojson }} };
+
+function setMode(m, btn) {
+  document.getElementById('modeInput').value = m;
+  document.querySelectorAll('.mode-tile').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  var isScan = m === 'scan';
+  document.getElementById('scanPanel').style.display  = isScan ? 'block' : 'none';
+  document.getElementById('queryPanel').style.display = isScan ? 'none'  : 'block';
+  document.getElementById('btnTxt').textContent = isScan ? 'Analizo Skanimin' : JS_T.ask;
+}
+
+function setQ(t) {
+  document.getElementById('qInput').value = t;
+  document.getElementById('qInput').focus();
+}
+
+function showFile(inp) {
+  if (!inp.files[0]) return;
+  var d = document.getElementById('fileName');
+  d.querySelector('span').textContent = inp.files[0].name;
+  d.style.display = 'block';
+  document.getElementById('dropZone').classList.add('ready');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  if (e.dataTransfer.files.length) {
+    document.getElementById('scanFile').files = e.dataTransfer.files;
+    showFile(document.getElementById('scanFile'));
+  }
+}
+
+document.getElementById('aiForm').addEventListener('submit', function(e) {
+  var mode = document.getElementById('modeInput').value;
+  if (mode === 'scan' && !(document.getElementById('scanFile').files||[]).length) {
+    e.preventDefault();
+    var dz = document.getElementById('dropZone');
+    dz.style.borderColor='#be123c'; dz.style.background='#fff1f2';
+    setTimeout(function(){ dz.style.borderColor=''; dz.style.background=''; }, 2200);
+    return;
+  }
+  var btn = document.getElementById('subBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:.8rem;height:.8rem;border-width:2px;margin-right:8px;"></span>' + JS_T.thinking;
+});
+
+function doCopy(btn) {
+  var el = document.getElementById('aiBox');
+  if (!el) return;
+  navigator.clipboard.writeText(el.innerText).then(function(){
+    var orig = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check-lg"></i> Kopjuar!';
+    setTimeout(function(){ btn.innerHTML = orig; }, 2000);
+  });
+}
+
+/* Markdown render */
+(function(){
+  var el = document.getElementById('aiBox');
+  if (!el) return;
+  var h = el.innerHTML;
+  h = h.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
+  h = h.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');
+  h = h.replace(/^#{1,3} (.+)/gm,'<span style="font-weight:800;font-size:1rem;color:#3b0764;display:block;margin:14px 0 4px;">$1</span>');
+  el.innerHTML = h;
+})();
+</script>
+{% endblock %}

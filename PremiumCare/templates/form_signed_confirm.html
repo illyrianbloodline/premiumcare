@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formë e nënshkruar — {{ practice_name }}</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(135deg, #0c1a2e 0%, #1a3570 100%);
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.card {
+  background: #fff; border-radius: 20px;
+  max-width: 460px; width: 100%;
+  padding: 48px 40px; text-align: center;
+  box-shadow: 0 24px 64px rgba(0,0,0,.4);
+}
+.success-ring {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  border: 3px solid #22c55e;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 2rem; margin-bottom: 24px;
+  animation: pop .4s ease-out;
+}
+@keyframes pop {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.success-title { font-size: 1.4rem; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+.success-sub   { font-size: .88rem; color: #64748b; line-height: 1.6; margin-bottom: 28px; }
+.detail-box {
+  background: #f8fafc; border: 1.5px solid #e2e8f0;
+  border-radius: 12px; padding: 16px 20px;
+  text-align: left; margin-bottom: 24px;
+}
+.detail-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+.detail-row:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
+.detail-key   { font-size: .75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.detail-val   { font-size: .82rem; color: #0f172a; font-weight: 600; }
+.close-note   { font-size: .78rem; color: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="success-ring">✓</div>
+  <div class="success-title">Formë e nënshkruar!</div>
+  <div class="success-sub">
+    Nënshkrimi juaj u regjistrua me sukses dhe është ruajtur në rekordin tuaj mjekësor.
+  </div>
+
+  <div class="detail-box">
+    <div class="detail-row">
+      <span class="detail-key">Praktika</span>
+      <span class="detail-val">{{ practice_name }}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-key">Formë</span>
+      <span class="detail-val">{{ form.form_title }}</span>
+    </div>
+    {% if form.signed_by_name %}
+    <div class="detail-row">
+      <span class="detail-key">Nënshkruar nga</span>
+      <span class="detail-val">{{ form.signed_by_name }}</span>
+    </div>
+    {% endif %}
+    {% if form.signed_at %}
+    <div class="detail-row">
+      <span class="detail-key">Data</span>
+      <span class="detail-val">{{ form.signed_at.strftime('%d/%m/%Y %H:%M') }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <p class="close-note">Mund ta mbyllni këtë dritare tani.</p>
+</div>
+</body>
+</html>

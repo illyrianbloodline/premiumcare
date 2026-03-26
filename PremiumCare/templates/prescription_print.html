@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Prescription – {{ rx.drug_name }}</title>
+    <style>
+        body { font-family:'Segoe UI',Arial,sans-serif; margin:0; padding:30px; font-size:13px; }
+        .header { display:flex; justify-content:space-between; border-bottom:2px solid #1a2942; padding-bottom:15px; margin-bottom:20px; }
+        .practice-name { font-size:1.4rem; font-weight:700; color:#1a2942; }
+        .rx-symbol { font-size:3rem; color:#1a2942; font-weight:700; line-height:1; }
+        .section { margin-bottom:15px; }
+        .section label { font-weight:600; color:#555; display:block; font-size:11px; text-transform:uppercase; }
+        .section .value { font-size:1.1rem; color:#111; }
+        .drug-box { background:#f0f7ff; border:2px solid #2d6fd4; border-radius:8px; padding:15px; margin:15px 0; }
+        .drug-name { font-size:1.4rem; font-weight:700; color:#1a2942; }
+        table { width:100%; border-collapse:collapse; }
+        td { padding:5px 10px; }
+        .footer { margin-top:40px; border-top:1px solid #ddd; padding-top:15px; display:flex; justify-content:space-between; }
+        .sig-line { border-bottom:1px solid #333; width:200px; margin-bottom:5px; }
+        @media print { body { padding:10px; } .no-print { display:none; } }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div>
+        <div class="practice-name">{{ practice_name }}</div>
+        <div style="color:#555;">{{ today.strftime('%d %B %Y') }}</div>
+    </div>
+    <div class="rx-symbol">℞</div>
+</div>
+
+<div class="section">
+    <label>{{ t.lbl_patient }}</label>
+    <div class="value">{{ rx.patient_name }}</div>
+    {% if rx.dob %}<div style="color:#555;">DOB: {{ rx.dob.strftime('%d %b %Y') }}</div>{% endif %}
+    {% if rx.address %}<div style="color:#555;">{{ rx.address }}</div>{% endif %}
+</div>
+
+<div class="drug-box">
+    <div class="drug-name">{{ rx.drug_name }}</div>
+    <table style="margin-top:10px;">
+        <tr>
+            <td><label>{{ t.lbl_dosage }}</label><div>{{ rx.dosage or '—' }}</div></td>
+            <td><label>{{ t.lbl_frequency }}</label><div>{{ rx.frequency or '—' }}</div></td>
+            <td><label>{{ t.lbl_route }}</label><div>{{ rx.route or '—' }}</div></td>
+            <td><label>{{ t.lbl_repeats }}</label><div>{{ rx.repeats or 0 }}</div></td>
+        </tr>
+        {% if rx.start_date or rx.end_date %}
+        <tr>
+            <td><label>{{ t.lbl_start_date }}</label><div>{{ rx.start_date.strftime('%d %b %Y') if rx.start_date else '—' }}</div></td>
+            <td><label>{{ t.lbl_end_date }}</label><div>{{ rx.end_date.strftime('%d %b %Y') if rx.end_date else '—' }}</div></td>
+        </tr>
+        {% endif %}
+    </table>
+    {% if rx.instructions %}
+    <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #2d6fd4;">
+        <label>{{ t.lbl_instructions_short }}</label>
+        <div>{{ rx.instructions }}</div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="footer">
+    <div>
+        <div class="sig-line"></div>
+        <div>Dr. {{ rx.doctor_name }}</div>
+        {% if rx.specialty %}<div style="color:#555;">{{ rx.specialty }}</div>{% endif %}
+    </div>
+    <div style="text-align:right; font-size:11px; color:#888;">
+        <div>Prescription #{{ rx.id }}</div>
+        <div>Issued: {{ today.strftime('%d %b %Y') }}</div>
+    </div>
+</div>
+
+<div class="no-print" style="text-align:center; margin-top:20px;">
+    <button onclick="window.print()" style="padding:10px 30px; background:#1a2942; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px;">
+        🖨️ Print Prescription
+    </button>
+    <button onclick="window.close()" style="padding:10px 30px; background:#6c757d; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px; margin-left:10px;">
+        Close
+    </button>
+</div>
+</body>
+</html>

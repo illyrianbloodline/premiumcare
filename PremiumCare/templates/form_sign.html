@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ form.form_title }} — {{ practice_name }}</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(135deg, #0c1a2e 0%, #1a3570 60%, #0c1a2e 100%);
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.card {
+  background: #fff;
+  border-radius: 20px;
+  max-width: 580px; width: 100%;
+  box-shadow: 0 24px 64px rgba(0,0,0,.4);
+  overflow: hidden;
+}
+.card-header {
+  background: linear-gradient(135deg, #0c1a2e, #1a3570);
+  padding: 28px 32px;
+  text-align: center;
+}
+.practice-logo {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: rgba(255,255,255,.15);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; margin-bottom: 12px;
+}
+.practice-name { font-size: .8rem; color: rgba(255,255,255,.6); margin-bottom: 8px; }
+.form-title-hdr { font-size: 1.25rem; font-weight: 800; color: #fff; line-height: 1.3; }
+
+.card-body { padding: 32px; }
+
+.form-content-box {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 22px;
+  font-size: .85rem;
+  color: #334155;
+  line-height: 1.7;
+  margin-bottom: 28px;
+  white-space: pre-line;
+}
+
+.field-group { margin-bottom: 20px; }
+.field-label {
+  font-size: .78rem; font-weight: 700;
+  color: #475569; text-transform: uppercase;
+  letter-spacing: .05em; margin-bottom: 6px;
+}
+.field-input {
+  width: 100%; padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px; font-size: .88rem;
+  color: #0f172a; outline: none;
+  transition: border-color .15s;
+  font-family: inherit;
+}
+.field-input:focus { border-color: #2d6fd4; box-shadow: 0 0 0 3px rgba(45,111,212,.1); }
+
+/* Signature canvas */
+.sig-container {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+  margin-bottom: 8px;
+}
+#sigCanvas { display: block; width: 100%; touch-action: none; }
+.sig-placeholder {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: #94a3b8; font-size: .82rem;
+  pointer-events: none; text-align: center;
+  transition: opacity .2s;
+}
+.sig-placeholder i { font-size: 1.8rem; display: block; margin-bottom: 4px; opacity: .4; }
+.sig-clear {
+  font-size: .72rem; color: #64748b; cursor: pointer;
+  text-decoration: underline; float: right; margin-bottom: 12px;
+}
+
+.submit-btn {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #1a3570, #2d6fd4);
+  color: #fff; border: none; border-radius: 12px;
+  font-size: .95rem; font-weight: 700;
+  cursor: pointer; letter-spacing: .02em;
+  transition: opacity .15s;
+  margin-top: 8px;
+}
+.submit-btn:hover { opacity: .92; }
+.submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.privacy-note {
+  font-size: .72rem; color: #94a3b8;
+  text-align: center; margin-top: 16px;
+  line-height: 1.6;
+}
+.privacy-note i { color: #059669; }
+
+.error-msg {
+  background: #fee2e2; color: #dc2626;
+  border-radius: 8px; padding: 10px 14px;
+  font-size: .82rem; margin-bottom: 16px;
+  display: none;
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <div class="practice-logo">⚕</div>
+    <div class="practice-name">{{ practice_name }}</div>
+    <div class="form-title-hdr">{{ form.form_title }}</div>
+  </div>
+
+  <div class="card-body">
+    <div class="form-content-box">{{ form.form_content }}</div>
+
+    <form method="POST" id="signForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field-group">
+        <div class="field-label">Emri juaj i plotë *</div>
+        <input type="text" name="signed_by_name" class="field-input"
+               placeholder="Shkruani emrin tuaj…" required id="nameInput">
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">Nënshkrimi juaj *</div>
+        <div class="sig-container">
+          <canvas id="sigCanvas" height="140"></canvas>
+          <div class="sig-placeholder" id="sigPlaceholder">
+            <i class="bi bi-pen"></i>
+            Nënshkruani këtu
+          </div>
+        </div>
+        <div class="sig-clear" onclick="clearSig()">Pastro nënshkrimin</div>
+        <input type="hidden" name="signature_data" id="sigData">
+      </div>
+
+      <div class="error-msg" id="errorMsg">
+        Ju lutemi shkruani emrin tuaj dhe nënshkruani.
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">
+        ✓ &nbsp;Konfirmoj dhe Nënshkruaj
+      </button>
+
+      <div class="privacy-note">
+        <i class="bi bi-lock-fill"></i>
+        Nënshkrimi juaj digital ruhet i sigurt. Kjo formë është pjesë e rekordit tuaj mjekësor.
+      </div>
+    </form>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<script>
+var canvas   = document.getElementById('sigCanvas');
+var ctx      = canvas.getContext('2d');
+var drawing  = false;
+var hasSig   = false;
+
+function resizeCanvas() {
+  var rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width  = rect.width;
+  canvas.height = 140;
+  ctx.strokeStyle = '#1a3570';
+  ctx.lineWidth   = 2.5;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function getPos(e) {
+  var rect = canvas.getBoundingClientRect();
+  var src  = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+}
+
+canvas.addEventListener('mousedown',  function(e){ drawing=true; var p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+canvas.addEventListener('mousemove',  function(e){ if(!drawing) return; var p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); hasSig=true; document.getElementById('sigPlaceholder').style.opacity='0'; });
+canvas.addEventListener('mouseup',    function(){ drawing=false; });
+canvas.addEventListener('mouseleave', function(){ drawing=false; });
+canvas.addEventListener('touchstart', function(e){ e.preventDefault(); drawing=true; var p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+canvas.addEventListener('touchmove',  function(e){ e.preventDefault(); if(!drawing) return; var p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); hasSig=true; document.getElementById('sigPlaceholder').style.opacity='0'; });
+canvas.addEventListener('touchend',   function(){ drawing=false; });
+
+function clearSig() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  hasSig = false;
+  document.getElementById('sigPlaceholder').style.opacity = '1';
+  document.getElementById('sigData').value = '';
+}
+
+document.getElementById('signForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var name = document.getElementById('nameInput').value.trim();
+  var err  = document.getElementById('errorMsg');
+  if (!name || !hasSig) {
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  document.getElementById('sigData').value = canvas.toDataURL('image/png');
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').textContent = 'Duke dërguar…';
+  this.submit();
+});
+</script>
+</body>
+</html>

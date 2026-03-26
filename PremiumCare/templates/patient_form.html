@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-person-{% if patient %}pencil{% else %}plus{% endif %} me-2 text-primary"></i>
+        {{ t.pf_title_edit if patient else t.pf_title_new }}
+    </h5>
+    <a href="{{ '/patients' }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+    </a>
+</div>
+
+<form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="row g-3">
+
+    <!-- Personal -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person me-2 text-primary"></i>{{ t.pf_personal }}
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">{{ t.pf_first_name }} *</label>
+                        <input type="text" name="first_name" class="form-control"
+                               value="{{ patient.first_name if patient else '' }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">{{ t.pf_last_name }} *</label>
+                        <input type="text" name="last_name" class="form-control"
+                               value="{{ patient.last_name if patient else '' }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">{{ t.pf_dob }}</label>
+                        <input type="date" name="dob" class="form-control"
+                               value="{{ patient.dob.isoformat() if patient and patient.dob else '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">{{ t.pf_gender }}</label>
+                        <select name="gender" class="form-select">
+                            <option value="">—</option>
+                            <option value="Male"   {% if patient and patient.gender == 'Male'   %}selected{% endif %}>{{ t.pf_gender_m }}</option>
+                            <option value="Female" {% if patient and patient.gender == 'Female' %}selected{% endif %}>{{ t.pf_gender_f }}</option>
+                            <option value="Other"  {% if patient and patient.gender == 'Other'  %}selected{% endif %}>{{ t.pf_gender_o }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">{{ t.pf_blood_type }}</label>
+                        <select name="blood_type" class="form-select">
+                            <option value="">—</option>
+                            {% for bt in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+                            <option {% if patient and patient.blood_type == bt %}selected{% endif %}>{{ bt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">{{ t.pf_insurance }}</label>
+                        <input type="text" name="insurance_nr" class="form-control"
+                               value="{{ patient.insurance_nr or '' if patient else '' }}"
+                               placeholder="p.sh. ALB-123456">
+                    </div>
+                </div>
+                <!-- Extended insurance -->
+                <hr style="border-color:#e8edf2;margin:14px 0 12px;">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.pf_insurance_company|default('Kompania e Sigurimeve') }}</label>
+                        <input type="text" name="insurance_company" class="form-control form-control-sm"
+                               value="{{ patient.insurance_company or '' if patient else '' }}"
+                               placeholder="p.sh. SIGAL, INSIG…">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.pf_insurance_type|default('Lloji i Sigurimit') }}</label>
+                        <select name="insurance_type" class="form-select form-select-sm">
+                            <option value="">—</option>
+                            <option value="public" {% if patient and patient.get("insurance_type") == "public" %}selected{% endif %}>Publik</option>
+                            <option value="private" {% if patient and patient.get("insurance_type") == "private" %}selected{% endif %}>Privat</option>
+                            <option value="both" {% if patient and patient.get("insurance_type") == "both" %}selected{% endif %}>Publik + Privat</option>
+                            <option value="none" {% if patient and patient.get("insurance_type") == "none" %}selected{% endif %}>Pa sigurim</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.pf_insurance_expiry|default('Data e skadimit') }}</label>
+                        <input type="date" name="insurance_expiry" class="form-control form-control-sm"
+                               value="{{ patient.insurance_expiry.isoformat() if patient and patient.get("insurance_expiry") else "" }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.pf_insurance_notes|default("Shënime sigurimi") }}</label>
+                        <input type="text" name="insurance_notes" class="form-control form-control-sm"
+                               value="{{ patient.insurance_notes or "" if patient else "" }}"
+                               placeholder="{{ t.misc_optional }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-telephone me-2 text-success"></i>{{ t.pf_contact }}
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ t.pf_address }}</label>
+                    <textarea name="address" class="form-control" rows="2">{{ patient.address or '' if patient else '' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ t.pf_phone }}</label>
+                    <input type="text" name="phone" class="form-control"
+                           value="{{ patient.phone or '' if patient else '' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ t.pf_email }}</label>
+                    <input type="email" name="email" class="form-control"
+                           value="{{ patient.email or '' if patient else '' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ t.pf_emergency }}</label>
+                    <input type="text" name="emergency_contact" class="form-control"
+                           value="{{ patient.emergency_contact or '' if patient else '' }}">
+                </div>
+                <div>
+                    <label class="form-label fw-semibold">{{ t.pf_family_doctor }}</label>
+                    <input type="text" name="family_doctor" class="form-control"
+                           value="{{ patient.family_doctor or '' if patient else '' }}">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medical History -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-file-medical me-2 text-danger"></i>{{ t.pf_medical }}
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ t.pf_history }}</label>
+                    <textarea name="medical_history" class="form-control" rows="2">{{ patient.medical_history or '' if patient else '' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ t.pf_surgeries }}</label>
+                    <textarea name="surgeries" class="form-control" rows="2">{{ patient.surgeries or '' if patient else '' }}</textarea>
+                </div>
+                <div>
+                    <label class="form-label fw-semibold">{{ t.pf_family_hist }}</label>
+                    <textarea name="family_history" class="form-control" rows="2">{{ patient.family_history or '' if patient else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Allergies -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-exclamation-triangle me-2 text-warning"></i>{{ t.pf_allergies }}
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ t.pf_drug_allergy }}</label>
+                    <textarea name="drug_allergies" class="form-control" rows="2">{{ patient.drug_allergies or '' if patient else '' }}</textarea>
+                </div>
+                <div>
+                    <label class="form-label fw-semibold">{{ t.pf_env_allergy }}</label>
+                    <textarea name="env_allergies" class="form-control" rows="2">{{ patient.env_allergies or '' if patient else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medications -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-capsule me-2 text-info"></i>{{ t.pf_medications }}
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ t.pf_current_meds }}</label>
+                    <textarea name="medications" class="form-control" rows="2">{{ patient.medications or '' if patient else '' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ t.pf_supplements }}</label>
+                    <textarea name="supplements" class="form-control" rows="1">{{ patient.supplements or '' if patient else '' }}</textarea>
+                </div>
+                <div>
+                    <label class="form-label fw-semibold">{{ t.pf_past_meds }}</label>
+                    <textarea name="past_medications" class="form-control" rows="1">{{ patient.past_medications or '' if patient else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vitals -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-activity me-2 text-danger"></i>{{ t.pf_vitals }}
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% set vitals = [
+                        ('weight', t.pf_weight), ('height', t.pf_height),
+                        ('blood_pressure', t.pf_bp), ('heart_rate', t.pf_hr),
+                        ('temperature', t.pf_temp), ('oxygen_sat', t.pf_o2),
+                        ('blood_glucose', t.pf_glucose), ('cholesterol', t.pf_cholesterol)
+                    ] %}
+                    {% for field, label in vitals %}
+                    <div class="col-md-3 col-6">
+                        <label class="form-label fw-semibold">{{ label }}</label>
+                        <input type="text" name="{{ field }}" class="form-control"
+                               value="{{ patient[field] or '' if patient else '' }}">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-journal-text me-2 text-secondary"></i>{{ t.pf_notes }}
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">{{ t.pf_notes }}</label>
+                        <textarea name="notes" class="form-control" rows="3">{{ patient.notes or '' if patient else '' }}</textarea>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">{{ t.pf_icd }}</label>
+                        <input type="text" name="icd_codes" class="form-control"
+                               value="{{ patient.icd_codes or '' if patient else '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">{{ t.pf_referrals }}</label>
+                        <input type="text" name="referrals" class="form-control"
+                               value="{{ patient.referrals or '' if patient else '' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 d-flex gap-2 pb-3">
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>{{ t.save }}
+        </button>
+        <a href="{{ '/patients' }}" class="btn btn-outline-secondary">
+            {{ t.cancel }}
+        </a>
+    </div>
+</div>
+</form>
+{% endblock %}

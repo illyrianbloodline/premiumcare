@@ -1,0 +1,3092 @@
+{% extends "base.html" %}
+{% block title %}{{ patient.first_name }} {{ patient.last_name }} — {{ practice_name }}{% endblock %}
+{% block page_title %}{{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Helpers ── */
+{% if patient.dob %}{% set age = (today - patient.dob).days // 365 %}{% else %}{% set age = 0 %}{% endif %}
+{% set initials = (patient.first_name[0]|upper) + (patient.last_name[0]|upper) %}
+
+/* ── Patient header ── */
+.pt-hero {
+  background: linear-gradient(135deg, #0c1a2e 0%, #1a3570 100%);
+  border-radius: 16px;
+  padding: 22px 28px 20px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255,255,255,.06);
+  position: relative; overflow: hidden;
+}
+.pt-hero::before {
+  content:''; position:absolute; top:-80px; right:-80px;
+  width:260px; height:260px; border-radius:50%;
+  background: radial-gradient(circle, rgba(45,111,212,.15) 0%, transparent 70%);
+  pointer-events:none;
+}
+.pt-avatar {
+  width:60px; height:60px; border-radius:50%; flex-shrink:0;
+  border: 2.5px solid rgba(255,255,255,.25);
+  background:linear-gradient(135deg,#2d6fd4 0%,#0f2a5e 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.35rem; font-weight:800; color:#fff; letter-spacing:1px;
+}
+.pt-name { font-size:1.3rem; font-weight:800; color:#fff; line-height:1.2; }
+.pt-meta { font-size:.8rem; color:#64748b; margin-top:5px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.pt-meta-pill {
+  display:inline-flex; align-items:center; gap:4px;
+  background:#f1f5f9; border-radius:20px; padding:3px 10px;
+  font-size:.75rem; font-weight:500; color:#475569;
+}
+.pt-meta-pill.blood { background:rgba(239,68,68,.2); color:#fca5a5; font-weight:700; }
+.pt-meta-pill.id    { background:#eff6ff; color:#1d4ed8; font-family:monospace; }
+
+/* ── Allergy banner ── */
+.allergy-banner {
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(254,205,211,.18);
+  border:1.5px solid rgba(254,205,211,.5); border-radius:8px;
+  padding:6px 12px;
+  min-height:38px;
+}
+.allergy-icon { font-size:.95rem; color:#fca5a5; flex-shrink:0; }
+.allergy-text { font-size:.8rem; font-weight:700; color:#fca5a5; white-space:nowrap; }
+
+/* ── Premium tab bar ── */
+.pt-tabs-wrapper {
+  background:#fff; border-radius:16px;
+  border:1px solid #e2e8f0;
+  box-shadow:0 2px 12px rgba(0,0,0,.06);
+  overflow:visible; position:relative; z-index:1;
+}
+.pt-tabs {
+  display:flex; gap:0; background:#f8fafc;
+  border-radius:16px 16px 0 0;
+  border-bottom:1.5px solid #e2e8f0;
+  padding:0 8px; overflow-x:auto;
+  scrollbar-width:thin; scrollbar-color:#cbd5e1 transparent;
+}
+.pt-tabs::-webkit-scrollbar { height:3px; }
+.pt-tabs::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:2px; }
+.pt-tab {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:13px 18px;
+  font-size:.84rem; font-weight:600; color:#64748b;
+  cursor:pointer; border:none; background:transparent;
+  transition:all .15s; white-space:nowrap;
+  border-bottom:3px solid transparent;
+  margin-bottom:-1.5px; position:relative; flex-shrink:0;
+}
+.pt-tab:hover { color:#2d6fd4; background:rgba(45,111,212,.04); }
+.pt-tab.active {
+  color:#2d6fd4; background:#fff;
+  border-bottom-color:#2d6fd4; font-weight:700;
+}
+.pt-tab .tab-badge {
+  font-size:.62rem; font-weight:800; padding:1px 6px;
+  border-radius:10px; line-height:1.4;
+  background:#e0e7ff; color:#3730a3;
+}
+.pt-tab.active .tab-badge { background:#dbeafe; color:#1d4ed8; }
+.tab-body { display:none; padding:22px 24px; background:#fff; border-radius:0 0 16px 16px; overflow:visible; }
+.tab-body.active { display:block; }
+
+/* ══ PREMIUM CLIENT NOTE SECTION ══ */
+.client-note-section {
+  margin-top:22px;
+  border-radius:16px;
+  background:#fff;
+  border:1.5px solid #e8edf5;
+  box-shadow:0 2px 16px rgba(15,35,75,.06), 0 0 0 0 transparent;
+  transition:box-shadow .2s;
+}
+.client-note-section:focus-within {
+  box-shadow:0 4px 24px rgba(15,35,75,.1), 0 0 0 3px rgba(45,111,212,.08);
+}
+.client-note-header {
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:10px;
+  padding:12px 16px 12px 18px;
+  border-bottom:1.5px solid #f0f4fa;
+  background:#fafbfd;
+  border-radius:16px 16px 0 0;
+}
+.client-note-label-group { display:flex; align-items:center; gap:10px; }
+.client-note-dot {
+  width:10px; height:10px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg,#059669,#34d399);
+  box-shadow:0 0 0 3px rgba(5,150,105,.12);
+}
+.client-note-title {
+  font-size:.82rem; font-weight:700; color:#0f172a; letter-spacing:.01em;
+}
+.client-note-sub {
+  font-size:.68rem; color:#94a3b8; margin-top:1px;
+}
+.client-note-actions { display:flex; gap:6px; }
+.client-note-action-btn {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:6px 12px; border-radius:8px; font-size:.74rem; font-weight:700;
+  text-decoration:none; transition:all .15s; white-space:nowrap;
+  letter-spacing:.01em;
+}
+.client-note-action-btn.print-btn {
+  background:#f0fdf4; color:#166534;
+  border:1.5px solid #bbf7d0;
+}
+.client-note-action-btn.print-btn:hover {
+  background:#dcfce7; border-color:#86efac;
+}
+.client-note-action-btn.email-btn {
+  background:#eff6ff; color:#1d4ed8;
+  border:1.5px solid #bfdbfe;
+}
+.client-note-action-btn.email-btn:hover {
+  background:#dbeafe; border-color:#93c5fd;
+}
+.client-note-textarea {
+  display:block; width:100%; box-sizing:border-box;
+  padding:16px 18px;
+  border:none; border-radius:0;
+  font-size:.84rem; line-height:1.75; font-family:inherit;
+  color:#1e293b; background:#fff;
+  resize:vertical; min-height:130px;
+  outline:none;
+}
+.client-note-textarea::placeholder { color:#c1cfe0; }
+.client-note-footer {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 18px 10px;
+  border-top:1px solid #f1f5f9;
+  background:#fafbfd;
+  border-radius:0 0 16px 16px;
+}
+.client-note-char-count {
+  font-size:.68rem; color:#cbd5e1; font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+/* ══ END CLIENT NOTE ══ */
+
+/* ── Summary cards ── */
+.summary-stat {
+  background:#f8fafc; border:1px solid #e8edf2; border-radius:12px;
+  padding:14px 16px; text-align:center;
+}
+.summary-stat .val { font-size:1.5rem; font-weight:800; color:#0f172a; line-height:1; }
+.summary-stat .lbl { font-size:.72rem; color:#94a3b8; margin-top:4px; font-weight:500; }
+
+/* ── Vitals grid ── */
+.vital-chip {
+  background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px;
+  padding:12px 14px; display:flex; align-items:center; gap:10px;
+}
+.vital-chip .vital-icon { font-size:1.1rem; width:32px; height:32px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.vital-chip .vital-val { font-size:.95rem; font-weight:700; color:#0f172a; line-height:1.2; }
+.vital-chip .vital-lbl { font-size:.7rem; color:#94a3b8; }
+
+/* ── Allergy cards ── */
+.allergy-card { border-radius:12px; overflow:hidden; }
+.allergy-card .ac-header { padding:12px 16px; font-weight:700; font-size:.85rem; display:flex; align-items:center; gap:8px; }
+.allergy-card .ac-body { padding:14px 16px; background:#fff; min-height:0; }
+
+/* ── Visit accordion ── */
+.visit-item { border:1px solid #e8edf2; border-radius:12px; margin-bottom:10px; overflow:hidden; }
+.visit-header {
+  display:flex; align-items:center; gap:12px; padding:14px 18px;
+  cursor:pointer; background:#fff; transition:background .1s;
+}
+.visit-header:hover { background:#fafbfd; }
+.visit-type-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.visit-body { padding:18px; border-top:1px solid #f1f5f9; background:#fafbfd; display:none; }
+.visit-body.open { display:block; }
+.visit-chevron { margin-left:auto; color:#cbd5e1; transition:transform .2s; }
+.visit-chevron.open { transform:rotate(180deg); }
+
+/* ── ia Panel ── */
+.ai-panel {
+  width:0; overflow:hidden; transition:width .25s ease;
+  flex-shrink:0;
+}
+.ai-panel.open { width:40%; min-width:320px; max-width:680px; }
+.ai-panel-inner { width:100%; height:100%; }
+.ai-panel-wrap {
+  border-radius:14px; border:1.5px solid #ddd6fe;
+  background:#faf5ff; overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.ai-panel-head {
+  background:linear-gradient(135deg,#4c1d95,#7c3aed);
+  padding:12px 16px; display:flex; align-items:center; justify-content:space-between;
+}
+.ai-mode-bar { display:flex; gap:4px; padding:8px 12px; border-bottom:1px solid #ede9fe; flex-wrap:wrap; }
+.ai-mode-btn {
+  border:1px solid #ddd6fe; border-radius:20px; padding:3px 10px;
+  font-size:.72rem; font-weight:600; cursor:pointer; background:#fff; color:#7c3aed;
+  transition:all .12s;
+}
+.ai-mode-btn.active { background:#7c3aed; color:#fff; border-color:#7c3aed; }
+.ai-chat { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; min-height:160px; max-height:380px; }
+.ai-msg-user { align-self:flex-end; background:#7c3aed; color:#fff; border-radius:12px 12px 2px 12px; padding:9px 13px; font-size:.82rem; max-width:88%; white-space:pre-wrap; }
+.ai-msg-ai { align-self:flex-start; background:#fff; border:1px solid #ede9fe; border-radius:12px 12px 12px 2px; padding:9px 13px; font-size:.82rem; max-width:88%; white-space:pre-wrap; line-height:1.6; }
+.ai-input-area { padding:10px 12px; border-top:1px solid #ede9fe; display:flex; gap:8px; }
+.ai-input-area textarea { border:1.5px solid #ddd6fe; border-radius:8px; resize:none; font-size:.82rem; padding:8px 10px; flex:1; background:#fff; }
+.ai-input-area textarea:focus { border-color:#7c3aed; outline:none; }
+.ai-send-btn { background:#7c3aed; border:none; color:#fff; border-radius:8px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; align-self:flex-end; transition:background .12s; flex-shrink:0; }
+.ai-send-btn:hover { background:#6d28d9; }
+
+/* ── Scan upload zone ── */
+.scan-dropzone {
+  border:2px dashed #ddd6fe; border-radius:10px; padding:20px;
+  text-align:center; cursor:pointer; transition:all .15s; background:#fefeff;
+}
+.scan-dropzone:hover, .scan-dropzone.drag { border-color:#7c3aed; background:#faf5ff; }
+
+/* ── Appointment rows ── */
+.appt-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid #f1f5f9; }
+.appt-row:last-child { border-bottom:none; }
+.appt-date-box { width:44px; text-align:center; background:#f8fafc; border-radius:8px; padding:6px 4px; flex-shrink:0; }
+.appt-date-box .day { font-size:1.1rem; font-weight:800; color:#0f172a; line-height:1; }
+.appt-date-box .mon { font-size:.62rem; color:#94a3b8; text-transform:uppercase; letter-spacing:.04em; }
+.status-pill { display:inline-flex; align-items:center; padding:3px 9px; border-radius:20px; font-size:.72rem; font-weight:600; }
+
+/* ── Info table ── */
+.info-row { display:flex; align-items:baseline; gap:8px; padding:7px 0; border-bottom:1px solid #f8fafc; font-size:.85rem; }
+.info-row:last-child { border-bottom:none; }
+.info-lbl { width:38%; color:#94a3b8; font-size:.78rem; flex-shrink:0; }
+.info-val { color:#0f172a; font-weight:500; flex:1; }
+
+/* ── Clinical workspace ── */
+.cnote-label {
+  font-size:.68rem; font-weight:700; color:#64748b;
+  text-transform:uppercase; letter-spacing:.05em;
+  display:block; margin-bottom:4px;
+}
+.cnote-input {
+  font-size:.83rem !important; border:1.5px solid #e2e8f0 !important;
+  border-radius:8px !important; transition:border-color .12s !important;
+}
+.cnote-input:focus { border-color:#7c3aed !important; box-shadow:0 0 0 3px rgba(124,58,237,.08) !important; }
+.cnote-textarea {
+  width:100%; border:1.5px solid #e2e8f0; border-radius:8px;
+  padding:10px 12px; font-size:.85rem; font-family:inherit;
+  line-height:1.6; resize:vertical; transition:border-color .12s;
+}
+.cnote-textarea:focus { border-color:#7c3aed; outline:none; box-shadow:0 0 0 3px rgba(124,58,237,.08); }
+.cnote-save-btn {
+  background:linear-gradient(135deg,#2d6fd4,#1a3a8f);
+  border:none; color:#fff; border-radius:8px; padding:8px 20px;
+  font-size:.83rem; font-weight:700; cursor:pointer; transition:all .15s;
+}
+.cnote-save-btn:hover { background:linear-gradient(135deg,#1a5abf,#0f2a6e); transform:translateY(-1px); }
+.ai-quick-btn {
+  display:inline-flex; align-items:center; gap:4px;
+  border:1px solid #ddd6fe; background:#faf5ff; color:#7c3aed;
+  border-radius:6px; padding:2px 10px; font-size:.72rem;
+  font-weight:600; cursor:pointer; transition:all .12s;
+  white-space:nowrap;
+}
+.ai-quick-btn:hover { background:#ede9fe; border-color:#7c3aed; }
+.ai-quick-chip {
+  border:1px solid #ddd6fe; background:#fff; color:#6d28d9;
+  border-radius:20px; padding:3px 10px; font-size:.7rem;
+  font-weight:600; cursor:pointer; transition:all .12s; white-space:nowrap;
+}
+.ai-quick-chip:hover { background:#ede9fe; }
+
+/* ── Visit table styles (moved from inline) ── */
+    .visit-table-wrap{
+      border:1px solid #e8edf2;
+      border-radius:14px;
+      overflow:hidden;
+      background:#fff;
+      box-shadow:0 1px 3px rgba(15,23,42,.04);
+    }
+    .visit-table{
+      width:100%;
+      border-collapse:collapse;
+    }
+    .visit-table thead th{
+      background:#f8fafc;
+      color:#94a3b8;
+      font-size:.68rem;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      padding:12px 14px;
+      border-bottom:1px solid #e8edf2;
+      white-space:nowrap;
+    }
+    .visit-table tbody tr{
+      cursor:pointer;
+      transition:background .12s ease;
+      border-bottom:1px solid #f1f5f9;
+    }
+    .visit-table tbody tr:last-child{ border-bottom:none; }
+    .visit-table tbody tr:hover{ background:#f8fbff; }
+    .vt-date{ font-size:.87rem; font-weight:700; color:#0f172a; line-height:1.2; }
+    .vt-date-sub{ font-size:.7rem; color:#94a3b8; margin-top:2px; }
+    .vt-type{
+      display:inline-flex; align-items:center; gap:4px;
+      padding:4px 10px; border-radius:999px; font-size:.72rem; font-weight:700; white-space:nowrap;
+    }
+    .vt-type.consultation{background:#eff6ff;color:#1d4ed8;}
+    .vt-type.check-up{background:#f0fdf4;color:#166534;}
+    .vt-type.follow-up{background:#f0f9ff;color:#0369a1;}
+    .vt-type.urgent{background:#fff1f2;color:#be123c;}
+    .vt-type.procedure{background:#faf5ff;color:#6d28d9;}
+    .vt-type.telehealth{background:#fff7ed;color:#c2410c;}
+    .vt-text{ font-size:.82rem; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px; }
+    .vt-muted{ font-size:.8rem; color:#64748b; white-space:nowrap; }
+    .vt-status{
+      display:inline-flex; align-items:center; padding:3px 9px;
+      border-radius:999px; font-size:.7rem; font-weight:700; white-space:nowrap;
+    }
+    .vt-status.completed{background:#f0fdf4;color:#166534;}
+    .vt-status.scheduled{background:#eff6ff;color:#1d4ed8;}
+    .vt-status.cancelled{background:#f8fafc;color:#64748b;}
+    .vt-detail-card{
+      background:#fff; border:1px solid #e8edf2; border-radius:14px;
+      padding:18px 20px; box-shadow:0 1px 4px rgba(15,23,42,.04);
+    }
+    .vt-form-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+    .vt-form-grid-2{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+    .vt-label{
+      font-size:.68rem; font-weight:700; color:#64748b;
+      text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px; display:block;
+    }
+    .vt-input{
+      width:100%; min-height:40px; border:1.5px solid #e2e8f0;
+      border-radius:8px; font-size:.83rem; padding:8px 10px; background:#fff;
+    }
+    .vt-input:focus{ border-color:#7c3aed; outline:none; box-shadow:0 0 0 3px rgba(124,58,237,.08); }
+    .vt-textarea{
+      width:100%; border:1.5px solid #e2e8f0; border-radius:10px;
+      padding:12px; font-size:.84rem; line-height:1.6; resize:vertical; min-height:220px;
+    }
+    .vt-textarea:focus{ border-color:#7c3aed; outline:none; box-shadow:0 0 0 3px rgba(124,58,237,.08); }
+    .vt-actions{ display:flex; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap; }
+    .vt-btn-primary{
+      background:linear-gradient(135deg,#2d6fd4,#1a3a8f); color:#fff; border:none;
+      border-radius:8px; padding:9px 18px; font-size:.82rem; font-weight:700; cursor:pointer;
+    }
+    .vt-btn-primary:hover{ filter:brightness(.97); }
+    .vt-btn-secondary{
+      background:#fff; color:#64748b; border:1.5px solid #e2e8f0;
+      border-radius:8px; padding:9px 16px; font-size:.82rem; font-weight:700; cursor:pointer;
+    }
+    .vt-btn-danger{
+      background:#fff; color:#be123c; border:1.5px solid #fecdd3;
+      border-radius:8px; padding:9px 16px; font-size:.82rem; font-weight:700; cursor:pointer;
+    }
+    .vt-split{ display:flex; gap:18px; align-items:stretch; min-height:560px; }
+    .vt-left{ flex:1; min-width:0; }
+    .vt-right{
+      width:540px; flex-shrink:0;
+      display:flex; flex-direction:column; background:#faf5ff;
+      overflow:hidden; position:relative;
+      border:1.5px solid #ddd6fe;
+      border-radius:16px;
+      margin-left:14px;
+      box-shadow:0 4px 20px rgba(124,58,237,.08);
+    }
+    @media (max-width:1100px){
+      .vt-form-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+      .vt-split{flex-direction:column;}
+      .vt-right{width:100%;border-left:none;border-top:1.5px solid #ede9fe;}
+    }
+    @media (max-width:700px){
+      .vt-form-grid,.vt-form-grid-2{grid-template-columns:1fr;}
+      .vt-text{max-width:120px;}
+    }
+
+
+/* ── Dot-phrases ── */
+.dotphrase-popup {
+  position:absolute; z-index:9999; background:#fff; border:1.5px solid #ddd6fe;
+  border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12);
+  padding:4px 0; min-width:280px; max-height:240px; overflow-y:auto;
+}
+.dotphrase-item {
+  padding:9px 14px; cursor:pointer; font-size:.83rem; display:flex; gap:10px; align-items:flex-start;
+}
+.dotphrase-item:hover { background:#faf5ff; }
+.dotphrase-code { font-family:monospace; font-weight:700; color:#7c3aed; font-size:.78rem; flex-shrink:0; }
+.dotphrase-preview { color:#64748b; font-size:.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; }
+/* ── Voice button ── */
+.voice-btn {
+  display:inline-flex; align-items:center; gap:4px; border:1.5px solid #e2e8f0;
+  border-radius:6px; padding:3px 9px; font-size:.72rem; font-weight:600;
+  cursor:pointer; background:#fff; color:#64748b; transition:all .15s;
+}
+.voice-btn:hover { border-color:#2d6fd4; color:#1d4ed8; }
+.voice-btn.recording { border-color:#ef4444; color:#ef4444; background:#fff1f2; animation:pulse .8s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+/* ── Med checker ── */
+.med-check-panel { background:#faf5ff; border:1.5px solid #ddd6fe; border-radius:10px; padding:14px; margin-top:10px; display:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if patient.dob %}{% set age = (today - patient.dob).days // 365 %}{% else %}{% set age = 0 %}{% endif %}
+{% set initials = (patient.first_name[0]|upper) + (patient.last_name[0]|upper) %}
+
+<!-- ══════════════════════════════════════════════════
+     PATIENT HERO HEADER
+═══════════════════════════════════════════════════ -->
+<div class="pt-hero">
+  <div style="display:flex;align-items:flex-start;gap:20px;">
+    <div class="pt-avatar">{{ initials }}</div>
+
+    <div class="flex-grow-1">
+      <div class="pt-name">{{ patient.first_name }} {{ patient.last_name }}</div>
+      <div class="pt-meta">
+        {% if patient.dob %}
+        <span class="pt-meta-pill"><i class="bi bi-calendar3" style="font-size:.7rem;"></i>{{ patient.dob.strftime('%d/%m/%Y') }}</span>
+        {% endif %}
+        {% if age %}
+        <span class="pt-meta-pill">{{ age }} {{ t.pv_age }}</span>
+        {% endif %}
+        {% if patient.gender %}
+        <span class="pt-meta-pill">{% if patient.gender|lower == "male" %}{{ t.pf_gender_m }}{% elif patient.gender|lower == "female" %}{{ t.pf_gender_f }}{% else %}{{ patient.gender }}{% endif %}</span>
+        {% endif %}
+        {% if patient.blood_type %}
+        <span class="pt-meta-pill blood"><i class="bi bi-droplet-fill" style="font-size:.65rem;"></i>{{ patient.blood_type }}</span>
+        {% endif %}
+        {% if patient.phone %}
+        <span class="pt-meta-pill"><i class="bi bi-telephone" style="font-size:.65rem;"></i>{{ patient.phone }}</span>
+        {% endif %}
+        {% if patient.insurance_nr %}
+        <span class="pt-meta-pill"><i class="bi bi-shield" style="font-size:.65rem;"></i>{{ patient.insurance_nr }}</span>
+        {% endif %}
+        <span class="pt-meta-pill id">#{{ patient.id }}</span>
+      </div>
+
+      {# Critical info bar — allergies, conditions, meds all in one row #}
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:stretch;">
+
+        {% if patient.drug_allergies %}
+        <div class="allergy-banner" style="align-self:stretch;">
+          <i class="bi bi-exclamation-triangle-fill allergy-icon"></i>
+          <div>
+            <div class="allergy-text"><span style="font-weight:800;">Alergjitë ndaj Barnave:</span> {{ patient.drug_allergies }}</div>
+            {% if patient.env_allergies %}
+            <div style="font-size:.74rem;color:#fca5a5;margin-top:1px;"><span style="font-weight:700;">Alergjitë Mjedisore:</span> {{ patient.env_allergies }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if patient.medical_history %}
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 11px;background:rgba(251,191,36,.12);border:1.5px solid rgba(251,191,36,.3);border-radius:8px;min-height:38px;">
+          <i class="bi bi-heart-pulse-fill" style="color:#fbbf24;font-size:.82rem;flex-shrink:0;"></i>
+          <div>
+            <div style="font-size:.7rem;font-weight:700;color:rgba(251,191,36,.7);text-transform:uppercase;letter-spacing:.4px;">Gjendjet</div>
+            <div style="font-size:.78rem;font-weight:600;color:#fde68a;">{{ patient.medical_history|replace('\n',' · ')|replace('\r','')|truncate(60,true,'…',0) }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if patient.medications %}
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 11px;background:rgba(99,102,241,.15);border:1.5px solid rgba(99,102,241,.3);border-radius:8px;min-height:38px;">
+          <i class="bi bi-capsule-pill" style="color:#a5b4fc;font-size:.82rem;flex-shrink:0;"></i>
+          <div>
+            <div style="font-size:.7rem;font-weight:700;color:rgba(165,180,252,.7);text-transform:uppercase;letter-spacing:.4px;">Medikamentet</div>
+            <div style="font-size:.78rem;font-weight:600;color:#c7d2fe;">{{ patient.medications|replace('\n',' · ')|replace('\r','')|truncate(60,true,'…',0) }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if patient.notes and patient.notes|length > 2 %}
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 11px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:8px;min-height:38px;">
+          <i class="bi bi-sticky" style="color:rgba(255,255,255,.6);font-size:.82rem;flex-shrink:0;"></i>
+          <div style="font-size:.78rem;font-weight:500;color:rgba(255,255,255,.75);">{{ patient.notes[:60] }}{% if patient.notes|length > 60 %}…{% endif %}</div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;align-items:flex-end;justify-content:flex-start;">
+
+      <!-- Break Glass — icon only, top -->
+      <!-- Edit button row: edit + break-glass side by side -->
+      <div style="display:flex;align-items:center;gap:8px;">
+        <a href="/patients"
+           style="display:inline-flex;align-items:center;gap:6px;
+                  padding:8px 14px;
+                  background:rgba(255,255,255,.14);
+                  border:1.5px solid rgba(255,255,255,.28);
+                  border-radius:9px;
+                  color:#fff;font-size:.8rem;font-weight:600;
+                  text-decoration:none;white-space:nowrap;
+                  transition:all .18s;"
+           onmouseover="this.style.background='rgba(255,255,255,.24)';"
+           onmouseout="this.style.background='rgba(255,255,255,.14)';">
+          <i class="bi bi-arrow-left" style="font-size:.85rem;"></i>
+          Pacientët
+        </a>
+        <button data-bs-toggle="modal" data-bs-target="#btgModal"
+                title="{{ t.btg_title }}"
+                style="width:34px;height:34px;
+                       display:flex;align-items:center;justify-content:center;
+                       background:rgba(220,38,38,.15);
+                       border:1.5px solid rgba(220,38,38,.3);
+                       border-radius:8px;
+                       color:rgba(255,180,180,.9);font-size:1rem;
+                       cursor:pointer;transition:all .18s;font-family:inherit;"
+                onmouseover="this.style.background='rgba(220,38,38,.3)';this.style.borderColor='rgba(220,38,38,.6)';"
+                onmouseout="this.style.background='rgba(220,38,38,.15)';this.style.borderColor='rgba(220,38,38,.3)';">
+          <i class="bi bi-shield-exclamation"></i>
+        </button>
+      </div>
+
+    </div>
+
+  <!-- BTG Modal -->
+  <div class="modal fade" id="btgModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header" style="background:#fff1f2;">
+          <h5 class="modal-title fw-bold text-danger"><i class="bi bi-shield-exclamation me-2"></i>{{ t.btg_title }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="POST" action="/patients/{{ patient.id }}/btg">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="modal-body">
+            <div class="alert alert-danger border-0" style="font-size:.82rem;border-radius:8px;">
+              <strong>⚠ Warning:</strong> {{ t.btg_warning }}
+            </div>
+            <label class="form-label fw-bold" style="font-size:.82rem;">{{ t.btg_justification }} <span class="text-danger">*</span></label>
+            <textarea name="justification" class="form-control" rows="4" required minlength="20"
+                      placeholder="{{ t.btg_placeholder }}"></textarea>
+            <div class="form-text mt-1">{{ t.btg_hint }}</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ t.btg_cancel }}</button>
+            <button type="submit" class="btn btn-danger fw-bold">
+              <i class="bi bi-shield-exclamation me-2"></i>{{ t.btg_confirm }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     TAB BAR
+═══════════════════════════════════════════════════ -->
+<div class="pt-tabs-wrapper">
+  <div class="pt-tabs" id="ptTabBar">
+
+    <button class="pt-tab active" data-tab="summary" onclick="switchTab('summary')">
+      <i class="bi bi-speedometer2"></i> Kreu
+    </button>
+
+    <button class="pt-tab" data-tab="clinical" onclick="switchTab('clinical')">
+      <i class="bi bi-stars" style="color:#7c3aed;"></i> Shënime &amp; AI
+      {% if visits %}<span class="tab-badge" style="background:#ede9fe;color:#5b21b6;">{{ visits|length }}</span>{% endif %}
+    </button>
+
+    <button class="pt-tab" data-tab="medical" onclick="switchTab('medical')">
+      <i class="bi bi-heart-pulse"></i> Mjekësor
+      {% if patient.drug_allergies or patient.env_allergies %}
+      <span class="tab-badge" style="background:#fff1f2;color:#be123c;">!</span>
+      {% endif %}
+    </button>
+
+    <button class="pt-tab" data-tab="medicines" onclick="switchTab('medicines')">
+      <i class="bi bi-capsule-pill" style="color:#059669;"></i> Ilaçet
+    </button>
+
+    <button class="pt-tab" data-tab="labtests" onclick="switchTab('labtests')">
+      <i class="bi bi-eyedropper" style="color:#7c3aed;"></i> Teste Lab.
+      {% if lab_tests %}<span class="tab-badge" style="background:#ede9fe;color:#5b21b6;">{{ lab_tests|length }}</span>{% endif %}
+    </button>
+
+    <button class="pt-tab" data-tab="prescriptions_tab" onclick="switchTab('prescriptions_tab')">
+      <i class="bi bi-capsule" style="color:#d97706;"></i> Recetat
+      {% if prescriptions %}<span class="tab-badge" style="background:#fef3c7;color:#92400e;">{{ prescriptions|length }}</span>{% endif %}
+    </button>
+
+    <button class="pt-tab" data-tab="appointments" onclick="switchTab('appointments')">
+      <i class="bi bi-calendar3"></i> Takimet
+      {% if appointments %}<span class="tab-badge" style="background:#f0fdf4;color:#166534;">{{ appointments|length }}</span>{% endif %}
+    </button>
+
+    <button class="pt-tab" data-tab="vaccinations" onclick="switchTab('vaccinations')">
+      <i class="bi bi-shield-plus" style="color:#0891b2;"></i> Vaksinim
+      {% if vaccinations %}<span class="tab-badge" style="background:#e0f2fe;color:#0369a1;">{{ vaccinations|length }}</span>{% endif %}
+    </button>
+
+    <button class="pt-tab" data-tab="recalls" onclick="switchTab('recalls')">
+      <i class="bi bi-arrow-repeat" style="color:#d97706;"></i> Rikujtime
+      {% if recalls %}<span class="tab-badge" style="background:#fef3c7;color:#92400e;">{{ recalls|length }}</span>{% endif %}
+    </button>
+
+    <button class="pt-tab" data-tab="invoices_tab" onclick="switchTab('invoices_tab')">
+      <i class="bi bi-receipt" style="color:#dc2626;"></i> Faturimet
+      {% if invoices %}<span class="tab-badge" style="background:#fee2e2;color:#991b1b;">{{ invoices|length }}</span>{% endif %}
+    </button>
+
+    <button class="pt-tab" data-tab="documents" onclick="switchTab('documents')">
+      <i class="bi bi-folder2-open" style="color:#2d6fd4;"></i> Dokumentet
+      {% if documents %}<span class="tab-badge" style="background:#dbeafe;color:#1d4ed8;">{{ documents|length }}</span>{% endif %}
+    </button>
+
+    <button class="pt-tab" data-tab="demographics" onclick="switchTab('demographics')">
+      <i class="bi bi-person-lines-fill"></i> Profili
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       TAB 1 — SUMMARY
+  ═══════════════════════════════════════════════════ -->
+  <div class="tab-body active" id="tab-summary">
+
+    <!-- ── Gap-in-care alerts ── -->
+    <div id="gapAlerts" style="margin-bottom:14px;"></div>
+
+    <!-- ══════════════════════════════════════════
+         ROW 1: 5 Smart stat cards with details
+    ══════════════════════════════════════════ -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
+
+      <!-- 2. VIZITAT -->
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:13px;padding:14px;cursor:pointer;" onclick="switchTab('clinical')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:.68rem;font-weight:800;color:#6b7a99;text-transform:uppercase;letter-spacing:.5px;">Vizitat</div>
+          <i class="bi bi-arrow-right" style="font-size:.7rem;color:#94a3b8;"></i>
+        </div>
+        <div style="font-size:2rem;font-weight:900;line-height:1;color:#1d4ed8;margin-bottom:8px;">{{ visits|length }}</div>
+        <div style="border-top:1px solid #f1f5f9;padding-top:8px;display:flex;flex-direction:column;gap:4px;">
+          {% if visits %}
+          {% set lv = visits[0] %}
+          <div style="font-size:.72rem;font-weight:700;color:#0f172a;">{{ lv.visit_date.strftime('%d %b %Y') if lv.visit_date else '—' }}</div>
+          <div style="font-size:.7rem;color:#64748b;">{{ lv.visit_type or 'Konsultë' }}</div>
+          {% if lv.diagnosis %}<div style="font-size:.7rem;color:#1d4ed8;font-weight:600;">{{ lv.diagnosis[:40] }}{% if lv.diagnosis|length > 40 %}…{% endif %}</div>{% endif %}
+          {% else %}
+          <div style="font-size:.7rem;color:#94a3b8;font-style:italic;">Asnjë vizitë ende</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- 3. TAKIMET -->
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:13px;padding:14px;cursor:pointer;" onclick="switchTab('appointments')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:.68rem;font-weight:800;color:#6b7a99;text-transform:uppercase;letter-spacing:.5px;">Takimet</div>
+          <i class="bi bi-arrow-right" style="font-size:.7rem;color:#94a3b8;"></i>
+        </div>
+        <div style="font-size:2rem;font-weight:900;line-height:1;color:#059669;margin-bottom:8px;">{{ appointments|length }}</div>
+        <div style="border-top:1px solid #f1f5f9;padding-top:8px;display:flex;flex-direction:column;gap:4px;">
+          {% set future = appointments|selectattr('status','equalto','scheduled')|list if appointments else [] %}
+          {% if future %}
+          {% set na = future[0] %}
+          <div style="font-size:.72rem;font-weight:700;color:#059669;">▶ I ardhshëm</div>
+          <div style="font-size:.7rem;color:#0f172a;font-weight:600;">
+            {{ na.appointment_date.strftime('%d %b %Y') if na.get('appointment_date') else na.appt_date.strftime('%d %b %Y') if na.get('appt_date') else '—' }}
+          </div>
+          <div style="font-size:.7rem;color:#64748b;">{{ na.appointment_type or 'Takim' }}{% if na.start_time %} · {{ na.start_time.strftime('%H:%M') }}{% endif %}</div>
+          {% elif appointments %}
+          <div style="font-size:.72rem;font-weight:600;color:#64748b;">I fundit kryer</div>
+          <div style="font-size:.7rem;color:#0f172a;">{{ appointments[0].appointment_date.strftime('%d %b %Y') if appointments[0].get('appointment_date') else '—' }}</div>
+          {% else %}
+          <div style="font-size:.7rem;color:#94a3b8;font-style:italic;">Asnjë takim planifikuar</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- 4. RECETAT -->
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:13px;padding:14px;cursor:pointer;" onclick="switchTab('prescriptions_tab')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:.68rem;font-weight:800;color:#6b7a99;text-transform:uppercase;letter-spacing:.5px;">Recetat</div>
+          <i class="bi bi-arrow-right" style="font-size:.7rem;color:#94a3b8;"></i>
+        </div>
+        {% set active_rx = prescriptions|selectattr('status','equalto','active')|list if prescriptions else [] %}
+        <div style="font-size:2rem;font-weight:900;line-height:1;color:#7c3aed;margin-bottom:8px;">{{ active_rx|length }}</div>
+        <div style="border-top:1px solid #f1f5f9;padding-top:8px;display:flex;flex-direction:column;gap:3px;">
+          {% if active_rx %}
+          {% for rx in active_rx[:3] %}
+          <div style="font-size:.7rem;color:#0f172a;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            · {{ rx.drug_name }}{% if rx.dosage %} <span style="color:#7c3aed;font-weight:400;">{{ rx.dosage }}</span>{% endif %}
+          </div>
+          {% endfor %}
+          {% if active_rx|length > 3 %}<div style="font-size:.68rem;color:#94a3b8;">+{{ active_rx|length - 3 }} të tjera</div>{% endif %}
+          {% elif patient.medications %}
+          <div style="font-size:.7rem;color:#64748b;">{{ patient.medications.replace('
+',' · ')[:60] }}{% if patient.medications|length > 60 %}…{% endif %}</div>
+          {% else %}
+          <div style="font-size:.7rem;color:#94a3b8;font-style:italic;">Asnjë recetë aktive</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- 5. ALERGJITË -->
+      <div style="background:{% if patient.drug_allergies %}#fff1f2{% else %}#f0fdf4{% endif %};border:1.5px solid {% if patient.drug_allergies %}#fecdd3{% else %}#bbf7d0{% endif %};border-radius:13px;padding:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:.68rem;font-weight:800;color:{% if patient.drug_allergies %}#be123c{% else %}#166534{% endif %};text-transform:uppercase;letter-spacing:.5px;">Alergjitë</div>
+          {% if patient.drug_allergies %}<i class="bi bi-exclamation-triangle-fill" style="color:#dc2626;font-size:.85rem;"></i>
+          {% else %}<i class="bi bi-shield-check" style="color:#16a34a;font-size:.85rem;"></i>{% endif %}
+        </div>
+        <div style="font-size:2rem;font-weight:900;line-height:1;margin-bottom:8px;color:{% if patient.drug_allergies %}#dc2626{% else %}#16a34a{% endif %};">
+          {% if patient.drug_allergies %}!{% else %}✓{% endif %}
+        </div>
+        <div style="border-top:1px solid {% if patient.drug_allergies %}#fecdd3{% else %}#bbf7d0{% endif %};padding-top:8px;display:flex;flex-direction:column;gap:4px;">
+          {% if patient.drug_allergies %}
+          <div style="font-size:.68rem;font-weight:700;color:#be123c;text-transform:uppercase;">Ndaj Barnave:</div>
+          <div style="font-size:.75rem;font-weight:700;color:#0f172a;">{{ patient.drug_allergies[:60] }}{% if patient.drug_allergies|length > 60 %}…{% endif %}</div>
+          {% endif %}
+          {% if patient.env_allergies %}
+          <div style="font-size:.68rem;font-weight:700;color:#92400e;text-transform:uppercase;margin-top:2px;">Mjedisore:</div>
+          <div style="font-size:.7rem;color:#0f172a;">{{ patient.env_allergies[:40] }}{% if patient.env_allergies|length > 40 %}…{% endif %}</div>
+          {% endif %}
+          {% if not patient.drug_allergies and not patient.env_allergies %}
+          <div style="font-size:.7rem;color:#16a34a;font-weight:600;">Asnjë alergjí e njohur</div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         ROW 2: Clean 2x2 grid
+    ══════════════════════════════════════════ -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+
+      <!-- CARD A: Gjendjet Aktive -->
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:13px;overflow:hidden;">
+        <div style="padding:12px 16px;background:#fffbeb;border-bottom:1.5px solid #fde68a;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:.75rem;font-weight:800;color:#92400e;display:flex;align-items:center;gap:7px;">
+            <i class="bi bi-heart-pulse-fill" style="color:#d97706;"></i>Gjendjet Aktive
+          </div>
+          <a href="/patients/{{ patient.id }}/edit" style="font-size:.72rem;color:#d97706;text-decoration:none;font-weight:700;">+ Shto</a>
+        </div>
+        <div style="padding:14px 16px;">
+          {% if patient.medical_history %}
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            {% for cond in patient.medical_history.replace('
+','').split('
+') %}
+            {% if cond.strip() %}
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 10px;background:#fffbeb;border-radius:8px;border:1px solid #fef3c7;">
+              <div style="width:7px;height:7px;border-radius:50%;background:#d97706;flex-shrink:0;"></div>
+              <span style="font-size:.84rem;font-weight:600;color:#0f172a;">{{ cond.strip() }}</span>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+          {% else %}
+          <div style="text-align:center;padding:20px;color:#94a3b8;font-size:.82rem;font-style:italic;">Asnjë gjendje e regjistruar</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- CARD B: Shenjat Vitale -->
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:13px;overflow:hidden;">
+        <div style="padding:12px 16px;background:#eff6ff;border-bottom:1.5px solid #bfdbfe;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:.75rem;font-weight:800;color:#1d4ed8;display:flex;align-items:center;gap:7px;">
+            <i class="bi bi-activity" style="color:#2563eb;"></i>Shenjat Vitale të Fundit
+          </div>
+          <a href="/patients/{{ patient.id }}/edit" style="font-size:.72rem;color:#1d4ed8;text-decoration:none;font-weight:700;">Përditëso</a>
+        </div>
+        <div style="padding:14px 16px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            {% for icon,color,bg,lbl,val in [
+              ('bi-heart-pulse-fill','#e11d48','#fff1f2','Rrahjet / min',patient.heart_rate),
+              ('bi-activity','#2d6fd4','#eff6ff','Presioni',patient.blood_pressure),
+              ('bi-thermometer-half','#ea580c','#fff7ed','Temperatura °C',patient.temperature),
+              ('bi-lungs','#7c3aed','#faf5ff','Saturimi O₂',patient.oxygen_sat),
+              ('bi-droplet-fill','#0369a1','#f0f9ff','Glukoza',patient.blood_glucose),
+              ('bi-clipboard2-pulse','#047857','#f0fdf4','Kolesteroli',patient.cholesterol),
+            ] %}
+            <div style="display:flex;flex-direction:column;align-items:center;padding:10px 8px;background:{{ bg }};border-radius:10px;text-align:center;">
+              <i class="bi {{ icon }}" style="color:{{ color }};font-size:1rem;margin-bottom:5px;"></i>
+              <div style="font-size:1rem;font-weight:800;color:#0f172a;line-height:1;">{{ val or '—' }}</div>
+              <div style="font-size:.62rem;color:#94a3b8;margin-top:3px;line-height:1.2;">{{ lbl }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD C: Medikamentet -->
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:13px;overflow:hidden;">
+        <div style="padding:12px 16px;background:#f5f3ff;border-bottom:1.5px solid #ddd6fe;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:.75rem;font-weight:800;color:#5b21b6;display:flex;align-items:center;gap:7px;">
+            <i class="bi bi-capsule-pill" style="color:#7c3aed;"></i>Medikamentet Aktuale
+          </div>
+          <a href="/patients/{{ patient.id }}/prescriptions/new" style="font-size:.72rem;color:#7c3aed;text-decoration:none;font-weight:700;">+ Shto</a>
+        </div>
+        <div style="padding:14px 16px;">
+          {% set active_rxs = prescriptions|selectattr('status','equalto','active')|list if prescriptions else [] %}
+          {% if active_rxs %}
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            {% for rx in active_rxs %}
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#faf8ff;border-radius:9px;border:1px solid #ede9fe;">
+              <div>
+                <div style="font-size:.84rem;font-weight:700;color:#0f172a;">{{ rx.drug_name }}</div>
+                {% if rx.dosage or rx.frequency %}
+                <div style="font-size:.72rem;color:#7c3aed;margin-top:1px;">{{ rx.dosage or '' }}{% if rx.frequency %} · {{ rx.frequency }}{% endif %}</div>
+                {% endif %}
+              </div>
+              <span style="font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:20px;background:#ede9fe;color:#5b21b6;white-space:nowrap;">Aktive</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% elif patient.medications %}
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            {% for med in patient.medications.replace('
+','').split('
+') %}{% if med.strip() %}
+            <div style="padding:7px 12px;background:#faf8ff;border-radius:9px;border:1px solid #ede9fe;font-size:.83rem;color:#0f172a;">{{ med.strip() }}</div>
+            {% endif %}{% endfor %}
+          </div>
+          {% else %}
+          <div style="text-align:center;padding:20px;color:#94a3b8;font-size:.82rem;font-style:italic;">Asnjë medikament aktiv</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- CARD D: Vizita + Takimi + Kujtesa -->
+      <div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:13px;overflow:hidden;">
+        <div style="padding:12px 16px;background:#f0fdf4;border-bottom:1.5px solid #bbf7d0;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:.75rem;font-weight:800;color:#166534;display:flex;align-items:center;gap:7px;">
+            <i class="bi bi-clock-history" style="color:#16a34a;"></i>Aktiviteti Klinik
+          </div>
+          <button onclick="switchTab('clinical')" style="font-size:.72rem;color:#16a34a;background:none;border:none;cursor:pointer;font-weight:700;padding:0;">Të gjitha →</button>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+
+          <!-- Vizita e fundit -->
+          <div style="padding:10px 12px;background:#f0fdf4;border-radius:9px;border:1px solid #bbf7d0;">
+            <div style="font-size:.68rem;font-weight:800;color:#166534;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;">Vizita e Fundit</div>
+            {% if visits %}{% set lv = visits[0] %}
+            <div style="font-size:.86rem;font-weight:800;color:#0f172a;">{{ lv.visit_date.strftime('%d %b %Y') if lv.visit_date else '—' }}</div>
+            <div style="font-size:.74rem;color:#16a34a;">{{ lv.visit_type or 'Konsultë' }}{% if lv.doctor_name %} · Dr. {{ lv.doctor_name }}{% endif %}</div>
+            {% if lv.diagnosis %}<div style="font-size:.76rem;color:#475569;margin-top:3px;font-weight:600;">{{ lv.diagnosis[:60] }}{% if lv.diagnosis|length > 60 %}…{% endif %}</div>{% endif %}
+            {% else %}
+            <div style="font-size:.8rem;color:#94a3b8;font-style:italic;">Asnjë vizitë e regjistruar</div>
+            {% endif %}
+          </div>
+
+          <!-- Takimi i ardhshëm -->
+          <div style="padding:10px 12px;background:#eff6ff;border-radius:9px;border:1px solid #bfdbfe;">
+            <div style="font-size:.68rem;font-weight:800;color:#1d4ed8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;display:flex;justify-content:space-between;">
+              <span>Takimi i Ardhshëm</span>
+              <a href="/calendar/new" style="color:#1d4ed8;text-decoration:none;font-weight:700;">+ Rezervo</a>
+            </div>
+            {% set future_appts = appointments|selectattr('status','equalto','scheduled')|list if appointments else [] %}
+            {% if future_appts %}{% set na = future_appts[0] %}
+            <div style="font-size:.86rem;font-weight:800;color:#0f172a;">{{ na.appointment_date.strftime('%d %b %Y') if na.get('appointment_date') else '—' }}</div>
+            <div style="font-size:.74rem;color:#2563eb;">{{ na.appointment_type or 'Takim' }}{% if na.start_time %} · {{ na.start_time.strftime('%H:%M') }}{% endif %}</div>
+            {% else %}
+            <div style="font-size:.8rem;color:#94a3b8;font-style:italic;">Asnjë takim i planifikuar</div>
+            {% endif %}
+          </div>
+
+          <!-- Kujtesa -->
+          {% if reminders or recalls %}
+          <div style="padding:10px 12px;background:#faf8ff;border-radius:9px;border:1px solid #ddd6fe;">
+            <div style="font-size:.68rem;font-weight:800;color:#5b21b6;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;display:flex;justify-content:space-between;">
+              <span>Kujtesa Aktive</span>
+              <button onclick="switchTab('recalls')" style="color:#7c3aed;background:none;border:none;cursor:pointer;font-size:.68rem;font-weight:700;padding:0;">Të gjitha →</button>
+            </div>
+            {% for r in (reminders[:2] if reminders else []) %}
+            <div style="display:flex;align-items:center;gap:7px;font-size:.78rem;padding:2px 0;">
+              <div style="width:6px;height:6px;border-radius:50%;background:#7c3aed;flex-shrink:0;"></div>
+              <span style="color:#0f172a;font-weight:600;">{{ r.reason[:45] if r.reason else '—' }}</span>
+              <span style="color:{% if r.due_date and r.due_date <= today %}#dc2626{% else %}#94a3b8{% endif %};font-size:.68rem;margin-left:auto;">{{ r.due_date.strftime('%d/%m') if r.due_date else '' }}</span>
+            </div>
+            {% endfor %}
+            {% for r in (recalls[:1] if recalls else []) %}
+            <div style="display:flex;align-items:center;gap:7px;font-size:.78rem;padding:2px 0;">
+              <div style="width:6px;height:6px;border-radius:50%;background:#d97706;flex-shrink:0;"></div>
+              <span style="color:#0f172a;">{{ r.result[:45] if r.result else '—' }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+
+    </div>
+
+        <!-- ══════════════════════════════════════════
+         ROW 3: Materiale edukative (collapsed by default)
+    ══════════════════════════════════════════ -->
+    {% if patient.medical_history or patient.icd_codes %}
+    <div style="border:1.5px solid #e8edf2;border-radius:12px;overflow:hidden;">
+      <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"
+           style="padding:12px 16px;display:flex;align-items:center;gap:8px;cursor:pointer;background:#f8f9fc;">
+        <i class="bi bi-journal-bookmark" style="color:#7c3aed;"></i>
+        <span style="font-size:.78rem;font-weight:700;color:#0f172a;">Materiale Edukative për Pacientin</span>
+        <i class="bi bi-chevron-down" style="margin-left:auto;color:#94a3b8;font-size:.75rem;"></i>
+      </div>
+      <div style="display:none;padding:16px;">
+        <div style="display:flex;gap:8px;align-items:stretch;">
+          <textarea id="eduTopicInput" rows="2"
+                    placeholder="Shkruani temën p.sh: si të përmirësoj stilin e jetës për diabet..."
+                    style="flex:1;border:1.5px solid #ddd6fe;border-radius:10px;padding:10px 12px;font-size:.82rem;font-family:inherit;resize:none;line-height:1.5;transition:border-color .15s;outline:none;"
+                    onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#ddd6fe'"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();loadEducation();}"></textarea>
+          <button onclick="loadEducation()"
+                  style="border:1.5px solid #ddd6fe;background:#faf5ff;color:#7c3aed;border-radius:10px;padding:0 16px;font-size:.76rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;flex-shrink:0;"
+                  onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='#faf5ff'">
+            <i class="bi bi-stars"></i>Gjenero
+          </button>
+        </div>
+        <div style="font-size:.68rem;color:#94a3b8;margin-top:5px;">
+          <i class="bi bi-shield-check me-1 text-success"></i>Asnjë të dhënë të pacientit nuk i dërgohet AI — vetëm tema që shkruani ju.
+        </div>
+        <div id="educationResources" style="display:none;margin-top:12px;"></div>
+        <div id="eduActions" style="display:none;margin-top:12px;"></div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       TAB 2 — CLINICAL NOTES + ia WORKSPACE
+  ═══════════════════════════════════════════════════ -->
+  <div class="tab-body" id="tab-clinical">
+  <!-- ── STATE: LIST ─────────────────────────────── -->
+  <!-- Outer split: left=notes states, right=persistent ia -->
+  <div style="display:flex;gap:0;align-items:stretch;min-height:600px;max-height:85vh;">
+
+    <!-- Left: the three states -->
+    <div style="flex:1;min-width:0;overflow-y:auto;">
+
+  <div id="state-list">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div>
+        <div style="font-size:1rem;font-weight:800;color:#0f172a;">{{ t.cn_title }}</div>
+        <div style="font-size:.75rem;color:#94a3b8;margin-top:2px;">
+          {% if visits %}{{ visits|length }} vizita të regjistruara{% else %}Asnjë vizitë ende{% endif %}
+        </div>
+      </div>
+      <button type="button" onclick="showState('new')" class="cnote-save-btn" style="padding:9px 20px;font-size:.82rem;">
+        <i class="bi bi-plus me-1"></i>{{ t.cn_new_note }}
+      </button>
+    </div>
+
+    {% if visits %}
+    <div class="visit-table-wrap">
+      <table class="visit-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;">{{ t.cn_date }}</th>
+            <th style="text-align:left;">{{ t.cn_type }}</th>
+            <th style="text-align:left;">{{ t.cn_concern }}</th>
+            <th style="text-align:left;">{{ t.cn_diagnosis }}</th>
+            <th style="text-align:left;">{{ t.cn_doctor }}</th>
+            <th style="text-align:left;">{{ t.cn_status }}</th>
+            <th style="text-align:right;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in visits %}
+          {% set vt = (v.visit_type or 'Consultation')|lower|replace(' ','-') %}
+          <tr onclick="openVisit({{ v.id }})">
+            <td style="padding:12px 14px;">
+              <div class="vt-date">{% if v.visit_date %}{{ v.visit_date.strftime('%d %b %Y') }}{% else %}—{% endif %}</div>
+              <div class="vt-date-sub">{% if v.visit_date %}{{ v.visit_date.strftime('%A') }}{% endif %}</div>
+            </td>
+            <td style="padding:12px 8px;">
+              <span class="vt-type {{ vt }}">{{ v.visit_type or 'Consultation' }}</span>
+            </td>
+            <td style="padding:12px 8px;">
+              <div class="vt-text">{{ v.chief_complaint or '—' }}</div>
+            </td>
+            <td style="padding:12px 8px;">
+              <div class="vt-text" style="color:#475569;">{{ v.diagnosis or '—' }}</div>
+            </td>
+            <td style="padding:12px 8px;">
+              <div class="vt-muted">{{ v.doctor_name or '—' }}</div>
+            </td>
+            <td style="padding:12px 8px;">
+              <span class="vt-status {{ v.status or 'completed' }}">{{ v.status or 'completed' }}</span>
+            </td>
+            <td style="padding:12px 14px;text-align:right;">
+              <i class="bi bi-chevron-right" style="color:#cbd5e1;font-size:.8rem;"></i>
+            </td>
+          </tr>
+          <script>
+            window._visits = window._visits || {};
+            window._visits[{{ v.id }}] = {
+              id: {{ v.id }},
+              visit_date: "{{ v.visit_date.isoformat() if v.visit_date else '' }}",
+              visit_type: {{ (v.visit_type or 'Konsultë')|tojson }},
+              doctor_id:  {{ v.doctor_id or 'null' }},
+              status:     {{ (v.status or 'completed')|tojson }},
+              chief_complaint: {{ (v.chief_complaint or '')|tojson }},
+              diagnosis:       {{ (v.diagnosis or '')|tojson }},
+              treatment:       {{ (v.treatment or '')|tojson }},
+              follow_up:       {{ (v.follow_up or '')|tojson }},
+              clinical_notes:  {{ (v.clinical_notes or '')|tojson }},
+              doctor_name:     {{ (v.doctor_name or '')|tojson }}
+            };
+          </script>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:52px 0;border:1.5px dashed #e2e8f0;border-radius:12px;">
+      <i class="bi bi-journal-text" style="font-size:2.5rem;color:#e2e8f0;display:block;margin-bottom:10px;"></i>
+      <div style="font-size:.9rem;font-weight:600;color:#94a3b8;margin-bottom:6px;">{{ t.empty_clinical }}</div>
+      <div style="font-size:.78rem;color:#cbd5e1;margin-bottom:16px;">{{ t.cta_log_visit }}</div>
+      <button type="button" onclick="showState('new')" class="cnote-save-btn" style="padding:8px 20px;font-size:.82rem;">
+        <i class="bi bi-plus me-1"></i>Regjistro Vizitën e Parë
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── STATE: DETAIL ───────────────────────────── -->
+
+  <div id="state-detail" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+      <button type="button" onclick="showState('list')"
+              style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;
+                     background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:8px;
+                     color:#0f172a;font-size:.82rem;font-weight:600;cursor:pointer;
+                     transition:all .15s;font-family:inherit;"
+              onmouseover="this.style.background='#e2e8f0'"
+              onmouseout="this.style.background='#f1f5f9'">
+        <i class="bi bi-arrow-left-circle-fill" style="color:#2d6fd4;font-size:1rem;"></i>
+        {{ t.cn_back }}
+      </button>
+      <span style="color:#e2e8f0;">·</span>
+      <span id="detail-breadcrumb" style="font-size:.82rem;color:#0f172a;font-weight:600;"></span>
+    </div>
+
+    <div class="vt-detail-card">
+      <form method="POST" id="detailForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="vt-form-grid">
+          <div>
+            <label class="vt-label">{{ t.cn_field_date }}</label>
+            <input type="date" name="visit_date" id="d-date" class="vt-input">
+          </div>
+          <div>
+            <label class="vt-label">{{ t.misc_type }}</label>
+            <select name="visit_type" id="d-type" class="vt-input">
+              {% for vt_opt in [t.vt_consultation,t.vt_checkup,t.vt_followup,t.vt_urgent,t.vt_procedure,t.vt_telehealth] %}
+              <option>{{ vt_opt }}</option>{% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="vt-label">{{ t.lbl_doctor }}</label>
+            <select name="doctor_id" id="d-doctor" class="vt-input">
+              <option value="">—</option>
+              {% for s in staff_list %}
+              <option value="{{ s.id }}">{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="vt-label">{{ t.th_status }}</label>
+            <select name="status" id="d-status" class="vt-input">
+              {% for st in ["completed","scheduled","cancelled"] %}
+              <option>{{ st }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="vt-form-grid-2">
+          <div>
+            <label class="vt-label">{{ t.cn_field_concern }}</label>
+            <input type="text" name="chief_complaint" id="d-complaint" class="vt-input">
+          </div>
+          <div>
+            <label class="vt-label">{{ t.cn_field_diagnosis }}</label>
+            <input type="text" name="diagnosis" id="d-diagnosis" class="vt-input">
+          </div>
+          <div>
+            <label class="vt-label">{{ t.cn_field_treatment }}</label>
+            <input type="text" name="treatment" id="d-treatment" class="vt-input">
+          </div>
+          <div>
+            <label class="vt-label">{{ t.cn_field_followup }}</label>
+            <input type="text" name="follow_up" id="d-followup" class="vt-input">
+          </div>
+        </div>
+        <!-- ── SHËNIME KLINIKE ── -->
+        <div style="margin-bottom:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <label class="vt-label" style="margin-bottom:0;">{{ t.cn_title }}</label>
+            <div style="display:flex;gap:6px;">
+              <button type="button" class="voice-btn" id="voiceDetailBtn" onclick="toggleVoice(this,'d-notes')">
+                <i class="bi bi-mic"></i>{{ t.btn_dictate }}
+              </button>
+              <button type="button" class="ai-quick-btn" onclick="runAiAnalysisDetail()">
+                <i class="bi bi-stars"></i> {{ t.btn_ai_analysis }}
+              </button>
+              <button type="button" class="ai-quick-btn" style="color:#059669;border-color:#6ee7b7;background:#f0fdf4;" onclick="activateScanMode()">
+                <i class="bi bi-filetype-pdf"></i> {{ t.btn_scan }}
+              </button>
+            </div>
+          </div>
+          <textarea name="clinical_notes" id="d-notes" class="vt-textarea"
+                    placeholder="Vëzhgimet klinike, gjetjet e ekzaminimit, impresioni..."></textarea>
+        </div>
+
+        <!-- ══ SHËNIM PËR PACIENTIN ══ -->
+        <div class="client-note-section">
+          <div class="client-note-header">
+            <div class="client-note-label-group">
+              <div class="client-note-dot"></div>
+              <div>
+                <div class="client-note-title">Shënim për Pacientin</div>
+                <div class="client-note-sub">Udhëzime & rekomandime · Shfaqet në raport</div>
+              </div>
+            </div>
+            <div class="client-note-actions">
+              <a href="/patients/{{ patient.id }}/report" target="_blank" class="client-note-action-btn print-btn">
+                <i class="bi bi-printer"></i> Printo
+              </a>
+              <a href="/patients/{{ patient.id }}/report/email" class="client-note-action-btn email-btn">
+                <i class="bi bi-envelope"></i> Dërgo Email
+              </a>
+            </div>
+          </div>
+          <textarea id="clientNoteText" name="client_note"
+                    class="client-note-textarea"
+                    placeholder="Shkruani udhëzimet për pacientin — p.sh. si të marrë ilaçin, kur të kthehet, çfarë të vëzhgojë..."
+                    rows="5"></textarea>
+          <div class="client-note-footer">
+            <span class="client-note-char-count" id="clientNoteCount">0 / 500</span>
+            <button type="button"
+                    onclick="document.getElementById('clientNoteText').value='';updateCharCount();"
+                    style="font-size:.7rem;color:#cbd5e1;background:none;border:none;cursor:pointer;padding:2px 4px;font-family:inherit;transition:color .15s;"
+                    onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#cbd5e1'">
+              Pastro
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Veprimet ── -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 6px;border-top:1.5px solid #f1f5f9;margin-top:4px;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button type="submit" class="vt-btn-primary">
+              <i class="bi bi-check-circle me-1"></i>{{ t.cn_save_detail }}
+            </button>
+            <button type="button" onclick="showState('list')" class="vt-btn-secondary">{{ t.btn_cancel }}</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button type="button" id="signBtn" onclick="signNote()"
+                    style="background:#f0fdf4;color:#166534;border:1.5px solid #bbf7d0;border-radius:8px;padding:8px 14px;font-size:.79rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">
+              <i class="bi bi-pen-fill"></i>{{ t.cn_sign }}
+            </button>
+            <form id="deleteDetailForm" method="POST" onsubmit="return confirm('{{ t.misc_confirm_del }}')" style="margin:0;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="vt-btn-danger" style="padding:8px 14px;font-size:.79rem;">
+                <i class="bi bi-trash me-1"></i>{{ t.cn_delete }}
+              </button>
+            </form>
+          </div>
+        </div>
+        <div id="signStatus" style="margin-top:6px;font-size:.78rem;"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── STATE: NEW ─────────────────────────────── -->
+
+  <div id="state-new" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <button type="button" onclick="showState('list')"
+                  style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;
+                         background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:8px;
+                         color:#0f172a;font-size:.82rem;font-weight:600;cursor:pointer;
+                         transition:all .15s;font-family:inherit;"
+                  onmouseover="this.style.background='#e2e8f0'"
+                  onmouseout="this.style.background='#f1f5f9'">
+            <i class="bi bi-arrow-left-circle-fill" style="color:#2d6fd4;font-size:1rem;"></i>
+            {{ t.cn_back }}
+          </button>
+        </div>
+
+        <!-- ══ 3-ACTION TOOLBAR ══ -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;padding:12px 14px;
+                    background:linear-gradient(135deg,#0f2347,#1a3570);border-radius:12px;">
+          <!-- 1. Dictate -->
+          <button type="button" id="voiceNewBtn" onclick="toggleVoice(this,'newNoteText')"
+                  style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+                         gap:4px;padding:10px 6px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);
+                         border-radius:10px;cursor:pointer;transition:all .15s;font-family:inherit;"
+                  onmouseover="this.style.background='rgba(255,255,255,.16)'"
+                  onmouseout="if(!this.classList.contains('recording'))this.style.background='rgba(255,255,255,.08)'">
+            <i class="bi bi-mic-fill" style="font-size:1.25rem;color:#60a5fa;"></i>
+            <span style="font-size:.7rem;font-weight:700;color:#e2e8f0;">{{ t.btn_dictate }}</span>
+            <span style="font-size:.6rem;color:#94a3b8;text-align:center;">{{ t.btn_dictate_sub }}</span>
+          </button>
+          <!-- 2. ia Analysis — send note text to ia for diagnosis/plan -->
+          <button type="button" onclick="runAiAnalysis()"
+                  style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+                         gap:4px;padding:10px 6px;background:rgba(124,58,237,.3);border:1.5px solid rgba(167,139,250,.45);
+                         border-radius:10px;cursor:pointer;transition:all .15s;font-family:inherit;"
+                  onmouseover="this.style.background='rgba(124,58,237,.5)'"
+                  onmouseout="this.style.background='rgba(124,58,237,.3)'">
+            <i class="bi bi-stars" style="font-size:1.25rem;color:#c4b5fd;"></i>
+            <span style="font-size:.7rem;font-weight:700;color:#e2e8f0;">{{ t.btn_ai_analysis }}</span>
+            <span style="font-size:.6rem;color:#94a3b8;text-align:center;">{{ t.btn_ai_analysis_sub }}</span>
+          </button>
+          <!-- 3. ia Scan Analysis — upload image/PDF for ia reading -->
+          <button type="button" onclick="activateScanMode()"
+                  style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+                         gap:4px;padding:10px 6px;background:rgba(5,150,105,.2);border:1.5px solid rgba(52,211,153,.35);
+                         border-radius:10px;cursor:pointer;transition:all .15s;font-family:inherit;"
+                  onmouseover="this.style.background='rgba(5,150,105,.38)'"
+                  onmouseout="this.style.background='rgba(5,150,105,.2)'">
+            <i class="bi bi-filetype-pdf" style="font-size:1.25rem;color:#6ee7b7;"></i>
+            <span style="font-size:.7rem;font-weight:700;color:#e2e8f0;">{{ t.btn_scan }}</span>
+            <span style="font-size:.6rem;color:#94a3b8;text-align:center;">{{ t.btn_scan_sub }}</span>
+          </button>
+        </div>
+
+        <div class="vt-detail-card">
+          <form method="POST" action="/patients/{{ patient.id }}/visits/new" id="inlineNoteForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="vt-form-grid">
+              <div>
+                <label class="vt-label">{{ t.cn_field_date }} <span style="color:#e11d48;">*</span></label>
+                <input type="date" name="visit_date" class="vt-input" required value="{{ today.isoformat() }}">
+              </div>
+              <div>
+                <label class="vt-label">{{ t.cn_field_type }}</label>
+                <select name="visit_type" class="vt-input">
+                  {% for vt_opt in [t.vt_consultation,t.vt_checkup,t.vt_followup,t.vt_urgent,t.vt_procedure,t.vt_telehealth] %}
+                  <option>{{ vt_opt }}</option>{% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="vt-label">{{ t.cn_field_doctor }}</label>
+                <select name="doctor_id" class="vt-input">
+                  <option value="">—</option>
+                  {% for s in staff_list %}
+                  <option value="{{ s.id }}">{{ s.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label class="vt-label">{{ t.cn_field_status }}</label>
+                <select name="status" class="vt-input">
+                  <option value="completed">{{ t.st_completed }}</option>
+                  <option value="scheduled">{{ t.st_scheduled }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="vt-form-grid-2">
+              <div>
+                <label class="vt-label">{{ t.cn_field_concern }}</label>
+                <input type="text" name="chief_complaint" id="new-complaint" class="vt-input"
+                       placeholder="e.g. Chest pain since yesterday">
+              </div>
+              <div>
+                <label class="vt-label">{{ t.cn_field_diagnosis }}</label>
+                <input type="text" name="diagnosis" id="new-diagnosis" class="vt-input"
+                       placeholder="e.g. I10 Hypertension">
+              </div>
+              <div>
+                <label class="vt-label">{{ t.cn_field_treatment }}</label>
+                <input type="text" name="treatment" class="vt-input">
+              </div>
+              <div>
+                <label class="vt-label">{{ t.cn_field_followup }}</label>
+                <input type="text" name="follow_up" class="vt-input" placeholder="e.g. In 4 weeks">
+              </div>
+            </div>
+            <div style="margin-bottom:14px;">
+              <label class="vt-label" style="margin-bottom:5px;">
+                Clinical Notes
+                <span style="font-size:.65rem;color:#94a3b8;font-weight:400;margin-left:6px;text-transform:none;letter-spacing:0;">
+                  {{ t.dot_phrase_hint }}
+                </span>
+              </label>
+              <textarea name="clinical_notes" id="newNoteText" class="vt-textarea" rows="10"
+                        placeholder="{{ t.cn_placeholder }} to Dictate, Ask ia, or Upload a scan for analysis."></textarea>
+            </div>
+            <div class="vt-actions">
+              <button type="submit" class="vt-btn-primary">
+                <i class="bi bi-check-circle me-1"></i>{{ t.cn_save }}
+              </button>
+              <span style="font-size:.72rem;color:#94a3b8;">{{ t.cn_saved_hint }}</span>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div><!-- /left states -->
+
+
+      <!-- ══ PERSISTENT ia PANEL (right column, all states) ══ -->
+      <div class="vt-right" id="clinicalAiPanel" style="display:none;">
+
+        <!-- Header -->
+        <div style="padding:14px 16px 12px;background:linear-gradient(135deg,#3b0f8f,#6d28d9);flex-shrink:0;border-radius:14px 14px 0 0;">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px;">
+            <div style="width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.15);
+                        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-stars text-white" style="font-size:.95rem;"></i>
+            </div>
+            <div>
+              <div style="color:#fff;font-weight:800;font-size:.88rem;line-height:1.2;">{{ t.ai_assistant }}</div>
+              
+            </div>
+          </div>
+
+          <!-- Mode pills — including Scan -->
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            <button class="ai-mode-btn active" data-mode="general">💬 {{ t.ai_general }}</button>
+            <button class="ai-mode-btn" data-mode="differential">🔬 {{ t.ai_diagnose }}</button>
+            <button class="ai-mode-btn" data-mode="drug">💊 {{ t.ai_drugs }}</button>
+            <button class="ai-mode-btn" data-mode="treatment">📋 {{ t.ai_treatment }}</button>
+            <button class="ai-mode-btn" data-mode="summarise">📄 {{ t.ai_summarise }}</button>
+            <button class="ai-mode-btn" data-mode="scan" id="scanModeBtn">🔬 {{ t.ai_scan }}</button>
+          </div>
+        </div>
+
+        <!-- Quick prompts (hidden when scan mode active) -->
+        <div id="aiQuickPromptsBar" style="padding:9px 12px;border-bottom:1px solid #ede9fe;flex-shrink:0;">
+          <div style="font-size:.65rem;color:#a78bfa;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">{{ t.ai_quick_prompts }}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            <button class="ai-quick-chip" onclick="setQuick('Summarise this visit into SOAP format')">{{ t.ai_qp_soap }}</button>
+            <button class="ai-quick-chip" onclick="setQuick('What differential diagnoses should I consider?')">{{ t.ai_qp_ddx }}</button>
+            <button class="ai-quick-chip" onclick="setQuick('Check for drug interactions in current medications')">{{ t.ai_qp_drug }}</button>
+            <button class="ai-quick-chip" onclick="setQuick('What investigations should I order?')">{{ t.ai_qp_invest }}</button>
+            <button class="ai-quick-chip" onclick="setQuick('Suggest a management plan for this patient')">{{ t.ai_qp_mgmt }}</button>
+          </div>
+        </div>
+
+        <!-- Chat history -->
+        <div id="aiChat" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-height:0;">
+          <div id="aiEmpty" style="text-align:center;padding:20px 6px;">
+            <div style="font-size:1.8rem;margin-bottom:8px;">🩺</div>
+            <div style="font-size:.78rem;color:#a78bfa;line-height:1.7;">
+              Three ways to use ia:<br>
+              <strong style="color:#c4b5fd;">Dictate</strong> {{ t.misc_dictate_sub }}<br>
+              <strong style="color:#c4b5fd;">Ask ia</strong> {{ t.misc_askai_sub }}<br>
+              <strong style="color:#c4b5fd;">{{ t.btn_scan }}</strong> for instant MRI/X-Ray analysis
+            </div>
+          </div>
+        </div>
+
+        <!-- Scan upload panel (shown when scan mode active) -->
+        <div id="scanUploadUI" style="display:none;padding:14px 16px;border-top:1px solid #ede9fe;background:#fefefe;flex-shrink:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:.8rem;font-weight:800;color:#0f172a;">
+              <i class="bi bi-image me-2 text-primary"></i>{{ t.scan_title }}
+            </div>
+            <button type="button" onclick="closeScanMode()"
+                    style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:.8rem;">
+              {{ t.scan_close }}
+            </button>
+          </div>
+          <select id="scanType" class="form-select form-select-sm" style="font-size:.8rem;margin-bottom:8px;">
+            <option>{{ t.opt_xray }}</option>
+            <option>{{ t.opt_ct }}</option>
+            <option>{{ t.opt_mri }}</option>
+            <option>{{ t.opt_ultrasound }}</option>
+            <option>{{ t.opt_ecg }}</option>
+            <option>{{ t.opt_path_report }}</option>
+            <option>{{ t.opt_other }}</option>
+          </select>
+          <div id="scanDropzone" class="scan-dropzone"
+               onclick="document.getElementById('scanFileInput').click()"
+               style="padding:18px;margin-bottom:8px;">
+            <i class="bi bi-cloud-upload" style="font-size:1.6rem;color:#c4b5fd;display:block;margin-bottom:6px;"></i>
+            <div style="font-size:.8rem;color:#7c3aed;font-weight:700;">{{ t.scan_drop }}</div>
+            <div style="font-size:.7rem;color:#a78bfa;margin-top:3px;">{{ t.ph_scan_formats }}</div>
+          </div>
+          <input type="file" id="scanFileInput" accept=".png,.jpg,.jpeg,.gif,.bmp,.tiff,.pdf" style="display:none;" onchange="handleScanFile(this)">
+          <div id="scanFileName" style="font-size:.75rem;color:#7c3aed;margin-bottom:6px;display:none;font-weight:600;"></div>
+          <textarea id="scanContext" class="form-control form-control-sm" rows="2" style="font-size:.8rem;margin-bottom:8px;"
+                    placeholder="{{ t.scan_context }}"></textarea>
+          <button type="button" onclick="submitScan()"
+                  style="width:100%;background:linear-gradient(135deg,#2d6fd4,#1a3a8f);color:#fff;border:none;
+                         border-radius:8px;padding:10px;font-size:.82rem;font-weight:700;cursor:pointer;">
+            <i class="bi bi-cpu me-2"></i> {{ t.scan_analyse }}
+          </button>
+        </div>
+
+        <!-- Text input — always pinned at bottom -->
+        <div id="aiTextInput" style="padding:10px 12px 12px;border-top:1.5px solid #ede9fe;background:#fff;flex-shrink:0;margin-top:auto;">
+          <div style="display:flex;gap:7px;align-items:flex-end;">
+            <textarea id="aiInput" rows="2" placeholder="{{ t.ai_placeholder }}"
+                      style="flex:1;border:1.5px solid #ddd6fe;border-radius:10px;resize:none;
+                             font-size:.81rem;padding:8px 11px;font-family:inherit;line-height:1.5;
+                             transition:border-color .15s;"
+                      onfocus="this.style.borderColor='#7c3aed'"
+                      onblur="this.style.borderColor='#ddd6fe'"
+                      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI();}"></textarea>
+            <button type="button" onclick="sendAI()"
+                    style="background:#7c3aed;border:none;color:#fff;border-radius:10px;
+                           width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+                           cursor:pointer;flex-shrink:0;transition:background .15s;"
+                    onmouseover="this.style.background='#6d28d9'"
+                    onmouseout="this.style.background='#7c3aed'">
+              <i class="bi bi-send-fill" style="font-size:.82rem;"></i>
+            </button>
+          </div>
+        </div>
+
+  </div><!-- /state-new -->
+
+  </div><!-- /outer split -->
+
+  </div><!-- /tab-clinical -->
+
+    <!-- ══════════════════════════════════════════════════
+       TAB 3 — APPOINTMENTS
+  ═══════════════════════════════════════════════════ -->
+  <div class="tab-body" id="tab-appointments">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <h6 class="fw-bold mb-0" style="color:#0f172a;">
+        <i class="bi bi-calendar3 me-2 text-primary"></i>{{ t.appt_history }}
+      </h6>
+      <a href="/calendar/new" class="btn btn-sm btn-primary fw-semibold">
+        <i class="bi bi-plus me-1"></i>Book Appointment
+      </a>
+    </div>
+
+    {% if appointments %}
+    {% for a in appointments %}
+    <div class="appt-row">
+      <div class="appt-date-box">
+        {% if a.appointment_date %}
+        <div class="day">{{ a.appointment_date.strftime('%d') }}</div>
+        <div class="mon">{{ a.appointment_date.strftime('%b') }}</div>
+        {% else %}
+        <div class="day">—</div>
+        {% endif %}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.88rem;font-weight:600;color:#0f172a;">
+          {{ a.appointment_type or 'Appointment' }}
+          {% if a.start_time %}
+          <span style="font-weight:400;color:#64748b;margin-left:8px;font-size:.82rem;">
+            {{ a.start_time.strftime('%H:%M') }}
+          </span>
+          {% endif %}
+        </div>
+        <div style="font-size:.75rem;color:#94a3b8;margin-top:2px;">
+          {% if a.doctor_name %}Dr. {{ a.doctor_name }}{% endif %}
+          {% if a.duration_mins %} · {{ a.duration_mins }} min{% endif %}
+          {% if a.notes %} · {{ a.notes[:60] }}{% endif %}
+        </div>
+      </div>
+      {% if a.status=='scheduled' %}
+      <span class="status-pill" style="background:#eff6ff;color:#1d4ed8;">{{ t.opt_scheduled }}</span>
+      {% elif a.status=='completed' %}
+      <span class="status-pill" style="background:#f0fdf4;color:#166534;">{{ t.opt_completed }}</span>
+      {% elif a.status=='cancelled' %}
+      <span class="status-pill" style="background:#f8fafc;color:#64748b;">{{ t.opt_cancelled }}</span>
+      {% elif a.status in ['no-show','noshow'] %}
+      <span class="status-pill" style="background:#fff1f2;color:#be123c;">No Show</span>
+      {% else %}
+      <span class="status-pill" style="background:#f8fafc;color:#64748b;">{{ a.status }}</span>
+      {% endif %}
+      <a href="/calendar/{{ a.id }}/edit" class="btn btn-sm btn-outline-secondary py-0 px-2"
+         style="font-size:.75rem;flex-shrink:0;">
+        <i class="bi bi-pencil"></i>
+      </a>
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-calendar-x" style="font-size:2.5rem;color:#e2e8f0;"></i>
+      <p class="text-muted mt-3 mb-3">No appointments on record.</p>
+      <a href="/calendar/new" class="btn btn-sm btn-primary">Book First Appointment</a>
+    </div>
+    {% endif %}
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       TAB 4 — MEDICAL PROFILE (Allergies + History + Vitals)
+  ═══════════════════════════════════════════════════ -->
+  <div class="tab-body" id="tab-medical">
+
+    <!-- Allergies section -->
+    <div class="mb-4">
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:700;margin-bottom:12px;">
+        <i class="bi bi-shield-exclamation me-1 text-danger"></i>Alergjitë
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="allergy-card" style="border:2px solid {% if patient.drug_allergies %}#fecdd3{% else %}#e2e8f0{% endif %};">
+            <div class="ac-header" style="background:{% if patient.drug_allergies %}#fff1f2;color:#be123c{% else %}#f8fafc;color:#64748b{% endif %};">
+              <i class="bi bi-capsule"></i> {{ t.med_drug_allergy }}
+            </div>
+            <div class="ac-body">
+              {% if patient.drug_allergies %}
+              <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:10px 14px;font-weight:600;color:#9f1239;">
+                {{ patient.drug_allergies }}
+              </div>
+              {% else %}
+              <p class="text-muted mb-0" style="font-size:.85rem;">Asnjë e njohur.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="allergy-card" style="border:2px solid {% if patient.env_allergies %}#fef3c7{% else %}#e2e8f0{% endif %};">
+            <div class="ac-header" style="background:{% if patient.env_allergies %}#fffbeb;color:#92400e{% else %}#f8fafc;color:#64748b{% endif %};">
+              <i class="bi bi-tree"></i> {{ t.pf_env_allergy }}
+            </div>
+            <div class="ac-body">
+              {% if patient.env_allergies %}
+              <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-weight:600;color:#78350f;">
+                {{ patient.env_allergies }}
+              </div>
+              {% else %}
+              <p class="text-muted mb-0" style="font-size:.85rem;">Asnjë e njohur.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Gjëra të Rëndësishme për të Ditur ── -->
+      <div style="margin-top:16px;background:linear-gradient(135deg,#fafbff,#f0f4ff);border:1.5px solid #e0e7ff;border-radius:14px;overflow:hidden;">
+        <div style="padding:11px 16px;background:linear-gradient(135deg,#1e3a6e,#2d6fd4);display:flex;align-items:center;gap:8px;">
+          <i class="bi bi-info-circle-fill" style="color:#fff;font-size:.95rem;"></i>
+          <span style="color:#fff;font-weight:700;font-size:.85rem;">Gjëra të Rëndësishme për të Ditur</span>
+        </div>
+        <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+
+          <!-- Sëmundjet / Gjendjet -->
+          <div style="background:#fff;border:1.5px solid #bfdbfe;border-radius:10px;padding:12px 14px;">
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#3b82f6;margin-bottom:6px;">
+              <i class="bi bi-heart-pulse me-1"></i>Sëmundjet / Gjendjet
+            </div>
+            <div style="font-size:.83rem;color:#1e293b;line-height:1.5;">
+              {{ patient.medical_history or '—' }}
+            </div>
+          </div>
+
+          <!-- Operacionet -->
+          <div style="background:#fff;border:1.5px solid #c4b5fd;border-radius:10px;padding:12px 14px;">
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed;margin-bottom:6px;">
+              <i class="bi bi-hospital me-1"></i>Operacionet e Kaluara
+            </div>
+            <div style="font-size:.83rem;color:#1e293b;line-height:1.5;">
+              {{ patient.surgeries or '—' }}
+            </div>
+          </div>
+
+          <!-- Historia familjare -->
+          <div style="background:#fff;border:1.5px solid #a7f3d0;border-radius:10px;padding:12px 14px;">
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#059669;margin-bottom:6px;">
+              <i class="bi bi-people me-1"></i>Historia Familjare
+            </div>
+            <div style="font-size:.83rem;color:#1e293b;line-height:1.5;">
+              {{ patient.family_history or '—' }}
+            </div>
+          </div>
+
+          <!-- Shënime të tjera -->
+          <div style="background:#fff;border:1.5px solid #fde68a;border-radius:10px;padding:12px 14px;">
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#d97706;margin-bottom:6px;">
+              <i class="bi bi-sticky me-1"></i>Shënime të Tjera
+            </div>
+            <div style="font-size:.83rem;color:#1e293b;line-height:1.5;">
+              {{ patient.notes or '—' }}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Medical history + Vitals -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:700;margin-bottom:10px;">{{ t.med_history }}</div>
+        <div class="info-row"><span class="info-lbl">{{ t.misc_conditions }}</span><span class="info-val">{{ patient.medical_history|replace('\n', '·')|replace('\r','') or '—' }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.med_surgeries }}</span><span class="info-val">{{ patient.surgeries or '—' }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.med_family }}</span><span class="info-val">{{ patient.family_history or '—' }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.demo_icd }}</span><span class="info-val">{{ patient.icd_codes or '—' }}</span></div>
+      </div>
+      <div class="col-md-6">
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:700;margin-bottom:10px;">{{ t.med_medications }}</div>
+        <div class="info-row"><span class="info-lbl">{{ t.med_current }}</span><span class="info-val">{{ patient.medications|replace('\n', '·')|replace('\r','') or '—' }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.med_supplements }}</span><span class="info-val">{{ patient.supplements or '—' }}</span></div>
+        <!-- Med Interaction Checker -->
+        <div style="margin-top:10px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="text" id="medCheckInput" placeholder="{{ t.med_checker }}..." style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:.82rem;font-family:inherit;">
+            <button onclick="checkMedInteraction()" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">
+              <i class="bi bi-stars me-1"></i>{{ t.med_check_btn }}
+            </button>
+          </div>
+          <div id="medCheckResult" class="med-check-panel"></div>
+        </div>
+        <div class="info-row"><span class="info-lbl">{{ t.med_past }}</span><span class="info-val">{{ patient.past_medications or '—' }}</span></div>
+      </div>
+    </div>
+
+    <!-- Vitals full grid -->
+    <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:700;margin-bottom:10px;">{{ t.summary_vitals }}</div>
+    <div class="row g-2 mb-3">
+      {% for icon, color, bg, label, val in [
+        ('bi-heart-pulse-fill','#e11d48','#fff1f2',t.med_hr,          patient.heart_rate),
+        ('bi-activity',        '#2d6fd4','#eff6ff',t.med_bp,          patient.blood_pressure),
+        ('bi-thermometer-half','#ea580c','#fff7ed',t.med_temp,        patient.temperature),
+        ('bi-lungs',           '#7c3aed','#faf5ff',t.med_o2,          patient.oxygen_sat),
+        ('bi-droplet-fill',    '#0369a1','#f0f9ff',t.med_glucose,     patient.blood_glucose),
+        ('bi-clipboard2-pulse','#047857','#f0fdf4',t.med_cholesterol, patient.cholesterol),
+        ('bi-arrow-up-circle', '#64748b','#f8fafc',t.med_weight,      patient.weight),
+        ('bi-arrows-vertical', '#64748b','#f8fafc',t.med_height,      patient.height),
+      ] %}
+      <div class="col-6 col-md-3">
+        <div class="vital-chip">
+          <div class="vital-icon" style="background:{{ bg }};color:{{ color }};">
+            <i class="bi {{ icon }}"></i>
+          </div>
+          <div>
+            <div class="vital-val">{{ val or '—' }}</div>
+            <div class="vital-lbl">{{ label }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <a href="/patients/{{ patient.id }}/edit" class="btn btn-sm btn-outline-primary fw-semibold">
+      <i class="bi bi-pencil me-1"></i>Update Medical Profile
+    </a>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       TAB — MEDICINES / PHARMACY
+  ═══════════════════════════════════════════════════ -->
+  <div class="tab-body" id="tab-medicines">
+
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+
+      <!-- LEFT: Search panel -->
+      <div style="flex:1;min-width:340px;">
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;font-weight:700;margin-bottom:14px;">
+          <i class="bi bi-search me-1" style="color:#059669;"></i>{{ t.tab_medicines|default('Kërko Ilaçe') }}
+        </div>
+
+        <!-- Search bar -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <div style="position:relative;flex:1;">
+            <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:.85rem;"></i>
+            <input type="text" id="medSearchInput"
+                   placeholder="Emri i ilaçit, gjenerik, markë..."
+                   style="width:100%;padding:9px 12px 9px 32px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:.83rem;outline:none;font-family:inherit;"
+                   oninput="medSearchDebounce()"
+                   onfocus="this.style.borderColor='#059669'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
+          <button onclick="searchMedicines()" style="padding:9px 16px;background:#059669;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:.82rem;font-weight:600;">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+
+        <!-- Filters row -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <select id="medCountry" onchange="searchMedicines()"
+                  style="flex:1;min-width:120px;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.78rem;outline:none;font-family:inherit;">
+            <option value="">🌍 Të gjitha vendet</option>
+          </select>
+          <select id="medClass" onchange="searchMedicines()"
+                  style="flex:1;min-width:130px;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.78rem;outline:none;font-family:inherit;">
+            <option value="">💊 Të gjitha klasat</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:600;color:#334155;cursor:pointer;white-space:nowrap;">
+            <input type="checkbox" id="medInStock" onchange="searchMedicines()"> Vetëm në stok
+          </label>
+        </div>
+
+        <!-- Results -->
+        <div id="medResults" style="display:flex;flex-direction:column;gap:6px;max-height:480px;overflow-y:auto;padding-right:4px;">
+          <div style="text-align:center;padding:40px;color:#94a3b8;font-size:.83rem;">
+            <i class="bi bi-capsule-pill" style="font-size:2rem;display:block;margin-bottom:10px;"></i>
+            Shkruani emrin e ilaçit për të kërkuar
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Selected medicines basket -->
+      <div style="width:280px;flex-shrink:0;">
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;font-weight:700;margin-bottom:14px;">
+          <i class="bi bi-clipboard2-pulse me-1" style="color:#2d6fd4;"></i>Zgjedhjet e Mjekut
+        </div>
+
+        <div id="medBasket" style="min-height:120px;border:2px dashed #e2e8f0;border-radius:12px;padding:12px;margin-bottom:12px;">
+          <div id="medBasketEmpty" style="text-align:center;padding:20px 0;color:#94a3b8;font-size:.78rem;">
+            <i class="bi bi-bag-plus" style="font-size:1.4rem;display:block;margin-bottom:6px;"></i>
+            Klikoni + për të shtuar ilaçe
+          </div>
+        </div>
+
+        <button onclick="prescribeMedicines()"
+                id="prescribeBtn"
+                disabled
+                style="width:100%;padding:11px;background:linear-gradient(135deg,#065f46,#059669);color:#fff;border:none;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;opacity:.5;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <i class="bi bi-check-circle-fill"></i>
+          Shto në Raportin e Pacientit
+        </button>
+        <div id="prescribeMsg" style="margin-top:8px;font-size:.75rem;text-align:center;color:#059669;display:none;">
+          ✓ Ilaçet u shtuan me sukses!
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /tab-medicines -->
+
+
+  <!-- ══════════════════════════════════════════════════
+       TAB 5 — DEMOGRAPHICS
+  ═══════════════════════════════════════════════════ -->
+  <div class="tab-body" id="tab-demographics">
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:700;margin-bottom:12px;">{{ t.demo_personal }}</div>
+        <div class="info-row"><span class="info-lbl">{{ t.demo_fullname }}</span><span class="info-val fw-bold">{{ patient.first_name }} {{ patient.last_name }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.demo_dob }}</span><span class="info-val">{% if patient.dob %}{{ patient.dob.strftime('%d %b %Y') }} ({{ age }} yrs){% else %}—{% endif %}</span></div>
+        <div class="info-row"><span class="info-lbl">Gender</span><span class="info-val">{{ patient.gender or '—' }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.demo_blood }}</span><span class="info-val">{{ patient.blood_type or '—' }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.misc_insurance_nr }}</span><span class="info-val">{{ patient.insurance_nr or '—' }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.demo_family_doc }}</span><span class="info-val">{{ patient.family_doctor or '—' }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.demo_icd }}</span><span class="info-val">{{ patient.icd_codes or '—' }}</span></div>
+        {% if patient.notes and patient.notes|length > 2 %}
+        <div class="info-row"><span class="info-lbl">{{ t.misc_notes }}</span><span class="info-val">{{ patient.notes }}</span></div>
+        {% endif %}
+      </div>
+      <div class="col-md-6">
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:700;margin-bottom:12px;">Contact Details</div>
+        <div class="info-row"><span class="info-lbl">{{ t.misc_phone }}</span><span class="info-val">{{ patient.phone or '—' }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.demo_email }}</span><span class="info-val">{{ patient.email or '—' }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.demo_address }}</span><span class="info-val">{{ patient.address or '—' }}</span></div>
+        <div class="info-row"><span class="info-lbl">{{ t.demo_emergency }}</span><span class="info-val">{{ patient.emergency_contact or '—' }}</span></div>
+      </div>
+    </div>
+    <div class="mt-4">
+      <a href="/patients/{{ patient.id }}/edit" class="btn btn-sm btn-primary fw-semibold me-2">
+        <i class="bi bi-pencil me-1"></i>{{ t.btn_edit_patient }}
+      </a>
+      <form method="POST" action="/patients/{{ patient.id }}/delete" style="display:inline;"
+            onsubmit="return confirm('{{ t.misc_confirm_del }}')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger">{{ t.btn_delete_record }}</button>
+      </form>
+    </div>
+  </div>
+
+</div><!-- /pt-tabs-wrapper -->
+
+
+  <!-- ══════════════════════════════════════════════════
+       TAB 6 — VACCINATIONS
+  ═══════════════════════════════════════════════════ -->
+  <div class="tab-body" id="tab-vaccinations">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:.88rem;font-weight:700;color:#0d1f2d;">Regjistri i Vaksinimeve</div>
+      <a href="/patients/{{ patient.id }}/vaccinations/new" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Shto Vaksinim
+      </a>
+    </div>
+    {% if vaccinations %}
+    <div style="display:flex;flex-direction:column;gap:10px;">
+    {% for v in vaccinations %}
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-weight:700;font-size:.85rem;color:#0d1f2d;">{{ v.vaccine_name }}</div>
+        <div style="font-size:.75rem;color:#64748b;margin-top:2px;">
+          Doza: {{ v.dose or '—' }} · Grupi: {{ v.batch_number or '—' }}
+          {% if v.next_due_date %} · Tjetri: <strong>{{ v.next_due_date.strftime('%d/%m/%Y') }}</strong>{% endif %}
+        </div>
+      </div>
+      <div style="font-size:.8rem;color:#475569;text-align:right;">
+        <div>{{ v.date_given.strftime('%d/%m/%Y') if v.date_given else '—' }}</div>
+        <div style="font-size:.7rem;color:#94a3b8;">{{ v.doctor_name or '' }}</div>
+      </div>
+    </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:40px;color:#94a3b8;font-size:.83rem;">
+      <i class="bi bi-shield-plus" style="font-size:2rem;display:block;margin-bottom:10px;color:#bae6fd;"></i>
+      Asnjë vaksinim i regjistruar ende.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       TAB 7 — REFERRALS
+  ═══════════════════════════════════════════════════ -->
+  <div class="tab-body" id="tab-referrals">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:.88rem;font-weight:700;color:#0d1f2d;">Referimet</div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" onclick="document.getElementById('quickRefModal').style.display='flex'"
+                class="btn btn-sm" style="background:#059669;color:#fff;font-weight:700;">
+          <i class="bi bi-lightning-charge-fill me-1"></i>Referim i Shpejtë (AI)
+        </button>
+        <a href="/patients/{{ patient.id }}/referrals/new" class="btn btn-sm btn-primary">
+          <i class="bi bi-plus-lg me-1"></i>Referim i Ri
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick Referral Modal -->
+    <div id="quickRefModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:#fff;border-radius:16px;width:500px;max-width:96vw;padding:28px;box-shadow:0 25px 60px rgba(0,0,0,.3);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <div>
+            <div style="font-size:1rem;font-weight:800;color:#0b1120;"><i class="bi bi-lightning-charge-fill me-2" style="color:#059669;"></i>Referim i Shpejtë</div>
+            <div style="font-size:.76rem;color:#6b7a99;margin-top:2px;">AI gjeneron letrën brenda 30 sekondave</div>
+          </div>
+          <button onclick="document.getElementById('quickRefModal').style.display='none'"
+                  style="background:#f1f5f9;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1.1rem;">×</button>
+        </div>
+        <form method="POST" action="/patients/{{ patient.id }}/referrals/quick">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label style="font-size:.74rem;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:.5px;">Referuar te</label>
+              <input type="text" name="referred_to" placeholder="Dr. Shaban Muça, Kardiologji" required
+                     style="width:100%;padding:9px 12px;border:2px solid #e3e8f4;border-radius:9px;font-size:.88rem;margin-top:5px;outline:none;">
+            </div>
+            <div>
+              <label style="font-size:.74rem;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:.5px;">Specialiteti</label>
+              <select name="specialty" style="width:100%;padding:9px 12px;border:2px solid #e3e8f4;border-radius:9px;font-size:.88rem;margin-top:5px;outline:none;background:#fff;">
+                <option value="">-- Zgjidhni --</option>
+                <option>Kardiologji</option><option>Neurologji</option><option>Ortopedi</option>
+                <option>Gastroenterologji</option><option>Endokrinologji</option><option>Pulmonologji</option>
+                <option>Nefrologi</option><option>Reumatologji</option><option>Oncologji</option>
+                <option>Oftalmologji</option><option>Dermatologji</option><option>Psikiatri</option>
+                <option>Kirurgji</option><option>Gjinekologji</option><option>Urologia</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:.74rem;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:.5px;">Arsyeja e referimit</label>
+              <textarea name="reason" rows="3" required
+                        placeholder="p.sh. Diabet tip 2 i pakontrolluar, kërkon vlerësim endokrinologjik..."
+                        style="width:100%;padding:9px 12px;border:2px solid #e3e8f4;border-radius:9px;font-size:.88rem;margin-top:5px;resize:vertical;outline:none;font-family:inherit;"></textarea>
+            </div>
+            <div>
+              <label style="font-size:.74rem;font-weight:700;color:#6b7a99;text-transform:uppercase;letter-spacing:.5px;">Urgjenca</label>
+              <select name="urgency" style="width:100%;padding:9px 12px;border:2px solid #e3e8f4;border-radius:9px;font-size:.88rem;margin-top:5px;background:#fff;outline:none;">
+                <option value="routine">Rutinë (2-4 javë)</option>
+                <option value="urgent">Urgjent (3-5 ditë)</option>
+                <option value="emergency">Emergjencë (sot)</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:6px;">
+              <button type="button" onclick="document.getElementById('quickRefModal').style.display='none'"
+                      style="flex:1;padding:10px;background:#f1f5f9;border:1px solid #e3e8f4;border-radius:9px;font-weight:600;cursor:pointer;">Anulo</button>
+              <button type="submit"
+                      style="flex:2;padding:10px;background:linear-gradient(135deg,#065f46,#059669);color:#fff;border:none;border-radius:9px;font-weight:800;cursor:pointer;font-size:.9rem;">
+                <i class="bi bi-lightning-charge-fill me-1"></i>Gjenero Letrën
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% if referrals %}
+    <div style="display:flex;flex-direction:column;gap:10px;">
+    {% for r in referrals %}
+    <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;padding:14px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:start;">
+        <div>
+          <div style="font-weight:700;font-size:.85rem;color:#0d1f2d;">{{ r.referred_to or '—' }}</div>
+          <div style="font-size:.75rem;color:#7c3aed;margin-top:2px;">{{ r.specialty or '' }}</div>
+          {% if r.reason %}<div style="font-size:.78rem;color:#475569;margin-top:6px;">{{ r.reason[:120] }}</div>{% endif %}
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:12px;">
+          <span style="background:{% if r.urgency=='urgent' %}#fee2e2;color:#991b1b{% else %}#ede9fe;color:#5b21b6{% endif %};font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:8px;">
+            {{ r.urgency|title }}
+          </span>
+          <div style="font-size:.7rem;color:#94a3b8;margin-top:4px;">{{ r.date_created.strftime('%d/%m/%Y') if r.date_created else '' }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:40px;color:#94a3b8;font-size:.83rem;">
+      <i class="bi bi-send" style="font-size:2rem;display:block;margin-bottom:10px;color:#c4b5fd;"></i>
+      Asnjë referiminë e regjistruar.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       TAB 8 — RECALLS
+  ═══════════════════════════════════════════════════ -->
+  <div class="tab-body" id="tab-recalls">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:.88rem;font-weight:700;color:#0d1f2d;">Rikujtimet</div>
+      <a href="/patients/{{ patient.id }}/recalls/new" class="btn btn-sm btn-warning">
+        <i class="bi bi-plus-lg me-1"></i>Rikujtim i Ri
+      </a>
+    </div>
+    {% if recalls %}
+    <div style="display:flex;flex-direction:column;gap:10px;">
+    {% for r in recalls %}
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:start;">
+        <div>
+          <div style="font-weight:700;font-size:.85rem;color:#0d1f2d;">{{ r.result or 'Rikujtim' }}</div>
+          {% if r.notes %}<div style="font-size:.78rem;color:#475569;margin-top:4px;">{{ r.notes[:100] }}</div>{% endif %}
+          <div style="font-size:.72rem;color:#92400e;margin-top:6px;">
+            {% if r.first_recall_date %}Data 1: <strong>{{ r.first_recall_date.strftime('%d/%m/%Y') }}</strong>{% endif %}
+            {% if r.second_recall_date %} · Data 2: <strong>{{ r.second_recall_date.strftime('%d/%m/%Y') }}</strong>{% endif %}
+          </div>
+        </div>
+        <span style="background:{% if r.status=='returned' %}#dcfce7;color:#166534{% else %}#fef3c7;color:#92400e{% endif %};font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:8px;flex-shrink:0;margin-left:12px;">
+          {{ r.status|title }}
+        </span>
+      </div>
+    </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:40px;color:#94a3b8;font-size:.83rem;">
+      <i class="bi bi-arrow-repeat" style="font-size:2rem;display:block;margin-bottom:10px;color:#fcd34d;"></i>
+      Asnjë rikujtim aktiv.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       TAB 9 — REMINDERS
+  ═══════════════════════════════════════════════════ -->
+  <div class="tab-body" id="tab-reminders">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:.88rem;font-weight:700;color:#0d1f2d;">Kujesat</div>
+      <a href="/patients/{{ patient.id }}/reminders/new" class="btn btn-sm btn-outline-danger">
+        <i class="bi bi-plus-lg me-1"></i>Kujesë e Re
+      </a>
+    </div>
+    {% if reminders %}
+    <div style="display:flex;flex-direction:column;gap:10px;">
+    {% for r in reminders %}
+    <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:14px 16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:700;font-size:.85rem;color:#0d1f2d;">{{ r.reason or 'Kujesë' }}</div>
+          {% if r.notes %}<div style="font-size:.78rem;color:#475569;margin-top:4px;">{{ r.notes[:100] }}</div>{% endif %}
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:12px;">
+          <div style="font-size:.8rem;font-weight:700;color:#be123c;">{{ r.due_date.strftime('%d/%m/%Y') if r.due_date else '—' }}</div>
+          <span style="background:{% if r.status=='completed' %}#dcfce7;color:#166534{% else %}#fee2e2;color:#991b1b{% endif %};font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:6px;">
+            {{ r.status|title }}
+          </span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:40px;color:#94a3b8;font-size:.83rem;">
+      <i class="bi bi-bell" style="font-size:2rem;display:block;margin-bottom:10px;color:#fbcfe8;"></i>
+      Asnjë kujesë aktive.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══ DOKUMENTET ══ -->
+  <div class="tab-body" id="tab-documents">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:.88rem;font-weight:700;color:#0d1f2d;">Dokumentet e Pacientit</div>
+      <a href="/patients/{{ patient.id }}/documents" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Shto Dokument
+      </a>
+    </div>
+    {% if documents %}
+    <div style="display:flex;flex-direction:column;gap:8px;">
+    {% for d in documents %}
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="bi bi-file-earmark-text" style="font-size:1.2rem;color:#2d6fd4;"></i>
+        <div>
+          <div style="font-weight:700;font-size:.85rem;">{{ d.title }}</div>
+          <div style="font-size:.73rem;color:#64748b;">{{ d.doc_type or '' }}{% if d.created_at %} · {{ d.created_at.strftime('%d/%m/%Y') }}{% endif %}</div>
+        </div>
+      </div>
+      <a href="/uploads/{{ d.filename }}" target="_blank" style="color:#2d6fd4;font-size:.8rem;"><i class="bi bi-download"></i></a>
+    </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:40px;color:#94a3b8;font-size:.83rem;">
+      <i class="bi bi-folder2-open" style="font-size:2rem;display:block;margin-bottom:10px;color:#bfdbfe;"></i>
+      Asnjë dokument i ngarkuar ende.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══ TESTE LABORATORIKE ══ -->
+  <div class="tab-body" id="tab-labtests">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:.88rem;font-weight:700;color:#0d1f2d;">Teste Laboratorike</div>
+      <a href="/patients/{{ patient.id }}/labs/new" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Shto Test
+      </a>
+    </div>
+    {% if lab_tests %}
+    <div style="display:flex;flex-direction:column;gap:8px;">
+    {% for lt in lab_tests %}
+    <div style="background:#faf5ff;border:1px solid {% if lt.is_abnormal %}#fecdd3{% else %}#e9d5ff{% endif %};border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-weight:700;font-size:.85rem;">{{ lt.test_name }}</span>
+          {% if lt.is_abnormal %}<span style="background:#fee2e2;color:#991b1b;font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:6px;">Jonormal</span>{% endif %}
+        </div>
+        <div style="font-size:.73rem;color:#64748b;margin-top:3px;">
+          {{ lt.test_type or '' }}{% if lt.ordered_date %} · {{ lt.ordered_date.strftime('%d/%m/%Y') }}{% endif %}
+          {% if lt.result_value %} · <strong>{{ lt.result_value }}</strong>{% if lt.reference_range %} ({{ lt.reference_range }}){% endif %}{% endif %}
+        </div>
+      </div>
+      <span style="background:{% if lt.status=='resulted' %}#dcfce7;color:#166534{% elif lt.status=='ordered' %}#dbeafe;color:#1d4ed8{% else %}#f1f5f9;color:#64748b{% endif %};font-size:.68rem;font-weight:700;padding:2px 9px;border-radius:8px;">
+        {{ lt.status|title }}
+      </span>
+    </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:40px;color:#94a3b8;font-size:.83rem;">
+      <i class="bi bi-eyedropper" style="font-size:2rem;display:block;margin-bottom:10px;color:#c4b5fd;"></i>
+      Asnjë test laboratorik i regjistruar.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══ RECETAT ══ -->
+  <div class="tab-body" id="tab-prescriptions_tab">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:.88rem;font-weight:700;color:#0d1f2d;">Recetat</div>
+      <a href="/patients/{{ patient.id }}/prescriptions/new" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Recetë e Re
+      </a>
+    </div>
+    {% if prescriptions %}
+    <div style="display:flex;flex-direction:column;gap:8px;">
+    {% for rx in prescriptions %}
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-weight:700;font-size:.85rem;">{{ rx.drug_name }}</div>
+        <div style="font-size:.73rem;color:#64748b;margin-top:3px;">
+          {{ rx.dosage or '' }}{% if rx.frequency %} · {{ rx.frequency }}{% endif %}{% if rx.route %} · {{ rx.route }}{% endif %}
+          {% if rx.start_date %} · Nga {{ rx.start_date.strftime('%d/%m/%Y') }}{% endif %}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="background:{% if rx.status=='active' %}#dcfce7;color:#166534{% else %}#f1f5f9;color:#64748b{% endif %};font-size:.68rem;font-weight:700;padding:2px 9px;border-radius:8px;">
+          {% if rx.status=='active' %}Aktive{% else %}{{ rx.status|title }}{% endif %}
+        </span>
+        <form method="POST" action="/patients/{{ patient.id }}/prescriptions/{{ rx.id }}/repeat" style="display:inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" title="Përsërit recetën"
+                  style="padding:4px 10px;background:#7c3aed;color:#fff;border:none;border-radius:7px;font-size:.72rem;font-weight:700;cursor:pointer;"
+                  onclick="return confirm('Përsërit recetën {{ rx.drug_name }}?')">
+            <i class="bi bi-arrow-repeat me-1"></i>Përsërit
+          </button>
+        </form>
+        <a href="/patients/{{ patient.id }}/prescriptions/{{ rx.id }}/print" target="_blank"
+           title="Printo recetën"
+           style="padding:4px 10px;background:#0ea5e9;color:#fff;border-radius:7px;font-size:.72rem;font-weight:700;text-decoration:none;">
+          <i class="bi bi-printer me-1"></i>Printo
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:40px;color:#94a3b8;font-size:.83rem;">
+      <i class="bi bi-capsule" style="font-size:2rem;display:block;margin-bottom:10px;color:#fcd34d;"></i>
+      Asnjë recetë e regjistruar.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══ FATURIMET ══ -->
+  <div class="tab-body" id="tab-invoices_tab">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div style="font-size:.88rem;font-weight:700;color:#0d1f2d;">Faturimet</div>
+      <a href="/patients/{{ patient.id }}/billing/new" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Faturë e Re
+      </a>
+    </div>
+    {% if invoices %}
+    <div style="display:flex;flex-direction:column;gap:8px;">
+    {% for inv in invoices %}
+    <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-weight:700;font-size:.85rem;">Faturë #{{ inv.id }}</div>
+        <div style="font-size:.73rem;color:#64748b;margin-top:3px;">
+          {{ inv.invoice_date.strftime('%d/%m/%Y') if inv.invoice_date else '—' }}
+          · Total: <strong>{{ "%.2f"|format(inv.total_amount or 0) }}</strong>
+          · Paguar: {{ "%.2f"|format(inv.amount_paid or 0) }}
+        </div>
+      </div>
+      <span style="background:{% if inv.status=='paid' %}#dcfce7;color:#166534{% elif inv.status=='unpaid' %}#fee2e2;color:#991b1b{% else %}#fef3c7;color:#92400e{% endif %};font-size:.68rem;font-weight:700;padding:2px 9px;border-radius:8px;">
+        {% if inv.status=='paid' %}Paguar{% elif inv.status=='unpaid' %}Papaguar{% else %}{{ inv.status|title }}{% endif %}
+      </span>
+    </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:40px;color:#94a3b8;font-size:.83rem;">
+      <i class="bi bi-receipt" style="font-size:2rem;display:block;margin-bottom:10px;color:#fca5a5;"></i>
+      Asnjë faturë e regjistruar.
+    </div>
+    {% endif %}
+  </div>
+
+
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ── Safe translation strings (tojson prevents quote/escape issues) ── */
+var JS_T = {
+  ai_result_disclaimer: {{ t.ai_result_disclaimer | tojson }},
+  patient_name: {{ (patient.first_name ~ " " ~ patient.last_name) | tojson }},
+  ai_thinking:          {{ t.ai_thinking | tojson }},
+  ai_ready_sub2:        {{ t.ai_ready_sub2 | tojson }},
+  sig_signed:           {{ t.sig_signed | tojson }},
+  sig_hash:             {{ t.sig_hash | tojson }},
+  sig_valid:            {{ t.sig_valid | tojson }},
+  sig_unknown:          {{ t.sig_unknown | tojson }},
+  sig_at:               {{ t.sig_at | tojson }},
+  misc_key_points:      {{ t.misc_key_points | tojson }},
+  summary_education:    {{ t.summary_education | tojson }},
+};
+
+/* ── Constants ── */
+const PATIENT_ID = {{ patient.id }};
+let aiMode = 'general';
+let scanFileData = null;
+let scanFileType = null;
+
+/* ══════════════════════════════════════════
+   TAB SWITCHING
+══════════════════════════════════════════ */
+function switchTab(name) {
+  document.querySelectorAll('.pt-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-body').forEach(b => b.classList.remove('active'));
+  const btn  = document.querySelector('[data-tab="' + name + '"]');
+  const body = document.getElementById('tab-' + name);
+  if (btn)  btn.classList.add('active');
+  if (body) body.classList.add('active');
+  try { localStorage.setItem('pt_tab_{{ patient.id }}', name); } catch(e){}
+  // Side effects for specific tabs
+  if (name === 'summary') setTimeout(loadGapAlerts, 200);
+}
+
+document.querySelectorAll('.pt-tab').forEach(function(btn) {
+  btn.addEventListener('click', function() { switchTab(this.dataset.tab); });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  var hash  = window.location.hash;
+  if (hash === '#tab-clinical') { switchTab('clinical'); return; }
+  try {
+    var saved = localStorage.getItem('pt_tab_{{ patient.id }}');
+    if (saved) switchTab(saved);
+  } catch(e) {}
+});
+
+/* ══════════════════════════════════════════
+   3-STATE CLINICAL NAVIGATION
+══════════════════════════════════════════ */
+function showState(state) {
+  var ls  = document.getElementById('state-list');
+  var ld  = document.getElementById('state-detail');
+  var ln  = document.getElementById('state-new');
+  var ai  = document.getElementById('clinicalAiPanel');
+  if (ls)  ls.style.display  = state === 'list'   ? '' : 'none';
+  if (ld)  ld.style.display  = state === 'detail' ? '' : 'none';
+  if (ln)  ln.style.display  = state === 'new'    ? '' : 'none';
+  // ia panel only visible when editing (detail or new)
+  if (ai)  ai.style.display  = (state === 'detail' || state === 'new') ? '' : 'none';
+  if (state === 'new') {
+    var chat = document.getElementById('aiChat');
+    if (chat) {
+      chat.innerHTML = '<div id="aiEmpty" style="text-align:center;padding:20px 6px;">' +
+        '<div style="font-size:2rem;margin-bottom:8px;">🩺</div>' +
+        '<div style="font-size:.78rem;color:#a78bfa;line-height:1.6;">Gati për të ndihmuar.<br>' +
+        '<span style="font-size:.7rem;color:#c4b5fd;">' + JS_T.ai_ready_sub2 + '</span></div></div>';
+    }
+    setTimeout(function() {
+      var t = document.getElementById('newNoteText');
+      if (t) t.focus();
+    }, 80);
+  }
+}
+
+var _currentNoteId = null;
+
+function openVisit(id) {
+  _currentNoteId = id;
+  var v = window._visits && window._visits[id];
+  if (!v) return;
+  var set = function(elId, val) { var e = document.getElementById(elId); if (e) e.value = val || ''; };
+  set('d-date',      v.visit_date);
+  set('d-notes',     v.clinical_notes);
+  set('d-complaint', v.chief_complaint);
+  set('d-diagnosis', v.diagnosis);
+  set('d-treatment', v.treatment);
+  set('d-followup',  v.follow_up);
+  var sel = function(elId, val) {
+    var e = document.getElementById(elId);
+    if (!e) return;
+    Array.from(e.options).forEach(function(o) { o.selected = (o.value === String(val)); });
+  };
+  sel('d-type',   v.visit_type);
+  sel('d-doctor', v.doctor_id);
+  sel('d-status', v.status);
+  var df = document.getElementById('detailForm');
+  var del = document.getElementById('deleteDetailForm');
+  if (df)  df.action  = '/patients/' + PATIENT_ID + '/visits/' + id + '/edit';
+  if (del) del.action = '/patients/' + PATIENT_ID + '/visits/' + id + '/delete';
+  var bc = document.getElementById('detail-breadcrumb');
+  if (bc) {
+    var ds = v.visit_date ? new Date(v.visit_date + 'T12:00:00')
+      .toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : '';
+    bc.textContent = ds + (v.visit_type ? ' · ' + v.visit_type : '');
+  }
+  showState('detail');
+}
+
+/* ══════════════════════════════════════════
+   ia MODE BUTTONS
+══════════════════════════════════════════ */
+document.querySelectorAll('.ai-mode-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.ai-mode-btn').forEach(function(b) { b.classList.remove('active'); });
+    this.classList.add('active');
+    aiMode = this.dataset.mode;
+    var scanUI    = document.getElementById('scanUploadUI');
+    var textInput = document.getElementById('aiTextInput');
+    var quickBar  = document.getElementById('aiQuickPromptsBar');
+    var inp       = document.getElementById('aiInput');
+    if (aiMode === 'scan') {
+      if (scanUI)    scanUI.style.display    = 'block';
+      if (textInput) textInput.style.display = 'none';
+      if (quickBar)  quickBar.style.display  = 'none';
+    } else {
+      if (scanUI)    scanUI.style.display    = 'none';
+      if (textInput) textInput.style.display = '';
+      if (quickBar)  quickBar.style.display  = '';
+      var placeholders = {
+        general:      'Ask anything about this patient…',
+        differential: 'Describe symptoms for differential diagnosis…',
+        drug:         'Enter drug names to check interactions…',
+        treatment:    'Describe condition for treatment guidelines…',
+        symptoms:     "Describe the patient's symptoms in detail…",
+        summarise:    'Ask me to summarise this note or visit history…'
+      };
+      if (inp) inp.placeholder = placeholders[aiMode] || 'Ask a clinical question…';
+    }
+  });
+});
+
+/* ══════════════════════════════════════════
+   ia CHAT
+══════════════════════════════════════════ */
+function renderMd(text) {
+  if (!text) return '';
+  var h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  h = h.replace(/(^|\n)[•\-] (.+)/g, '$1<span style="display:block;padding-left:10px;">• $2</span>');
+  return h;
+}
+
+function chatMsg(role, text) {
+  var chat  = document.getElementById('aiChat');
+  var empty = document.getElementById('aiEmpty');
+  if (!chat) return null;
+  if (empty) empty.style.display = 'none';
+  var div = document.createElement('div');
+  div.className = role === 'user' ? 'ai-msg-user' : 'ai-msg-ai';
+  if (role === 'ai' && text && !text.startsWith('Error:') && !text.startsWith('Network')) {
+    // Disclaimer shown in header — not repeated here
+    // Main text
+    var textNode = document.createElement('div');
+    textNode.innerHTML = renderMd(text);
+    div.appendChild(textNode);
+  } else {
+    div.textContent = text;
+  }
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function chatThinking() {
+  var chat = document.getElementById('aiChat');
+  if (!chat) return { remove: function(){} };
+  var div = document.createElement('div');
+  div.className = 'ai-msg-ai';
+  div.id = 'aiThinking';
+  div.innerHTML = '<span style="display:inline-block;animation:aiSpin .8s linear infinite;margin-right:6px;">🩺</span><span style="color:#a78bfa;">' + JS_T.ai_thinking + '</span>';
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+/* ia Analysis — reads the current note + fields and sends for full analysis */
+function runAiAnalysis() {
+  var notes     = (document.getElementById('newNoteText') || {value:''}).value.trim();
+  var complaint = (document.getElementById('new-complaint') || {value:''}).value.trim();
+  var diagnosis = (document.getElementById('new-diagnosis') || {value:''}).value.trim();
+  if (!notes && !complaint) {
+    // Prompt doctor to write something first
+    var inp = document.getElementById('aiInput');
+    if (inp) { inp.placeholder = 'Write your clinical notes first, then click ia Analysis...'; inp.focus(); }
+    return;
+  }
+  var ctx = [];
+  if (complaint) ctx.push('Chief concern: ' + complaint);
+  if (diagnosis) ctx.push('Working diagnosis: ' + diagnosis);
+  if (notes)     ctx.push('Clinical notes:\n' + notes);
+  var q = 'Based on the following clinical note, provide: (1) differential diagnoses ranked by probability, (2) recommended investigations, (3) management plan, (4) any red flags to watch for.';
+  document.getElementById('aiInput').value = q;
+  sendAI(q, ctx.join('\n'));
+}
+
+function runAiAnalysisDetail() {
+  var notes     = (document.getElementById('d-notes') || {value:''}).value.trim();
+  var complaint = (document.getElementById('d-complaint') || {value:''}).value.trim();
+  var diagnosis = (document.getElementById('d-diagnosis') || {value:''}).value.trim();
+  var ctx = [];
+  if (complaint) ctx.push('Chief concern: ' + complaint);
+  if (diagnosis) ctx.push('Diagnosis: ' + diagnosis);
+  if (notes)     ctx.push('Clinical notes:\n' + notes);
+  var q = 'Review these clinical notes and provide: differential diagnoses, recommended next steps, any concerns, and a suggested management plan.';
+  document.getElementById('aiInput').value = q;
+  sendAI(q, ctx.join('\n'));
+}
+
+function sendNewNoteToAI() {
+  var notes     = (document.getElementById('newNoteText') || {value:''}).value.trim();
+  var complaint = (document.querySelector('#inlineNoteForm input[name="chief_complaint"]') || {value:''}).value;
+  var ctx  = [complaint && ('Chief complaint: ' + complaint), notes].filter(Boolean).join('\n');
+  var q    = 'Based on what I am writing in this note, suggest a diagnosis and management plan.';
+  var inp  = document.getElementById('aiInput');
+  if (inp) inp.value = q;
+  sendAI(q, ctx);
+}
+
+function setQuick(text) {
+  var inp = document.getElementById('aiInput');
+  if (inp) { inp.value = text; inp.focus(); }
+}
+
+async function sendAI(query, notesCtx) {
+  var inp = document.getElementById('aiInput');
+  var q   = (query || (inp ? inp.value : '')).trim();
+  if (!q) return;
+  chatMsg('user', q);
+  if (inp) inp.value = '';
+  var thinking = chatThinking();
+  try {
+    var res = await fetch('/api/ai-assist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q, mode: aiMode, patient_id: PATIENT_ID, notes_context: notesCtx || '' })
+    });
+    var data = await res.json();
+    thinking.remove();
+    chatMsg('ai', data.ok ? data.result : ('Error: ' + (data.error || 'Unknown')));
+  } catch(e) {
+    thinking.remove();
+    chatMsg('ai', 'Network error: ' + e.message);
+  }
+}
+
+/* Wire up aiInput Enter + send button */
+document.addEventListener('DOMContentLoaded', function() {
+  var inp = document.getElementById('aiInput');
+  if (inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAI(); }
+    });
+  }
+});
+
+/* Quick prompts */
+document.querySelectorAll('.ai-quick-chip').forEach(function(btn) {
+  btn.addEventListener('click', function() { setQuick(this.dataset.prompt || this.textContent); });
+});
+
+/* ══════════════════════════════════════════
+   SCAN UPLOAD
+══════════════════════════════════════════ */
+function handleScanFile(input) {
+  if (!input.files[0]) return;
+  var file = input.files[0];
+  var fn = document.getElementById('scanFileName');
+  if (fn) { fn.style.display = 'block'; fn.textContent = '\u{1F4CE} ' + file.name; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var parts = e.target.result.split(',');
+    scanFileData = parts[1];
+    scanFileType = file.type || 'image/jpeg';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitScan() {
+  if (!scanFileData) { alert('Please select a scan file first.'); return; }
+  var scanType = (document.getElementById('scanType') || {value:'Medical scan'}).value;
+  var context  = (document.getElementById('scanContext') || {value:''}).value.trim();
+  chatMsg('user', 'Analyse ' + scanType + (context ? ': ' + context : ''));
+  var thinking = chatThinking();
+  try {
+    var res = await fetch('/api/ai-scan-inline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patient_id: PATIENT_ID, scan_type: scanType, context: context, image_data: scanFileData, media_type: scanFileType })
+    });
+    var data = await res.json();
+    thinking.remove();
+    chatMsg('ai', data.ok ? data.result : ('Error: ' + (data.error || 'Unknown')));
+    scanFileData = null;
+    var fn = document.getElementById('scanFileName');
+    if (fn) fn.style.display = 'none';
+    var fi = document.getElementById('scanFileInput');
+    if (fi) fi.value = '';
+  } catch(e) {
+    thinking.remove();
+    chatMsg('ai', 'Error: ' + e.message);
+  }
+}
+
+/* Drag-and-drop on scan zone */
+document.addEventListener('DOMContentLoaded', function() {
+  var dz = document.getElementById('scanDropzone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', function() { dz.classList.remove('drag'); });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault(); dz.classList.remove('drag');
+    if (e.dataTransfer.files[0]) {
+      var fi = document.getElementById('scanFileInput');
+      if (fi) { fi.files = e.dataTransfer.files; handleScanFile(fi); }
+    }
+  });
+});
+
+/* ══════════════════════════════════════════
+   DOT-PHRASES (type . to expand)
+══════════════════════════════════════════ */
+var DOT_PHRASES = {
+  '.pe':          "Physical examination: Alert and oriented x3. Vitals stable. Heart: Regular rate and rhythm, no murmurs. Lungs: Clear to auscultation bilaterally. Abdomen: Soft, non-tender, no organomegaly. Extremities: No oedema.",
+  '.norm':        "Examination within normal limits. No acute distress noted.",
+  '.normalresp':  "Respiratory: Lungs clear to auscultation bilaterally, no wheezes, rales, or rhonchi. Respiratory rate normal.",
+  '.normalcvs':   "Cardiovascular: Regular rate and rhythm. Normal S1 and S2. No murmurs, rubs, or gallops. Peripheral pulses intact bilaterally.",
+  '.normalneuro': "Neurological: Alert and fully oriented. Cranial nerves II-XII intact. Motor and sensory examination normal. Coordination intact.",
+  '.soap':        "S: Patient presents with [chief complaint].\n\nO: Vitals: [vitals]. Examination: [findings].\n\nA: [assessment/diagnosis].\n\nP: [management plan]. Follow-up in [timeframe].",
+  '.fu2w':        "Patient to return for follow-up in 2 weeks or sooner if symptoms worsen.",
+  '.fu4w':        "Patient to return for follow-up in 4 weeks or sooner if symptoms worsen.",
+  '.allclear':    "No significant findings on today's examination. Patient reassured. Continue current management.",
+  '.dm2':         "Type 2 Diabetes Mellitus: HbA1c reviewed. Dietary and lifestyle advice reinforced. Medication compliance confirmed. Foot and eye care discussed.",
+  '.htn':         "Hypertension: Blood pressure reviewed. Medication compliance confirmed. Salt and lifestyle modification advice given. Target BP < 130/80 mmHg.",
+  '.asthma':      "Asthma: Inhaler technique reviewed and corrected. Trigger avoidance discussed. Written asthma action plan reviewed. Peak flow recorded.",
+  '.plan':        "Management Plan:\n1. [Investigation/action 1]\n2. [Investigation/action 2]\n3. Medications: [list]\n4. Follow-up: [timeframe]"
+};
+var _dpPopup = null;
+var _dpTarget = null;
+
+function initDotPhrases(textarea) {
+  if (!textarea) return;
+  textarea.addEventListener('input', function() {
+    var val   = this.value;
+    var pos   = this.selectionStart;
+    var word  = '';
+    var i     = pos - 1;
+    while (i >= 0 && val[i] !== ' ' && val[i] !== '\n') { word = val[i] + word; i--; }
+    if (word.startsWith('.') && word.length >= 2) {
+      var matches = Object.keys(DOT_PHRASES).filter(function(k) { return k.startsWith(word); });
+      if (matches.length) { showDotPhrasePopup(textarea, matches, word, pos, i+1); return; }
+    }
+    hideDotPhrasePopup();
+  });
+  textarea.addEventListener('keydown', function(e) {
+    if (!_dpPopup) return;
+    var items = _dpPopup.querySelectorAll('.dotphrase-item');
+    var active = _dpPopup.querySelector('.dotphrase-item.active');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var idx = active ? Array.from(items).indexOf(active) : -1;
+      if (active) active.classList.remove('active');
+      items[Math.min(idx+1, items.length-1)].classList.add('active');
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var idx = active ? Array.from(items).indexOf(active) : items.length;
+      if (active) active.classList.remove('active');
+      items[Math.max(idx-1, 0)].classList.add('active');
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      if (active) { e.preventDefault(); active.click(); }
+    } else if (e.key === 'Escape') {
+      hideDotPhrasePopup();
+    }
+  });
+}
+
+function showDotPhrasePopup(ta, matches, word, endPos, startPos) {
+  hideDotPhrasePopup();
+  var popup = document.createElement('div');
+  popup.className = 'dotphrase-popup';
+  matches.forEach(function(key) {
+    var item = document.createElement('div');
+    item.className = 'dotphrase-item';
+    item.innerHTML = '<span class="dotphrase-code">' + key + '</span><span class="dotphrase-preview">' + DOT_PHRASES[key].slice(0,55) + '…</span>';
+    item.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      var val    = ta.value;
+      var before = val.slice(0, startPos);
+      var after  = val.slice(endPos);
+      ta.value   = before + DOT_PHRASES[key] + after;
+      ta.selectionStart = ta.selectionEnd = startPos + DOT_PHRASES[key].length;
+      ta.focus();
+      hideDotPhrasePopup();
+    });
+    popup.appendChild(item);
+  });
+  document.body.appendChild(popup);
+  _dpPopup  = popup;
+  _dpTarget = ta;
+  var rect = ta.getBoundingClientRect();
+  popup.style.position = 'fixed';
+  popup.style.left     = rect.left + 'px';
+  popup.style.top      = (rect.top - popup.offsetHeight - 4) + 'px';
+  if (popup.offsetHeight === 0) {
+    popup.style.top = (rect.bottom + 4) + 'px';
+  }
+}
+
+function hideDotPhrasePopup() {
+  if (_dpPopup) { _dpPopup.remove(); _dpPopup = null; _dpTarget = null; }
+}
+document.addEventListener('click', function(e) {
+  if (_dpPopup && !_dpPopup.contains(e.target)) hideDotPhrasePopup();
+});
+
+// Wire to all clinical textareas
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.vt-textarea, .cnote-textarea').forEach(initDotPhrases);
+  // Re-init when new textareas appear (MutationObserver for state changes)
+  new MutationObserver(function() {
+    document.querySelectorAll('.vt-textarea:not([data-dp-init]), .cnote-textarea:not([data-dp-init])').forEach(function(ta) {
+      ta.setAttribute('data-dp-init','1'); initDotPhrases(ta);
+    });
+  }).observe(document.body, { childList:true, subtree:true });
+});
+
+/* ══════════════════════════════════════════
+   VOICE DICTATION (Web Speech API)
+══════════════════════════════════════════ */
+var _recognition = null;
+var _voiceTarget = null;
+
+function toggleVoice(btn, textareaId) {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    alert('Voice dictation is not supported in this browser. Please use Chrome.');
+    return;
+  }
+  if (_recognition && _voiceTarget === textareaId) {
+    _recognition.stop(); return;
+  }
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  _recognition  = new SpeechRecognition();
+  _voiceTarget  = textareaId;
+  _recognition.continuous     = true;
+  _recognition.interimResults = true;
+  _recognition.lang = ('{{ session.get("lang","sq") }}' === 'sq') ? 'sq-AL' : 'en-GB';
+  var ta      = document.getElementById(textareaId);
+  var baseVal = ta ? ta.value : '';
+  _recognition.onstart = function() {
+    btn.classList.add('recording');
+    btn.innerHTML = '<i class="bi bi-mic-fill"></i> ' + ('{{ session.get("lang","sq") }}' === 'sq' ? 'Duke regjistruar…' : 'Recording…');
+  };
+  _recognition.onresult = function(e) {
+    var interim = '', final = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    if (ta) ta.value = baseVal + final + interim;
+    if (final) baseVal = ta.value;
+  };
+  _recognition.onend = function() {
+    btn.classList.remove('recording');
+    btn.innerHTML = '<i class="bi bi-mic"></i> ' + ('{{ session.get("lang","sq") }}' === 'sq' ? 'Diktim' : 'Dictate');
+    _recognition = null; _voiceTarget = null;
+  };
+  _recognition.onerror = function(e) {
+    btn.classList.remove('recording');
+    btn.innerHTML = '<i class="bi bi-mic"></i> ' + ('{{ session.get("lang","sq") }}' === 'sq' ? 'Diktim' : 'Dictate');
+  };
+  _recognition.start();
+}
+
+/* ══════════════════════════════════════════
+   MEDICATION INTERACTION CHECKER
+══════════════════════════════════════════ */
+async function checkMedInteraction() {
+  var drug = document.getElementById('medCheckInput').value.trim();
+  if (!drug) return;
+  var panel = document.getElementById('medCheckResult');
+  panel.style.display = 'block';
+  panel.innerHTML = '<div style="color:#a78bfa;font-size:.82rem;"><span class="spinner-border spinner-border-sm me-2" style="width:.7rem;height:.7rem;border-width:2px;"></span>Checking interactions…</div>';
+  try {
+    var res  = await fetch('/api/med-check', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ patient_id: PATIENT_ID, new_drug: drug })
+    });
+    var data = await res.json();
+    if (!data.ok) { panel.innerHTML = '<div style="color:#ef4444;font-size:.82rem;">Error: ' + data.error + '</div>'; return; }
+    var r = data.result;
+    var safeColor = r.safe ? '#166534' : '#be123c';
+    var safeBg    = r.safe ? '#f0fdf4' : '#fff1f2';
+    var safeBorder= r.safe ? '#bbf7d0' : '#fecdd3';
+    var html = '<div style="border:1.5px solid ' + safeBorder + ';background:' + safeBg + ';border-radius:8px;padding:12px;">';
+    html += '<div style="font-weight:800;font-size:.88rem;color:' + safeColor + ';margin-bottom:8px;">' +
+            (r.safe ? '✓ No major interactions found' : '⚠ Potential issues detected') + '</div>';
+    if (r.allergy_alert) html += '<div style="color:#be123c;font-size:.8rem;font-weight:700;margin-bottom:6px;"><i class="bi bi-exclamation-triangle me-1"></i>' + r.allergy_alert + '</div>';
+    if (r.interactions && r.interactions.length) {
+      html += '<ul style="font-size:.78rem;color:#475569;padding-left:16px;margin:0 0 6px;">';
+      r.interactions.forEach(function(i) { html += '<li>' + i + '</li>'; });
+      html += '</ul>';
+    }
+    if (r.recommendation) html += '<div style="font-size:.78rem;color:#0f172a;font-weight:600;border-top:1px solid ' + safeBorder + ';padding-top:8px;margin-top:8px;">' + r.recommendation + '</div>';
+    html += '</div>';
+    panel.innerHTML = html;
+  } catch(e) {
+    panel.innerHTML = '<div style="color:#ef4444;font-size:.82rem;">Network error</div>';
+  }
+}
+
+/* ══════════════════════════════════════════
+   PATIENT EDUCATION RESOURCES
+══════════════════════════════════════════ */
+async function loadEducation() {
+  var diagnosis = (document.getElementById('eduTopicInput') || {}).value || '';
+  diagnosis = diagnosis.trim();
+  if (!diagnosis) {
+    var inp = document.getElementById('eduTopicInput');
+    if (inp) { inp.focus(); inp.style.borderColor='#ef4444'; setTimeout(function(){ inp.style.borderColor='#ddd6fe'; },2000); }
+    return;
+  }
+  // SECURITY: only the doctor-typed topic is sent — zero patient data
+  var container = document.getElementById('educationResources');
+  var actions   = document.getElementById('eduActions');
+  container.style.display = 'block';
+  container.innerHTML = '<div style="color:#a78bfa;font-size:.82rem;padding:12px 0;">Duke gjeneruar...</div>';
+  try {
+    var res  = await fetch('/api/education-resources', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ diagnosis: diagnosis })
+    });
+    var data = await res.json();
+    if (!data.ok) { container.innerHTML = '<div style="color:#ef4444;font-size:.8rem;padding:8px;">Gabim: ' + data.error + '</div>'; return; }
+    var r = data.result;
+    var html = '<div style="background:#f8faff;border:1.5px solid #e0e7ff;border-radius:14px;overflow:hidden;">';
+    html += '<div style="padding:14px 18px;background:linear-gradient(135deg,#1e3a6e,#2d6fd4);">';
+    html += '<div style="color:#fff;font-weight:800;font-size:.9rem;">' + (r.title || 'Materiale Edukative') + '</div>';
+    html += '</div>';
+    html += '<div style="padding:16px 18px;">';
+    if (r.lifestyle_intro) {
+      html += '<p style="font-size:.84rem;color:#334155;line-height:1.75;border-left:3px solid #a5b4fc;padding-left:12px;margin-bottom:14px;">' + r.lifestyle_intro + '</p>';
+    }
+    html += '<div style="margin-bottom:12px;"><div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#7c3aed;margin-bottom:6px;">Shenimet e Mjekut</div>';
+    html += '<textarea id="eduEditableText" rows="4" style="width:100%;border:1.5px solid #ddd6fe;border-radius:10px;padding:12px;font-size:.83rem;line-height:1.6;font-family:inherit;resize:vertical;box-sizing:border-box;">' + (r.doctor_notes || '') + '</textarea></div>';
+    var tips = r.key_points || r.lifestyle_tips || [];
+    if (tips.length) {
+      var icons = ['🥗','🚶','💊','💧','😴','🩺','🚭','🧘'];
+      html += '<div style="margin-bottom:14px;"><div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#0369a1;margin-bottom:8px;">Keshilla per Stilin e Jetes</div>';
+      tips.forEach(function(p,i){ html += '<div style="display:flex;gap:10px;padding:8px 12px;background:#fff;border-radius:8px;margin-bottom:5px;border:1px solid #e0f2fe;"><span>' + (icons[i%icons.length]) + '</span><span style="font-size:.82rem;color:#334155;">' + p + '</span></div>'; });
+      html += '</div>';
+    }
+    if (r.when_to_seek_help && r.when_to_seek_help.length) {
+      html += '<div style="background:#fff1f2;border:1.5px solid #fecdd3;border-radius:10px;padding:12px 14px;margin-bottom:14px;">';
+      html += '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#be123c;margin-bottom:8px;">Kur te Kerkoni Ndihme</div>';
+      r.when_to_seek_help.forEach(function(p){ html += '<div style="font-size:.81rem;color:#be123c;margin-bottom:4px;">⚠ ' + p + '</div>'; });
+      html += '</div>';
+    }
+    html += '<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:12px 14px;">';
+    html += '<div style="font-size:.72rem;font-weight:800;color:#92400e;margin-bottom:4px;">DEKLARATE: Material i gjeneruar me AI. Nuk zevndeson keshillen e mjekut. Pacienti eshte pergjegjes per vendimet e tij.</div>';
+    html += '</div>';
+    html += '</div></div>';
+    container.innerHTML = html;
+    if (actions) actions.style.display = 'flex';
+  } catch(e) {
+    container.innerHTML = '<div style="color:#ef4444;font-size:.8rem;padding:8px;">Gabim: ' + e.message + '</div>';
+  }
+}
+
+function printEducation() {
+  var c = document.getElementById('educationResources');
+  if (!c) return;
+  var w = window.open('','_blank');
+  w.document.write('<html><head><title>Materiale Edukative</title><style>body{font-family:sans-serif;padding:30px;max-width:680px;margin:0 auto;}</style></head><body>');
+  w.document.write(c.innerHTML);
+  w.document.write('</body></html>');
+  w.document.close(); w.print();
+}
+
+/* ══════════════════════════════════════════
+   GAP-IN-CARE ALERTS (auto-load on summary tab)
+══════════════════════════════════════════ */
+function createReminderFromAlert(reason) {
+  reason = reason || '';
+  var due = new Date();
+  due.setDate(due.getDate() + 7); // default: 1 week from today
+  var dueStr = due.toISOString().slice(0,10);
+  fetch('/patients/' + PATIENT_ID + '/reminders/quick', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': document.querySelector('meta[name=csrf-token]').content
+    },
+    body: JSON.stringify({reason: reason, due_date: dueStr, notes: 'Gjeneruar automatikisht nga alarmi klinik'})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.ok) {
+      // Show brief success toast
+      var t = document.createElement('div');
+      t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#059669;color:#fff;padding:10px 18px;border-radius:10px;font-size:.85rem;font-weight:700;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2);';
+      t.innerHTML = '<i class="bi bi-bell-fill me-2"></i>Kujtesa u krijua!';
+      document.body.appendChild(t);
+      setTimeout(function(){ t.remove(); }, 3000);
+    }
+  })
+  .catch(function(){ alert('Gabim gjatë krijimit të kujtesës.'); });
+}
+
+function loadGapAlerts() {
+  var container = document.getElementById('gapAlerts');
+  if (!container) return;
+  fetch('/api/gap-in-care/' + PATIENT_ID)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ok || !data.alerts || !data.alerts.length) return;
+      var colors = {urgent:'#fff1f2', high:'#fffbeb', moderate:'#eff6ff', routine:'#f0fdf4'};
+      var borders = {urgent:'#fecdd3', high:'#fde68a', moderate:'#bfdbfe', routine:'#bbf7d0'};
+      var textc   = {urgent:'#be123c', high:'#92400e', moderate:'#1d4ed8', routine:'#166534'};
+      var html = '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+      data.alerts.forEach(function(a) {
+        var p = a.priority || 'routine';
+        var msgEnc = encodeURIComponent(a.message);
+        html += '<div style="display:inline-flex;align-items:center;gap:8px;padding:7px 12px;'
+              + 'border-radius:10px;border:1.5px solid ' + (borders[p]||'#e2e8f0') + ';'
+              + 'background:' + (colors[p]||'#f8fafc') + ';font-size:.78rem;font-weight:600;'
+              + 'color:' + (textc[p]||'#475569') + ';">'
+              + '<i class="bi bi-' + (a.icon||'info-circle') + '"></i>'
+              + '<span>' + a.message + '</span>'
+              + '<button onclick="createReminderFromAlert(this.getAttribute(\'data-msg\'))" '
+              + 'data-msg="' + a.message.replace(/"/g, '&quot;') + '" '
+              + 'style="margin-left:4px;padding:2px 8px;border-radius:6px;border:1px solid currentColor;'
+              + 'background:transparent;color:inherit;font-size:.68rem;font-weight:700;cursor:pointer;'
+              + 'opacity:.7;white-space:nowrap;" title="Krijo kujtesë nga ky alarm">'
+              + '<i class="bi bi-bell-plus"></i> Kujtesë'
+              + '</button>'
+              + '</div>';
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    })
+    .catch(function(){});
+}
+
+
+
+/* ══════════════════════════════════════════
+   DOCUMENT SIGNING / VERIFY
+══════════════════════════════════════════ */
+
+function updateCharCount() {
+  var ta  = document.getElementById('clientNoteText');
+  var cnt = document.getElementById('clientNoteCount');
+  if (!ta || !cnt) return;
+  var len = ta.value.length;
+  cnt.textContent = len + ' / 500';
+  cnt.style.color = len > 450 ? '#dc2626' : len > 350 ? '#d97706' : '#94a3b8';
+}
+document.addEventListener('DOMContentLoaded', function() {
+  var ta = document.getElementById('clientNoteText');
+  if (ta) ta.addEventListener('input', updateCharCount);
+});
+
+function signNote() {
+  if (!_currentNoteId) return;
+  var s = document.getElementById('signStatus');
+  if (s) s.innerHTML = '<div style="color:#64748b;font-size:.78rem;">Duke nënshkruar…</div>';
+  fetch('/patients/' + PATIENT_ID + '/visits/' + _currentNoteId + '/sign', {method:'POST'})
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ok) {
+        if (s) s.innerHTML = '<div style="color:#be123c;font-size:.78rem;">Gabim: ' + (data.error||'') + '</div>';
+        return;
+      }
+      // Sign succeeded — immediately verify to show integrity status
+      verifyNote();
+    })
+    .catch(function(e) {
+      if (s) s.innerHTML = '<div style="color:#be123c;font-size:.78rem;">Gabim: ' + e.message + '</div>';
+    });
+}
+
+function verifyNote() {
+  if (!_currentNoteId) return;
+  fetch('/patients/' + PATIENT_ID + '/visits/' + _currentNoteId + '/verify')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var s = document.getElementById('signStatus');
+      if (!s) return;
+      if (!data.ok) { s.innerHTML = '<div style="color:#ef4444;">Error</div>'; return; }
+      if (!data.signed) {
+        s.innerHTML = '<div style="color:#94a3b8;font-size:.78rem;"><i class="bi bi-circle me-1"></i>Ky shënim nuk është nënshkruar ende.</div>';
+        return;
+      }
+      var color  = data.intact ? '#166534' : '#be123c';
+      var bg     = data.intact ? '#f0fdf4'  : '#fff1f2';
+      var border = data.intact ? '#bbf7d0'  : '#fecdd3';
+      var icon   = data.intact ? 'shield-fill-check' : 'shield-exclamation';
+      var msg    = data.intact
+        ? JS_T.sig_valid + ' ' + (data.signed_by || JS_T.sig_unknown) + ' ' + JS_T.sig_at + ' ' + (data.signed_at||'').slice(0,16) + '. ' + JS_T.sig_hash + ' ' + data.hash
+        : '⚠ INTEGRITY FAILURE: This note has been modified after signing!';
+      s.innerHTML = '<div style="color:' + color + ';background:' + bg + ';border:1px solid ' + border
+        + ';border-radius:8px;padding:8px 12px;font-size:.78rem;font-weight:600;">'
+        + '<i class="bi bi-' + icon + ' me-2"></i>' + msg + '</div>';
+    });
+}
+
+/* Auto-load gap alerts when Summary tab is active */
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialise clinical notes state (hides AI panel correctly on load)
+  showState('list');
+
+  // Load on page open if summary is active
+  if (document.getElementById('tab-summary') &&
+      document.getElementById('tab-summary').classList.contains('active')) {
+    setTimeout(loadGapAlerts, 500);
+  }
+});
+
+/* ── Scan mode helpers ── */
+function activateScanMode() {
+  // Click the Scan mode button to trigger the full mode switch
+  var scanBtn = document.getElementById('scanModeBtn');
+  if (scanBtn) scanBtn.click();
+}
+function closeScanMode() {
+  // Switch back to general mode
+  var generalBtn = document.querySelector('.ai-mode-btn[data-mode="general"]');
+  if (generalBtn) generalBtn.click();
+}
+/* ══════════════════════════════════════════
+   MEDICINE CATALOG
+══════════════════════════════════════════ */
+var _medBasket   = {};  // id -> medicine object
+var _medTimer    = null;
+var _medFiltersLoaded = false;
+
+function medSearchDebounce() {
+  clearTimeout(_medTimer);
+  _medTimer = setTimeout(searchMedicines, 350);
+}
+
+function searchMedicines() {
+  var q        = document.getElementById('medSearchInput').value.trim();
+  var country  = document.getElementById('medCountry').value;
+  var cls      = document.getElementById('medClass').value;
+  var inStock  = document.getElementById('medInStock').checked ? '1' : '';
+  var params   = new URLSearchParams({ q, country, drug_class: cls, in_stock: inStock });
+
+  fetch('/api/medicine-search?' + params)
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (!data.ok) return;
+
+      // Populate filters on first load
+      if (!_medFiltersLoaded) {
+        _medFiltersLoaded = true;
+        var cSel = document.getElementById('medCountry');
+        data.countries.forEach(function(c) {
+          var o = document.createElement('option'); o.value = c; o.textContent = '🌍 ' + c;
+          cSel.appendChild(o);
+        });
+        var clSel = document.getElementById('medClass');
+        data.classes.forEach(function(c) {
+          var o = document.createElement('option'); o.value = c; o.textContent = '💊 ' + c;
+          clSel.appendChild(o);
+        });
+      }
+
+      var box = document.getElementById('medResults');
+      if (!data.results.length) {
+        box.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:.82rem;">Nuk u gjet asnjë ilaç</div>';
+        return;
+      }
+
+      var html = '';
+      data.results.forEach(function(m) {
+        var inBasket = !!_medBasket[m.id];
+        var stockBadge = m.in_stock && m.stock_qty > 0
+          ? '<span style="background:#dcfce7;color:#166534;font-size:.64rem;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px;">✓ Në stok (' + m.stock_qty + ')</span>'
+          : '<span style="background:#fee2e2;color:#991b1b;font-size:.64rem;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px;">✗ Pa stok</span>';
+        var rxBadge = m.requires_rx
+          ? '<span style="background:#fef3c7;color:#92400e;font-size:.62rem;font-weight:700;padding:1px 5px;border-radius:6px;">Rx</span>'
+          : '';
+        html += '<div style="padding:11px 13px;border:1.5px solid ' + (inBasket ? '#bbf7d0' : '#e2e8f0') + ';border-radius:10px;background:' + (inBasket ? '#f0fdf4' : '#fff') + ';transition:all .15s;">'
+          + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">'
+          + '<div style="flex:1;min-width:0;">'
+          + '<div style="font-size:.83rem;font-weight:700;color:#0d1f2d;">' + m.name + ' ' + rxBadge + '</div>'
+          + '<div style="font-size:.72rem;color:#64748b;margin-top:2px;">' + (m.generic_name || '') + (m.brand_name ? ' · ' + m.brand_name : '') + '</div>'
+          + '<div style="font-size:.7rem;color:#94a3b8;margin-top:3px;">'
+          + (m.drug_class ? m.drug_class + ' · ' : '')
+          + (m.country_origin ? '🌍 ' + m.country_origin : '')
+          + '</div>'
+          + '<div style="font-size:.7rem;color:#64748b;margin-top:2px;">'
+          + (m.strengths ? m.strengths : '')
+          + (m.unit_price ? ' · <strong style="color:#059669;">€' + parseFloat(m.unit_price).toFixed(2) + '</strong>' : '')
+          + stockBadge
+          + '</div>'
+          + '</div>'
+          + '<button onclick="toggleBasket(' + JSON.stringify(m).replace(/"/g,"'") + ')" '
+          + 'style="width:30px;height:30px;border-radius:8px;border:1.5px solid ' + (inBasket ? '#059669' : '#e2e8f0') + ';background:' + (inBasket ? '#059669' : '#fff') + ';color:' + (inBasket ? '#fff' : '#64748b') + ';cursor:pointer;font-size:.9rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;">'
+          + (inBasket ? '<i class="bi bi-check"></i>' : '<i class="bi bi-plus"></i>')
+          + '</button>'
+          + '</div></div>';
+      });
+      box.innerHTML = html;
+    })
+    .catch(function(e){ console.error(e); });
+}
+
+function toggleBasket(m) {
+  if (_medBasket[m.id]) {
+    delete _medBasket[m.id];
+  } else {
+    _medBasket[m.id] = m;
+  }
+  renderBasket();
+  searchMedicines(); // refresh results to update button states
+}
+
+function renderBasket() {
+  var keys = Object.keys(_medBasket);
+  var empty = document.getElementById('medBasketEmpty');
+  var btn   = document.getElementById('prescribeBtn');
+  var basket = document.getElementById('medBasket');
+
+  if (!keys.length) {
+    empty.style.display = 'block';
+    btn.disabled = true;
+    btn.style.opacity = '.5';
+    basket.innerHTML = '';
+    basket.appendChild(empty);
+    return;
+  }
+
+  empty.style.display = 'none';
+  btn.disabled = false;
+  btn.style.opacity = '1';
+
+  var html = '';
+  keys.forEach(function(id) {
+    var m = _medBasket[id];
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-bottom:6px;">'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:.8rem;font-weight:700;color:#0d1f2d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + m.name + '</div>'
+      + '<div style="font-size:.68rem;color:#64748b;">' + (m.strengths || '') + '</div>'
+      + '<div style="display:flex;gap:4px;margin-top:4px;">'
+      + '<input placeholder="Doza" style="width:70px;padding:3px 6px;font-size:.7rem;border:1px solid #d1fae5;border-radius:5px;outline:none;" id="dose_'+id+'" value="' + (m.strengths ? m.strengths.split(',')[0].trim() : '') + '">'
+      + '<select style="flex:1;padding:3px 6px;font-size:.7rem;border:1px solid #d1fae5;border-radius:5px;outline:none;" id="freq_'+id+'">'
+      + '<option>1x/ditë</option><option>2x/ditë</option><option>3x/ditë</option><option>Sipas nevojës</option>'
+      + '</select>'
+      + '</div>'
+      + '</div>'
+      + '<button onclick="removeBasket(' + JSON.stringify(id) + ')" style="width:22px;height:22px;border-radius:6px;border:none;background:#fee2e2;color:#be123c;cursor:pointer;font-size:.7rem;flex-shrink:0;">'
+      + '<i class="bi bi-x"></i></button>'
+      + '</div>';
+  });
+  basket.innerHTML = html;
+  basket.appendChild(empty);
+}
+
+function removeBasket(id) {
+  delete _medBasket[id];
+  renderBasket();
+  searchMedicines();
+}
+
+function prescribeMedicines() {
+  var keys = Object.keys(_medBasket);
+  if (!keys.length) return;
+
+  var medicines = keys.map(function(id) {
+    return {
+      name:      _medBasket[id].name,
+      dosage:    document.getElementById('dose_'+id) ? document.getElementById('dose_'+id).value : '',
+      frequency: document.getElementById('freq_'+id) ? document.getElementById('freq_'+id).value : '1x/ditë',
+      route:     'Oral',
+      notes:     _medBasket[id].drug_class || ''
+    };
+  });
+
+  var btn = document.getElementById('prescribeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" style="width:.7rem;height:.7rem;"></span>Duke ruajtur...';
+
+  fetch('/api/medicine-prescribe', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ patient_id: PATIENT_ID, medicines: medicines })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      _medBasket = {};
+      renderBasket();
+      searchMedicines();
+      var msg = document.getElementById('prescribeMsg');
+      msg.textContent = '✓ ' + data.count + ' ilaç u shtua në raportin e pacientit!';
+      msg.style.display = 'block';
+      setTimeout(function(){ msg.style.display='none'; }, 4000);
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Shto në Raportin e Pacientit';
+    btn.style.opacity = '1';
+  })
+  .catch(function(e){
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Shto në Raportin e Pacientit';
+  });
+}
+
+// Auto-load medicines when tab is clicked
+document.querySelector('[data-tab="medicines"]').addEventListener('click', function() {
+  if (!_medFiltersLoaded) searchMedicines();
+});
+
+</script>
+{% endblock %}

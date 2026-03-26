@@ -1,0 +1,930 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ practice_name }}{% endblock %}
+{% block page_title %}{{ t.nav_dashboard }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(16px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.dash-section { animation: fadeUp .35s ease both; }
+.dash-section:nth-child(1) { animation-delay:.05s; }
+.dash-section:nth-child(2) { animation-delay:.12s; }
+.dash-section:nth-child(3) { animation-delay:.19s; }
+.dash-section:nth-child(4) { animation-delay:.26s; }
+.dash-section:nth-child(5) { animation-delay:.33s; }
+
+/* ── Section wrapper ── */
+.section-block {
+  border-radius:14px; border:1px solid #e8edf2;
+  background:#fff; margin-bottom:20px; overflow:hidden;
+}
+.section-header {
+  display:flex; align-items:center; gap:12px;
+  padding:14px 20px; cursor:pointer;
+  border-bottom:1px solid #e8edf2;
+  user-select:none; transition:background .12s;
+}
+.section-header:hover { background:#fafbfc; }
+.section-icon {
+  width:34px; height:34px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.95rem; flex-shrink:0;
+}
+.section-title { font-weight:700; font-size:.92rem; color:#1a2942; }
+.section-meta  { font-size:.75rem; color:#94a3b8; margin-left:auto; margin-right:8px; }
+.section-chevron { color:#94a3b8; transition:transform .2s; font-size:.85rem; }
+.section-chevron.collapsed { transform:rotate(-90deg); }
+.section-body { padding:20px; }
+
+/* ── KPI cards ── */
+.kpi-card {
+  border-radius:12px; padding:16px 20px;
+  display:flex !important; flex-direction:row !important;
+  align-items:center; justify-content:space-between;
+  text-decoration:none; transition:transform .15s, box-shadow .15s;
+  position:relative; height:100px; width:100%; box-sizing:border-box;
+  overflow:hidden; gap:0;
+}
+.kpi-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.12); }
+.kpi-card > div { flex:1; min-width:0; }
+.kpi-card .kpi-num  { font-size:1.9rem; font-weight:800; color:#fff; line-height:1; letter-spacing:-.02em; }
+.kpi-card .kpi-label{ font-size:16px !important; color:rgba(255,255,255,.85); margin-top:5px; font-weight:500; line-height:1.3; }
+.kpi-card .kpi-icon { font-size:2rem !important; color:rgba(255,255,255,.22); flex-shrink:0; width:48px; text-align:right; }
+
+/* ── Finance chart cards ── */
+.chart-card { border-radius:12px; border:1px solid #e8edf2; padding:18px 20px; background:#fff; height:100%; }
+.chart-card .chart-title { font-size:.82rem; font-weight:700; color:#1a2942; margin-bottom:14px; }
+
+/* ── Invoice table ── */
+.inv-row:hover { background:#fafbfd; }
+.inv-status { padding:3px 9px; border-radius:20px; font-size:.72rem; font-weight:600; }
+
+/* ── HR staff grid ── */
+.staff-card {
+  border:1px solid #e8edf2; border-radius:12px; padding:14px;
+  display:flex; align-items:center; gap:12px;
+  transition:border-color .15s, box-shadow .15s;
+}
+.staff-card:hover { border-color:#2d6fd4; box-shadow:0 2px 12px rgba(45,111,212,.1); }
+.staff-avatar {
+  width:42px; height:42px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.85rem; font-weight:700; color:#fff;
+}
+.staff-name { font-size:.88rem; font-weight:600; color:#1a2942; line-height:1.3; }
+.staff-role-badge { font-size:.68rem; padding:2px 8px; border-radius:20px; font-weight:600; display:inline-block; margin-top:3px; }
+
+/* ── ia banner ── */
+.ai-banner {
+  border-radius:16px; padding:22px 28px;
+  background:linear-gradient(135deg,#0f0528 0%,#3b0f8f 45%,#6d28d9 100%);
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; flex-wrap:wrap; margin-bottom:20px;
+  position:relative; overflow:hidden;
+}
+.ai-banner::before {
+  content:''; position:absolute; width:300px; height:300px;
+  border-radius:50%; background:rgba(139,92,246,.15);
+  top:-100px; right:-80px; pointer-events:none;
+}
+.ai-banner::after {
+  content:''; position:absolute; width:200px; height:200px;
+  border-radius:50%; background:rgba(167,139,250,.08);
+  bottom:-60px; left:20%; pointer-events:none;
+}
+.ai-banner-btn {
+  background:#fff; color:#5b21b6; font-weight:700;
+  border:none; border-radius:10px; padding:10px 24px;
+  font-size:.88rem; cursor:pointer; transition:all .15s;
+  white-space:nowrap; flex-shrink:0;
+}
+.ai-banner-btn:hover { background:#f5f3ff; box-shadow:0 4px 14px rgba(0,0,0,.15); transform:translateY(-1px); }
+
+/* ── Activity log ── */
+.log-item { padding:10px 0; border-bottom:1px solid #f1f5f9; display:flex; gap:12px; }
+.log-item:last-child { border-bottom:none; }
+.log-dot { width:8px; height:8px; border-radius:50%; background:#cbd5e1; margin-top:5px; flex-shrink:0; }
+.log-dot.login    { background:#22c55e; }
+.log-dot.ai       { background:#8b5cf6; }
+.log-dot.patient  { background:#3b82f6; }
+.log-dot.billing  { background:#f59e0b; }
+.log-dot.security { background:#ef4444; }
+
+/* ── Greeting ── */
+.greeting-bar {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:22px; flex-wrap:wrap; gap:12px;
+}
+.greeting-name { font-size:1.15rem; font-weight:800; color:#0f172a; }
+.greeting-sub  { font-size:.8rem; color:#94a3b8; margin-top:2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Greeting ── #}
+<div class="greeting-bar dash-section">
+  <div>
+    <div class="greeting-name">
+      {% if now.hour < 12 %}{{ t.greet_morning }}{% elif now.hour < 17 %}{{ t.greet_afternoon }}{% else %}{{ t.greet_evening }}{% endif %},
+      {{ user.name.split()[0] }} 👋
+    </div>
+    <div class="greeting-sub">
+      {{ now.strftime('%d/%m/%Y') }}&ensp;·&ensp;{{ practice_name }}
+      {% if unread_messages and unread_messages > 0 %}
+      &ensp;·&ensp;<a href="/inbox" style="color:#3b82f6;text-decoration:none;">
+        <i class="bi bi-envelope-fill me-1"></i>{{ unread_messages }} {{ t.dash_unread }}
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if has_perm('patients_edit') %}
+    <a href="/patients/new" class="btn btn-sm btn-primary fw-semibold">
+      <i class="bi bi-person-plus me-1"></i>{{ t.dash_new_patient }}
+    </a>
+    {% endif %}
+    {% if has_perm('appointments') %}
+    <a href="/calendar/new" class="btn btn-sm btn-outline-primary fw-semibold">
+      <i class="bi bi-calendar-plus me-1"></i>{{ t.dash_book_appt }}
+    </a>
+    {% endif %}
+    {% if has_perm('billing') %}
+    <a href="/billing/new" class="btn btn-sm btn-outline-secondary fw-semibold">
+      <i class="bi bi-receipt me-1"></i>{{ t.dash_new_invoice }}
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+
+{# ══════════════════════════════════════════════════════════
+   ia ASSISTANT BANNER — always first, for clinical users
+══════════════════════════════════════════════════════════ #}
+{% if has_perm('clinical') %}
+<div class="ai-banner dash-section">
+  <div class="d-flex align-items-center gap-3" style="position:relative;z-index:1;">
+    <div style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.15);
+                display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <i class="bi bi-stars text-white" style="font-size:1.4rem;"></i>
+    </div>
+    <div>
+      <div style="color:#fff;font-weight:800;font-size:1rem;line-height:1.2;">{{ t.h_ai_assistant }}</div>
+      <div style="color:#c4b5fd;font-size:.8rem;margin-top:4px;">
+        {{ t.dash_ai_desc }}
+        {% if ai_stats is defined %}
+        &bull; <strong style="color:#e9d5ff;">{{ ai_stats.total }}</strong> {{ t.dash_ai_queries }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <a href="/ai-assistant" class="ai-banner-btn" style="position:relative;z-index:1;">
+    <i class="bi bi-stars me-2"></i>{{ t.dash_open_ai }}
+  </a>
+</div>
+{% endif %}
+
+
+{# ══════════════════════════════════════════════════════════
+   CLINICAL SECTION
+══════════════════════════════════════════════════════════ #}
+{% if has_perm('patients_view') or has_perm('appointments') %}
+{% set sec_id = 'sec-clinical' %}
+<div class="section-block dash-section">
+  <div class="section-header" onclick="toggleSection('{{ sec_id }}')">
+    <div class="section-icon" style="background:#eff6ff;">
+      <i class="bi bi-heart-pulse" style="color:#2d6fd4;"></i>
+    </div>
+    <span class="section-title">{{ t.misc_clinical }}</span>
+    {% if today_appts is defined %}
+    <span class="section-meta">{{ today_appts }} takime sot</span>
+    {% endif %}
+    <i class="bi bi-chevron-down section-chevron" id="{{ sec_id }}-chevron"></i>
+  </div>
+  <div class="section-body" id="{{ sec_id }}-body">
+
+    {# ── 4-column dashboard grid ── #}
+    <div class="row g-3">
+
+      {# COL 1: Pacientët Gjithsej + Pacientët e Fundit #}
+      {% if total_patients is defined %}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        <a href="/patients" class="kpi-card" style="background:linear-gradient(135deg,#1d4ed8,#2d6fd4);">
+          <div>
+            <div class="kpi-num">{{ total_patients }}</div>
+            <div class="kpi-label"><i class="bi bi-people me-1"></i>{{ t.misc_total_patients }}</div>
+          </div>
+          <i class="bi bi-people-fill kpi-icon"></i>
+        </a>
+        <div class="chart-card flex-fill">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="chart-title"><i class="bi bi-person-circle me-2 text-primary"></i>{{ t.misc_recent_patients }}</div>
+            <a href="/patients/new" class="btn btn-sm btn-primary py-0 px-2" style="font-size:.75rem;"><i class="bi bi-plus"></i></a>
+          </div>
+          <div class="d-flex flex-column gap-2">
+            {% if recent_patients is defined %}{% for p in recent_patients %}
+            <a href="/patients/{{ p.id }}"
+               style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;text-decoration:none;color:inherit;border:1px solid #f1f5f9;transition:border-color .12s;"
+               onmouseover="this.style.borderColor='#bfdbfe'" onmouseout="this.style.borderColor='#f1f5f9'">
+              <div style="width:32px;height:32px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:#fff;">
+                {{ p.first_name[0] }}{{ p.last_name[0] }}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:.82rem;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.first_name }} {{ p.last_name }}</div>
+                {% if p.dob %}<div style="font-size:.7rem;color:#94a3b8;">{{ ((now.date() - p.dob).days // 365) }} vjeç</div>{% endif %}
+              </div>
+              <i class="bi bi-chevron-right" style="color:#cbd5e1;font-size:.72rem;"></i>
+            </a>
+            {% endfor %}{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# COL 2: Takimet e Sotme + Calendar list #}
+      {% if today_appts is defined %}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        <a href="/calendar" class="kpi-card" style="background:linear-gradient(135deg,#047857,#059669);">
+          <div>
+            <div class="kpi-num">{{ today_appts }}</div>
+            <div class="kpi-label"><i class="bi bi-calendar-check me-1"></i>{{ t.misc_today_appts }}</div>
+          </div>
+          <i class="bi bi-calendar3 kpi-icon"></i>
+        </a>
+        <div class="chart-card flex-fill">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="chart-title"><i class="bi bi-calendar3 me-2 text-success"></i>{{ t.misc_today_schedule }}</div>
+            <a href="/calendar" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.75rem;">Shiko</a>
+          </div>
+          {% if today_appts_list is defined and today_appts_list %}
+          <div class="d-flex flex-column gap-2">
+            {% for a in today_appts_list %}
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;border:1px solid #f1f5f9;background:#f8fffe;">
+              <div style="font-size:.82rem;font-weight:800;color:#047857;min-width:38px;">{{ a.start_time.strftime('%H:%M') if a.start_time else '—' }}</div>
+              <div style="flex:1;min-width:0;">
+                <a href="/patients/{{ a.patient_id }}" style="font-size:.82rem;font-weight:600;color:#0f172a;text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ a.patient_name }}</a>
+                <div style="font-size:.7rem;color:#94a3b8;">{{ a.appointment_type or '' }}{% if a.doctor_name %} · {{ a.doctor_name }}{% endif %}</div>
+              </div>
+              {% if a.status=='scheduled' %}<span style="font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:5px;background:#eff6ff;color:#1d4ed8;white-space:nowrap;">Planifikuar</span>
+              {% elif a.status=='completed' %}<span style="font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:5px;background:#f0fdf4;color:#166534;white-space:nowrap;">Kryer</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <i class="bi bi-calendar-check" style="font-size:2rem;color:#e2e8f0;"></i>
+            <p class="text-muted mt-2 mb-0" style="font-size:.82rem;">{{ t.empty_appointments }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# COL 3: Në Sallën e Pritjes + waiting list #}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        <a href="/waiting-room" class="kpi-card" style="background:linear-gradient(135deg,#b45309,#d97706);">
+          <div>
+            <div class="kpi-num">{{ waiting_count }}</div>
+            <div class="kpi-label"><i class="bi bi-clock me-1"></i>{{ t.misc_in_waiting }}</div>
+          </div>
+          <i class="bi bi-clock-history kpi-icon"></i>
+        </a>
+        <div class="chart-card flex-fill">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="chart-title"><i class="bi bi-clock-history me-2" style="color:#d97706;"></i>Salla e Pritjes</div>
+            <a href="/waiting-room" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.75rem;">Shiko</a>
+          </div>
+          {% if waiting_list is defined and waiting_list %}
+          <div class="d-flex flex-column gap-2">
+            {% for w in waiting_list %}
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;border:1px solid #fef3c7;background:#fffbeb;">
+              <div style="width:32px;height:32px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#d97706,#b45309);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:#fff;">
+                {% if w.patient_name %}{{ w.patient_name.split()[0][0] }}{{ w.patient_name.split()[-1][0] }}{% else %}?{% endif %}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <a href="/patients/{{ w.patient_id }}" style="font-size:.82rem;font-weight:600;color:#0f172a;text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ w.patient_name or '—' }}</a>
+                <div style="font-size:.7rem;color:#94a3b8;">{{ w.reason or 'Pritje' }}{% if w.checked_in_at %} · {{ w.checked_in_at.strftime('%H:%M') }}{% endif %}</div>
+              </div>
+              <span style="font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:5px;background:#fef3c7;color:#92400e;white-space:nowrap;">{{ w.status or 'Duke pritur' }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <i class="bi bi-person-check" style="font-size:2rem;color:#e2e8f0;"></i>
+            <p class="text-muted mt-2 mb-0" style="font-size:.82rem;">Salla e pritjes është bosh.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {# COL 4: Kujtesa Ditore + alerts list #}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        <a href="/campaigns" class="kpi-card" style="background:linear-gradient(135deg,#7e22ce,#9333ea);">
+          <div>
+            <div class="kpi-num">{{ smart_alerts|length if smart_alerts is defined else 0 }}</div>
+            <div class="kpi-label"><i class="bi bi-bell me-1"></i>{{ t.misc_day_reminder }}</div>
+          </div>
+          <i class="bi bi-bell-fill kpi-icon"></i>
+        </a>
+        <div class="chart-card flex-fill">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="chart-title"><i class="bi bi-bell-fill me-2" style="color:#7e22ce;"></i>Kujtesa Ditore</div>
+          </div>
+          {% if smart_alerts is defined and smart_alerts %}
+          <div class="d-flex flex-column gap-2">
+            {% for alert in smart_alerts[:8] %}
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;border:1px solid #f3f0ff;background:#faf8ff;">
+              <div style="width:30px;height:30px;border-radius:8px;background:{{ alert.color }}18;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi {{ alert.icon }}" style="color:{{ alert.color }};font-size:.82rem;"></i>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:.78rem;font-weight:700;color:#0b1120;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ alert.title }}</div>
+                <div style="font-size:.68rem;color:#6b7a99;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ alert.detail }}</div>
+              </div>
+              <a href="{{ alert.action_url }}" style="font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:6px;background:{{ alert.color }};color:#fff;text-decoration:none;white-space:nowrap;flex-shrink:0;">{{ alert.action_label }}</a>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <i class="bi bi-check-circle" style="font-size:2rem;color:#e2e8f0;"></i>
+            <p class="text-muted mt-2 mb-0" style="font-size:.82rem;">Asnjë kujtesë për sot.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endif %}{# end clinical #}
+
+
+{# ══════════════════════════════════════════════════════════
+   FINANCE SECTION
+══════════════════════════════════════════════════════════ #}
+{% if has_perm('billing') and finance_total_invoices is defined %}
+{% set sec_id = 'sec-finance' %}
+<div class="section-block dash-section">
+  <div class="section-header" onclick="toggleSection('{{ sec_id }}')">
+    <div class="section-icon" style="background:#fefce8;">
+      <i class="bi bi-receipt" style="color:#ca8a04;"></i>
+    </div>
+    <span class="section-title">{{ t.misc_finance }}</span>
+    <span class="section-meta">
+      €{{ '%.0f'|format(finance_paid_amount) }} mbledhur &ensp;·&ensp;
+      {% if finance_overdue_count > 0 %}
+      <span style="color:#ef4444;">{{ finance_overdue_count }} vonuar</span>
+      {% else %}0 vonuar{% endif %}
+    </span>
+    <i class="bi bi-chevron-down section-chevron" id="{{ sec_id }}-chevron"></i>
+  </div>
+  <div class="section-body" id="{{ sec_id }}-body">
+
+    {# ── 4-column finance grid ── #}
+    <div class="row g-3">
+
+      {# COL 1: € Mbledhur + paid invoices #}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        <div class="kpi-card" style="background:linear-gradient(135deg,#047857,#10b981);">
+          <div>
+            <div class="kpi-num">€{{ '%.0f'|format(finance_paid_amount) }}</div>
+            <div class="kpi-label"><i class="bi bi-check-circle me-1"></i>{{ t.misc_total_collected }}</div>
+          </div>
+          <i class="bi bi-check-circle-fill kpi-icon"></i>
+        </div>
+        <div class="chart-card flex-fill">
+          <div class="chart-title mb-3"><i class="bi bi-bar-chart me-2" style="color:#047857;"></i>Të Ardhurat Mujore</div>
+          <canvas id="revenueChart" height="160"></canvas>
+          <div class="mt-3 text-center">
+            <a href="/reports" style="font-size:.76rem;color:#94a3b8;text-decoration:none;">{{ t.misc_view_reports }} →</a>
+          </div>
+        </div>
+      </div>
+
+      {# COL 2: € Papaguar + unpaid invoices list #}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        <div class="kpi-card" style="background:linear-gradient(135deg,#b91c1c,#ef4444);">
+          <div>
+            <div class="kpi-num">€{{ '%.0f'|format(finance_due_amount) }}</div>
+            <div class="kpi-label"><i class="bi bi-exclamation-triangle me-1"></i>{{ t.misc_outstanding }}</div>
+          </div>
+          <i class="bi bi-exclamation-triangle-fill kpi-icon"></i>
+        </div>
+        <div class="chart-card flex-fill">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="chart-title"><i class="bi bi-exclamation-circle me-2" style="color:#ef4444;"></i>Papaguara</div>
+            <a href="/billing/new" class="btn btn-sm btn-primary py-0 px-2" style="font-size:.74rem;"><i class="bi bi-plus"></i></a>
+          </div>
+          {% set unpaid = finance_recent|selectattr('status','ne','paid')|list if finance_recent else [] %}
+          {% if unpaid %}
+          <div class="d-flex flex-column gap-2">
+            {% for inv in unpaid[:7] %}
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;border:1px solid #fff1f2;background:#fff8f8;">
+              <div style="flex:1;min-width:0;">
+                <a href="/billing/{{ inv.id }}" style="font-size:.82rem;font-weight:600;color:#0f172a;text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ inv.patient_name }}</a>
+                <div style="font-size:.7rem;color:#94a3b8;">{{ inv.invoice_date.strftime('%d/%m/%Y') if inv.invoice_date else '—' }}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:.82rem;font-weight:800;color:#b91c1c;">€{{ '%.0f'|format(inv.total_amount or 0) }}</div>
+                {% if inv.status=='partial' %}
+                <div style="font-size:.65rem;color:#d97706;font-weight:700;">Pjesërisht</div>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <i class="bi bi-check-circle" style="font-size:2rem;color:#e2e8f0;"></i>
+            <p class="text-muted mt-2 mb-0" style="font-size:.82rem;">Asnjë faturë e papaguar.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# COL 3: Total Faturat + donut + all invoices #}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        <a href="/billing" class="kpi-card" style="background:linear-gradient(135deg,#1d4ed8,#2d6fd4);">
+          <div>
+            <div class="kpi-num">{{ finance_total_invoices }}</div>
+            <div class="kpi-label"><i class="bi bi-receipt me-1"></i>{{ t.misc_total_invoices }}</div>
+          </div>
+          <i class="bi bi-receipt kpi-icon"></i>
+        </a>
+        <div class="chart-card flex-fill d-flex flex-column align-items-center justify-content-center">
+          <div class="chart-title text-center w-100 mb-2">
+            <i class="bi bi-pie-chart me-2" style="color:#ca8a04;"></i>{{ t.dash_payment_status }}
+          </div>
+          <div style="position:relative;width:140px;height:140px;">
+            <canvas id="statusDonut"></canvas>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+              {% set coll_pct = (finance_paid_amount / finance_total_billed * 100)|round|int if finance_total_billed > 0 else 0 %}
+              <div style="font-size:1.4rem;font-weight:800;color:#0f172a;line-height:1;">{{ coll_pct }}%</div>
+              <div style="font-size:.65rem;color:#94a3b8;">{{ t.misc_collected }}</div>
+            </div>
+          </div>
+          <div class="d-flex gap-3 mt-2 mb-3" style="font-size:.74rem;">
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#10b981;margin-right:4px;"></span>{{ t.opt_paid }}</span>
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-right:4px;"></span>{{ t.misc_outstanding }}</span>
+          </div>
+          <div style="width:100%;border-top:1px solid #f1f5f9;padding-top:10px;font-size:.78rem;">
+            <div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:#6b7a99;">Totali faturuar</span><b>€{{ '%.0f'|format(finance_total_billed) }}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:#6b7a99;">Mbledhur</span><b style="color:#10b981;">€{{ '%.0f'|format(finance_paid_amount) }}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:#6b7a99;">Papaguar</span><b style="color:#ef4444;">€{{ '%.0f'|format(finance_due_amount) }}</b></div>
+          </div>
+        </div>
+      </div>
+
+      {# COL 4: Vonuara + overdue list #}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        <a href="/billing" class="kpi-card" style="background:{% if finance_overdue_count > 0 %}linear-gradient(135deg,#92400e,#d97706){% else %}linear-gradient(135deg,#1e3a5f,#2d4a6e){% endif %};">
+          <div>
+            <div class="kpi-num">{{ finance_overdue_count }}</div>
+            <div class="kpi-label"><i class="bi bi-calendar-x me-1"></i>{{ t.misc_overdue }}</div>
+          </div>
+          <i class="bi bi-calendar-x-fill kpi-icon"></i>
+        </a>
+        <div class="chart-card flex-fill">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="chart-title"><i class="bi bi-calendar-x me-2" style="color:#d97706;"></i>Faturat e Vonuara</div>
+            <a href="/billing" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.74rem;">Të gjitha</a>
+          </div>
+          {% set overdue_list = finance_recent|selectattr('status','ne','paid')|list if finance_recent else [] %}
+          {% if overdue_list %}
+          <div class="d-flex flex-column gap-2">
+            {% for inv in overdue_list[:7] %}
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;border:1px solid #fef3c7;background:#fffbeb;">
+              <div style="flex:1;min-width:0;">
+                <a href="/billing/{{ inv.id }}" style="font-size:.82rem;font-weight:600;color:#0f172a;text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ inv.patient_name }}</a>
+                <div style="font-size:.7rem;color:#94a3b8;">INV-{{ '%04d'|format(inv.id) }} · {{ inv.invoice_date.strftime('%d/%m/%Y') if inv.invoice_date else '—' }}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:.82rem;font-weight:800;color:#d97706;">€{{ '%.0f'|format((inv.total_amount or 0) - (inv.amount_paid or 0)) }}</div>
+                <div style="font-size:.65rem;color:#d97706;">mbetur</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <i class="bi bi-check-circle" style="font-size:2rem;color:#e2e8f0;"></i>
+            <p class="text-muted mt-2 mb-0" style="font-size:.82rem;">Asnjë faturë e vonuar.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endif %}{# end finance #}
+
+
+{# ══════════════════════════════════════════════════════════
+   HR SECTION
+══════════════════════════════════════════════════════════ #}
+{% if has_perm('team_view') and staff_list is defined %}
+{% set sec_id = 'sec-hr' %}
+<div class="section-block dash-section">
+  <div class="section-header" onclick="toggleSection('{{ sec_id }}')">
+    <div class="section-icon" style="background:#fff7ed;">
+      <i class="bi bi-person-badge" style="color:#ea580c;"></i>
+    </div>
+    <span class="section-title">{{ t.nav_team }}</span>
+    <span class="section-meta">{{ total_staff }} aktiv{% if inactive_staff > 0 %}, {{ inactive_staff }} joaktiv{% endif %}</span>
+    <i class="bi bi-chevron-down section-chevron" id="{{ sec_id }}-chevron"></i>
+  </div>
+  <div class="section-body" id="{{ sec_id }}-body">
+
+    {# ── 4-column HR grid ── #}
+    <div class="row g-3">
+
+      {# COL 1: Stafi Aktiv + staff list #}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        <a href="/team" class="kpi-card" style="background:linear-gradient(135deg,#9a3412,#ea580c);">
+          <div>
+            <div class="kpi-num">{{ total_staff }}</div>
+            <div class="kpi-label"><i class="bi bi-people me-1"></i>{{ t.dash_total_staff }}</div>
+          </div>
+          <i class="bi bi-people-fill kpi-icon"></i>
+        </a>
+        <div class="chart-card flex-fill">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="chart-title"><i class="bi bi-people me-2" style="color:#ea580c;"></i>Stafi Aktiv</div>
+            {% if has_perm('team_edit') %}
+            <a href="/team/new" class="btn btn-sm btn-primary py-0 px-2" style="font-size:.74rem;"><i class="bi bi-plus"></i></a>
+            {% endif %}
+          </div>
+          <div class="d-flex flex-column gap-2">
+            {% for s in staff_list %}
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;border:1px solid #f1f5f9;transition:border-color .12s;"
+                 onmouseover="this.style.borderColor='#fed7aa'" onmouseout="this.style.borderColor='#f1f5f9'">
+              <div style="width:32px;height:32px;border-radius:50%;flex-shrink:0;font-size:.68rem;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;
+                          background:{% if s.role=='doctor' %}linear-gradient(135deg,#1d4ed8,#3b82f6){% elif s.role=='nurse' %}linear-gradient(135deg,#065f46,#10b981){% elif s.role=='admin' %}linear-gradient(135deg,#7f1d1d,#ef4444){% else %}linear-gradient(135deg,#1e3a5f,#475569){% endif %};">
+                {{ s.name[0]|upper }}{% if s.name.split()|length > 1 %}{{ s.name.split()[1][0]|upper }}{% endif %}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:.82rem;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.name }}</div>
+                <div style="font-size:.7rem;color:#94a3b8;">
+                  {% if s.role=='doctor' %}Mjek{% elif s.role=='nurse' %}Infermier{% elif s.role=='admin' %}Admin{% elif s.role=='receptionist' %}Recepsionist{% else %}{{ s.role|title }}{% endif %}
+                  {% if s.specialty %} · {{ s.specialty }}{% endif %}
+                </div>
+              </div>
+              {% if has_perm('team_edit') %}
+              <a href="/team/{{ s.id }}/edit" style="color:#cbd5e1;font-size:.8rem;" onmouseover="this.style.color='#ea580c'" onmouseout="this.style.color='#cbd5e1'"><i class="bi bi-pencil"></i></a>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {# COL 2: Mjekët + doctors list #}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        {% set doctor_count = staff_list|selectattr('role','equalto','doctor')|list|length %}
+        <div class="kpi-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);">
+          <div>
+            <div class="kpi-num">{{ doctor_count }}</div>
+            <div class="kpi-label"><i class="bi bi-clipboard2-pulse me-1"></i>Mjekët</div>
+          </div>
+          <i class="bi bi-clipboard2-pulse-fill kpi-icon"></i>
+        </div>
+        <div class="chart-card flex-fill">
+          <div class="chart-title mb-3"><i class="bi bi-clipboard2-pulse me-2" style="color:#1d4ed8;"></i>Mjekët & Specialitetet</div>
+          <div class="d-flex flex-column gap-2">
+            {% for s in staff_list if s.role == 'doctor' %}
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;background:#eff6ff;border:1px solid #bfdbfe;">
+              <div style="width:36px;height:36px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#fff;">
+                {{ s.name[0]|upper }}{% if s.name.split()|length > 1 %}{{ s.name.split()[1][0]|upper }}{% endif %}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:.84rem;font-weight:700;color:#1e3a8a;">{{ s.name }}</div>
+                <div style="font-size:.72rem;color:#3b82f6;margin-top:1px;">{{ s.specialty or 'Mjekësi e Përgjithshme' }}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                {% set doc_appts = today_appts_list|selectattr('doctor_name','equalto',s.name)|list|length if today_appts_list is defined else 0 %}
+                <div style="font-size:1rem;font-weight:800;color:#1d4ed8;">{{ doc_appts }}</div>
+                <div style="font-size:.65rem;color:#94a3b8;">sot</div>
+              </div>
+            </div>
+            {% else %}
+            <div class="text-center py-3">
+              <i class="bi bi-clipboard2-pulse" style="font-size:1.8rem;color:#e2e8f0;"></i>
+              <p class="text-muted mt-2 mb-0" style="font-size:.82rem;">Asnjë mjek i regjistruar.</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {# COL 3: Infermierët & Stafi Tjetër + their list #}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        {% set nurse_count = staff_list|selectattr('role','equalto','nurse')|list|length %}
+        {% set other_count = total_staff - doctor_count - nurse_count %}
+        <div class="kpi-card" style="background:linear-gradient(135deg,#065f46,#10b981);">
+          <div>
+            <div class="kpi-num">{{ nurse_count }}</div>
+            <div class="kpi-label"><i class="bi bi-heart-pulse me-1"></i>Infermierë</div>
+          </div>
+          <i class="bi bi-heart-pulse-fill kpi-icon"></i>
+        </div>
+        <div class="chart-card flex-fill">
+          <div class="chart-title mb-3"><i class="bi bi-heart-pulse me-2" style="color:#10b981;"></i>Infermierë & Stafi Tjetër</div>
+          <div class="d-flex flex-column gap-2">
+            {% for s in staff_list if s.role != 'doctor' %}
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;
+                        background:{% if s.role=='nurse' %}#f0fdf4;border:1px solid #86efac{% elif s.role=='admin' %}#fff1f2;border:1px solid #fca5a5{% else %}#f8fafc;border:1px solid #e2e8f0{% endif %};">
+              <div style="width:32px;height:32px;border-radius:50%;flex-shrink:0;font-size:.68rem;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;
+                          background:{% if s.role=='nurse' %}linear-gradient(135deg,#065f46,#10b981){% elif s.role=='admin' %}linear-gradient(135deg,#7f1d1d,#ef4444){% else %}linear-gradient(135deg,#1e3a5f,#475569){% endif %};">
+                {{ s.name[0]|upper }}{% if s.name.split()|length > 1 %}{{ s.name.split()[1][0]|upper }}{% endif %}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:.82rem;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ s.name }}</div>
+                <div style="font-size:.7rem;color:#94a3b8;">
+                  {% if s.role=='nurse' %}Infermier{% elif s.role=='admin' %}Administrator{% elif s.role=='receptionist' %}Recepsionist{% else %}{{ s.role|title }}{% endif %}
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <div class="text-center py-3">
+              <i class="bi bi-heart-pulse" style="font-size:1.8rem;color:#e2e8f0;"></i>
+              <p class="text-muted mt-2 mb-0" style="font-size:.82rem;">Asnjë infermier i regjistruar.</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {# COL 4: Joaktiv + role distribution chart #}
+      <div class="col-6 col-xl-3 d-flex flex-column gap-3">
+        <div class="kpi-card" style="background:{% if inactive_staff > 0 %}linear-gradient(135deg,#374151,#6b7280){% else %}linear-gradient(135deg,#1e3a5f,#2d4a6e){% endif %};">
+          <div>
+            <div class="kpi-num">{{ inactive_staff }}</div>
+            <div class="kpi-label"><i class="bi bi-person-dash me-1"></i>Joaktiv</div>
+          </div>
+          <i class="bi bi-person-dash-fill kpi-icon"></i>
+        </div>
+        <div class="chart-card flex-fill d-flex flex-column align-items-center justify-content-center">
+          <div class="chart-title text-center w-100 mb-2"><i class="bi bi-pie-chart me-2" style="color:#ea580c;"></i>{{ t.misc_role_dist }}</div>
+          <div style="position:relative;width:150px;height:150px;">
+            <canvas id="rolesChart"></canvas>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+              <div style="font-size:1.5rem;font-weight:800;color:#0f172a;line-height:1;">{{ total_staff }}</div>
+              <div style="font-size:.65rem;color:#94a3b8;">gjithsej</div>
+            </div>
+          </div>
+          <div class="d-flex flex-wrap gap-2 justify-content-center mt-2" style="font-size:.74rem;">
+            {% set role_colors = ['#3b82f6','#10b981','#ef4444','#f59e0b','#8b5cf6','#64748b'] %}
+            {% for r in staff_roles %}
+            <span>
+              <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:{{ role_colors[loop.index0 % 6] }};margin-right:3px;"></span>
+              {% if r.role=='doctor' %}Mjek{% elif r.role=='nurse' %}Infermier{% elif r.role=='admin' %}Admin{% elif r.role=='receptionist' %}Recepsionist{% else %}{{ r.role|title }}{% endif %} ({{ r.count }})
+            </span>
+            {% endfor %}
+          </div>
+          <div style="width:100%;border-top:1px solid #f1f5f9;padding-top:10px;margin-top:10px;font-size:.78rem;">
+            <div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:#6b7a99;">Aktiv</span><b style="color:#10b981;">{{ total_staff }}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:#6b7a99;">Joaktiv</span><b style="color:#94a3b8;">{{ inactive_staff }}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;"><span style="color:#6b7a99;">Gjithsej</span><b>{{ total_staff + inactive_staff }}</b></div>
+          </div>
+          {% if has_perm('team_edit') %}
+          <a href="/team" style="font-size:.76rem;color:#94a3b8;text-decoration:none;margin-top:8px;">Menaxho ekipin →</a>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endif %}{# end HR #}
+
+
+{# ══════════════════════════════════════════════════════════
+   OPERATIONS SECTION
+══════════════════════════════════════════════════════════ #}
+{% if has_perm('activity_log') and logs is defined %}
+{% set sec_id = 'sec-ops' %}
+<div class="section-block dash-section">
+  <div class="section-header" onclick="toggleSection('{{ sec_id }}')">
+    <div class="section-icon" style="background:#f8fafc;">
+      <i class="bi bi-clock-history" style="color:#475569;"></i>
+    </div>
+    <span class="section-title">{{ t.misc_ops_activity }}</span>
+    <span class="section-meta">{{ logs|length }} hyrjet e fundit</span>
+    <i class="bi bi-chevron-down section-chevron" id="{{ sec_id }}-chevron"></i>
+  </div>
+  <div class="section-body" id="{{ sec_id }}-body">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <span style="font-size:.82rem;font-weight:700;color:#1a2942;">{{ t.misc_recent_activity }}</span>
+      <a href="/activity" class="btn btn-sm btn-outline-secondary py-0 px-3" style="font-size:.78rem;">{{ t.misc_full_log }}</a>
+    </div>
+    <div>
+      {% for log in logs %}
+      {% set action_lower = log.action | lower %}
+      <div class="log-item">
+        <div class="log-dot {% if 'login' in action_lower %}login{% elif 'ai' in action_lower %}ai{% elif 'patient' in action_lower %}patient{% elif 'invoice' in action_lower or 'billing' in action_lower %}billing{% elif 'security' in action_lower %}security{% endif %}"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.83rem;color:#0f172a;">
+            <strong>{{ log.action }}</strong>
+            {% if log.detail %}
+            <span style="color:#64748b;"> — {{ log.detail[:80] }}{% if log.detail|length > 80 %}…{% endif %}</span>
+            {% endif %}
+          </div>
+          <div style="font-size:.72rem;color:#94a3b8;margin-top:2px;">
+            {{ log.staff_name or 'Sistemi' }} &bull; {{ log.created_at.strftime('%d/%m/%Y %H:%M') }}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}{# end ops #}
+
+
+{# ── No access fallback ── #}
+{% set has_any = has_perm('patients_view') or has_perm('appointments') or has_perm('clinical')
+                 or has_perm('billing') or has_perm('team_view') or has_perm('activity_log') %}
+{% if not has_any %}
+<div class="text-center py-5 dash-section">
+  <div style="width:80px;height:80px;border-radius:20px;background:#f1f5f9;
+              display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+    <i class="bi bi-shield-lock" style="font-size:2rem;color:#cbd5e1;"></i>
+  </div>
+  <h5 class="fw-bold" style="color:#0f172a;">{{ t.h_no_permissions }}</h5>
+  <p class="text-muted" style="max-width:360px;margin:8px auto 0;">
+    {{ t.dash_no_access }}
+  </p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ── Section collapse (accordion) with localStorage ── */
+function toggleSection(id) {
+  const body    = document.getElementById(id + '-body');
+  const chevron = document.getElementById(id + '-chevron');
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display    = isOpen ? 'none' : '';
+  chevron.classList.toggle('collapsed', isOpen);
+  try { localStorage.setItem('dash_' + id, isOpen ? '0' : '1'); } catch(e) {}
+}
+
+/* Restore collapse state on load */
+document.addEventListener('DOMContentLoaded', () => {
+  ['sec-clinical','sec-finance','sec-hr','sec-ops'].forEach(id => {
+    try {
+      const saved = localStorage.getItem('dash_' + id);
+      if (saved === '0') {
+        const body    = document.getElementById(id + '-body');
+        const chevron = document.getElementById(id + '-chevron');
+        if (body)    body.style.display = 'none';
+        if (chevron) chevron.classList.add('collapsed');
+      }
+    } catch(e) {}
+  });
+});
+
+/* ── Charts ── */
+{% if has_perm('billing') and finance_chart_labels is defined %}
+const CHART_DEFAULTS = {
+  font: { family: "'Segoe UI', sans-serif" },
+  plugins: { legend: { display: false }, tooltip: { cornerRadius: 8 } },
+};
+
+/* Revenue bar chart */
+(function() {
+  const labels    = {{ finance_chart_labels|safe }};
+  const billed    = {{ finance_chart_billed|safe }};
+  const collected = {{ finance_chart_collected|safe }};
+
+  if (!labels.length) return;
+
+  new Chart(document.getElementById('revenueChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Billed',
+          data: billed,
+          backgroundColor: 'rgba(45,111,212,.15)',
+          borderColor: '#2d6fd4',
+          borderWidth: 2,
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: 'Collected',
+          data: collected,
+          backgroundColor: 'rgba(16,185,129,.85)',
+          borderColor: '#10b981',
+          borderWidth: 0,
+          borderRadius: 6,
+          borderSkipped: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#94a3b8' } },
+        y: {
+          grid: { color: '#f1f5f9' },
+          ticks: {
+            font: { size: 11 }, color: '#94a3b8',
+            callback: v => '€' + v.toLocaleString()
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'end',
+          labels: { boxWidth: 10, boxHeight: 10, borderRadius: 5, usePointStyle: true, font: { size: 11 }, color: '#64748b' }
+        },
+        tooltip: {
+          cornerRadius: 8,
+          callbacks: { label: ctx => ' €' + ctx.raw.toFixed(2) }
+        }
+      }
+    }
+  });
+})();
+
+/* Paid vs Outstanding donut */
+(function() {
+  const paid  = {{ finance_paid_amount }};
+  const due   = {{ finance_due_amount }};
+  if (paid + due === 0) return;
+  new Chart(document.getElementById('statusDonut'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [paid, due],
+        backgroundColor: ['#10b981', '#ef4444'],
+        borderWidth: 0,
+        hoverOffset: 4,
+      }]
+    },
+    options: {
+      cutout: '72%',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ' €' + ctx.raw.toFixed(2) }
+        }
+      }
+    }
+  });
+})();
+{% endif %}
+
+{% if has_perm('team_view') and staff_role_labels is defined %}
+/* Role distribution donut */
+(function() {
+  const labels = {{ staff_role_labels|safe }};
+  const counts = {{ staff_role_counts|safe }};
+  if (!labels.length) return;
+  const colors = ['#3b82f6','#10b981','#ef4444','#f59e0b','#8b5cf6','#64748b'];
+  new Chart(document.getElementById('rolesChart'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: counts,
+        backgroundColor: colors.slice(0, labels.length),
+        borderWidth: 2,
+        borderColor: '#fff',
+        hoverOffset: 4,
+      }]
+    },
+    options: {
+      cutout: '62%',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { cornerRadius: 8 }
+      }
+    }
+  });
+})();
+{% endif %}
+</script>
+{% endblock %}

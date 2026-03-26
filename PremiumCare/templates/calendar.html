@@ -1,0 +1,874 @@
+{% extends "base.html" %}
+{% block title %}{{ t.page_calendar }} — {{ practice_name }}{% endblock %}
+{% block page_title %}{{ t.page_calendar }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── Container ── */
+  /* ── Layout with mini-cal sidebar ── */
+  .cal-layout { display:grid; grid-template-columns:1fr 220px; gap:16px; align-items:start; }
+  @media(max-width:900px){ .cal-layout { grid-template-columns:1fr; } }
+
+  .calendar-container {
+    background:#fff; border-radius:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,.05);
+    border:1px solid #eef2f6; overflow:hidden;
+    min-width:0;
+  }
+
+  /* ── Mini calendar sidebar ── */
+  .mini-cal-wrap {
+    position:sticky; top:16px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .mini-cal {
+    background:#fff; border-radius:12px; border:1px solid #eef2f6;
+    box-shadow:0 2px 10px rgba(0,0,0,.06); padding:14px;
+  }
+  .mini-cal-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .mini-cal-title { font-size:.82rem; font-weight:800; color:#1e293b; }
+  .mini-cal-nav {
+    width:24px; height:24px; border-radius:6px; border:1px solid #e2e8f0;
+    background:#fff; cursor:pointer; display:flex; align-items:center;
+    justify-content:center; color:#64748b; text-decoration:none; font-size:.75rem;
+    transition:all .15s;
+  }
+  .mini-cal-nav:hover { background:#f1f5f9; color:#1e293b; }
+  .mini-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
+  .mini-cal-dow {
+    text-align:center; font-size:.62rem; font-weight:700;
+    color:#94a3b8; text-transform:uppercase; padding:2px 0 6px;
+  }
+  .mini-cal-day {
+    text-align:center; font-size:.75rem; padding:4px 2px; border-radius:6px;
+    cursor:pointer; color:#374151; text-decoration:none; display:block;
+    transition:all .12s; line-height:1.4;
+  }
+  .mini-cal-day:hover { background:#f1f5f9; color:#1e293b; }
+  .mini-cal-day.today { background:#2563eb; color:#fff !important; font-weight:800; }
+  .mini-cal-day.selected { background:#eff6ff; color:#2563eb; font-weight:700; border:1px solid #bfdbfe; }
+  .mini-cal-day.other-month { color:#d1d5db; }
+  .mini-cal-day.has-appts { position:relative; font-weight:700; }
+  .mini-cal-day.has-appts::after {
+    content:''; position:absolute; bottom:1px; left:50%; transform:translateX(-50%);
+    width:4px; height:4px; border-radius:50%; background:#2563eb;
+  }
+  .mini-cal-day.today.has-appts::after { background:#fff; }
+
+  /* ── Upcoming appointments panel ── */
+  .upcoming-panel {
+    background:#fff; border-radius:12px; border:1px solid #eef2f6;
+    box-shadow:0 2px 10px rgba(0,0,0,.06); padding:14px;
+  }
+  .upcoming-title { font-size:.78rem; font-weight:800; color:#1e293b; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+  .upcoming-item {
+    display:flex; align-items:flex-start; gap:8px;
+    padding:7px 0; border-bottom:1px solid #f1f5f9; font-size:.76rem;
+  }
+  .upcoming-item:last-child { border-bottom:none; }
+  .upcoming-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:3px; }
+  .upcoming-time { font-weight:700; color:#1e293b; white-space:nowrap; min-width:38px; }
+  .upcoming-name { color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .upcoming-type { color:#94a3b8; font-size:.68rem; }
+  .calendar-header { background:#fff; border-bottom:1px solid #f1f5f9; padding:1.1rem 1.5rem; }
+  .date-title { font-size:1.2rem; font-weight:700; color:#1e293b; }
+
+  /* ── Occupancy ribbon ── */
+  .occ-ribbon {
+    background:#f8fafc; border-bottom:1px solid #e2e8f0;
+    padding:.75rem 1.5rem; display:flex; align-items:center;
+    gap:1rem; flex-wrap:wrap;
+  }
+  .occ-block { display:flex; flex-direction:column; gap:1px; }
+  .occ-lbl { font-size:.63rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#94a3b8; }
+  .occ-val { font-size:.95rem; font-weight:800; }
+  .occ-val.green  { color:#16a34a; }
+  .occ-val.yellow { color:#d97706; }
+  .occ-val.red    { color:#dc2626; }
+
+  .occ-bar-wrap { width:160px; height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; flex-shrink:0; }
+  .occ-bar-fill { height:100%; border-radius:999px; transition:width .4s; }
+  .occ-bar-fill.green  { background:linear-gradient(90deg,#22c55e,#16a34a); }
+  .occ-bar-fill.yellow { background:linear-gradient(90deg,#fbbf24,#d97706); }
+  .occ-bar-fill.red    { background:linear-gradient(90deg,#f87171,#dc2626); }
+
+  /* Pill — now bigger and always on its own line if needed */
+  .occ-pill {
+    display:inline-flex; align-items:center; gap:.4rem;
+    padding:.4rem 1rem; border-radius:999px;
+    font-size:.78rem; font-weight:700; white-space:nowrap;
+  }
+  .occ-pill.green  { background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; }
+  .occ-pill.yellow { background:#fef9c3; color:#854d0e; border:1px solid #fde047; }
+  .occ-pill.red    { background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; }
+
+  .occ-divider { width:1px; height:28px; background:#e2e8f0; flex-shrink:0; }
+  .col-occ-bar { height:3px; border-radius:2px; margin:3px 10px 0; }
+
+  /* ── Time grid ── */
+  .tg-wrap { overflow-y:auto; max-height:calc(100vh - 220px); }
+  .tg-grid {
+    display:grid;
+    grid-template-columns: 52px repeat(var(--day-count), 1fr);
+    border-top:1px solid #e2e8f0; min-width:520px;
+  }
+  .tg-head-cell {
+    position:sticky; top:0; z-index:10;
+    background:#f8fafc; border-bottom:1px solid #e2e8f0; border-right:1px solid #e2e8f0;
+    padding:.65rem 0 .5rem; text-align:center;
+  }
+  .day-name { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#94a3b8; }
+  .day-num {
+    font-size:1.2rem; font-weight:500; margin-top:2px;
+    display:inline-flex; align-items:center; justify-content:center;
+    width:34px; height:34px; border-radius:50%;
+  }
+  .today-circle { background:#2563eb; color:#fff !important; }
+  .tg-time-label {
+    grid-column:1; height:56px; border-bottom:1px solid #f1f5f9;
+    display:flex; align-items:flex-start; justify-content:flex-end;
+    padding:4px 8px 0 0; font-size:.63rem; font-weight:600; color:#94a3b8;
+  }
+  .tg-cell {
+    position:relative; height:56px;
+    border-bottom:1px solid #f1f5f9; border-right:1px solid #e2e8f0;
+    background:#fff; cursor:pointer; user-select:none;
+  }
+  .tg-cell:hover { background:#f0f7ff; }
+  .tg-cell.today-col { background:#f8fbff; }
+  .tg-cell.today-col:hover { background:#e8f2ff; }
+  .tg-cell.other-month { background:#fafafa; }
+  .tg-cell::after { content:''; position:absolute; top:50%; left:0; right:0; border-top:1px dashed #f1f5f9; pointer-events:none; }
+
+  .appt-block {
+    position:absolute; left:3px; right:3px; border-radius:5px;
+    padding:3px 6px; font-size:.7rem; line-height:1.3; overflow:hidden;
+    cursor:pointer; text-decoration:none !important; z-index:2;
+    border-left:3px solid; transition:filter .1s,transform .1s; min-height:18px;
+  }
+  .appt-block:hover { filter:brightness(.92); transform:translateX(1px); }
+  .appt-block.status-scheduled { background:#dbeafe; border-color:#3b82f6; color:#1e40af; }
+  .appt-block.status-completed { background:#dcfce7; border-color:#22c55e; color:#166534; }
+  .appt-block.status-cancelled { background:#f1f5f9; border-color:#94a3b8; color:#64748b; opacity:.7; }
+  .appt-block.status-noshow    { background:#fee2e2; border-color:#f87171; color:#b91c1c; }
+  .now-line { position:absolute; left:0; right:0; height:2px; background:#ef4444; z-index:5; pointer-events:none; }
+  .now-dot  { position:absolute; left:-4px; top:-4px; width:10px; height:10px; border-radius:50%; background:#ef4444; }
+
+  .btn-view { border-radius:6px; font-weight:600; font-size:.82rem; padding:.35rem .75rem; }
+  .btn-view.active { background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  .btn-view:not(.active) { color:#64748b; border:none; }
+
+  /* ── Quick-book modal ── */
+  .qb-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.55); z-index:2000;
+    align-items:center; justify-content:center;
+  }
+  .qb-overlay.show { display:flex; }
+  .qb-modal {
+    background:#fff; border-radius:16px;
+    box-shadow:0 24px 80px rgba(0,0,0,.22);
+    width:min(480px,95vw); max-height:92vh; overflow-y:auto;
+    animation:qbIn .18s ease;
+  }
+  @keyframes qbIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+
+  .qb-hdr {
+    background:linear-gradient(135deg,#1e3a5f,#2563eb);
+    border-radius:16px 16px 0 0; padding:1.1rem 1.4rem;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .qb-hdr-title { color:#fff; font-weight:800; font-size:1rem; display:flex; align-items:center; gap:.5rem; }
+  .qb-x {
+    width:30px; height:30px; border-radius:50%;
+    background:rgba(255,255,255,.15); border:none; color:#fff;
+    font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:background .15s;
+  }
+  .qb-x:hover { background:rgba(255,255,255,.28); }
+
+  .qb-body { padding:1.4rem; }
+
+  .qb-badge {
+    display:flex; align-items:center; gap:.5rem;
+    background:#eff6ff; border:1px solid #bfdbfe;
+    color:#1d4ed8; border-radius:10px;
+    padding:.55rem 1rem; font-weight:700; font-size:.88rem;
+    margin-bottom:1.2rem;
+  }
+
+  .qb-row { margin-bottom:1rem; }
+  .qb-lbl {
+    font-size:.75rem; font-weight:700; color:#374151;
+    margin-bottom:.35rem; display:block;
+  }
+  .qb-lbl .req { color:#ef4444; margin-left:2px; }
+  .qb-lbl .opt { color:#94a3b8; font-weight:400; font-size:.72rem; margin-left:4px; }
+
+  .qb-ctrl {
+    display:block; width:100%; padding:.6rem .85rem;
+    border:1.5px solid #e2e8f0; border-radius:10px;
+    font-size:.87rem; outline:none; background:#fff;
+    transition:border-color .15s, box-shadow .15s;
+    box-sizing:border-box; color:#1e293b;
+    -webkit-appearance:auto; appearance:auto;
+  }
+  .qb-ctrl:focus { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+  textarea.qb-ctrl { resize:vertical; min-height:60px; }
+
+  .qb-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:.85rem; }
+
+  .qb-ftr {
+    padding:1rem 1.4rem 1.3rem;
+    display:flex; gap:.65rem; align-items:stretch;
+    justify-content:flex-end; border-top:1px solid #f1f5f9;
+    flex-wrap:wrap;
+  }
+  /* All modal buttons share same base size */
+  .qb-btn-cancel,
+  .qb-btn-full,
+  .qb-btn-save {
+    padding:.65rem 1.4rem;
+    border-radius:10px;
+    font-weight:700;
+    font-size:.88rem;
+    cursor:pointer;
+    white-space:nowrap;
+    line-height:1.4;
+    min-width:110px;
+    text-align:center;
+    display:inline-block;
+  }
+  .qb-btn-cancel { background:#f1f5f9; color:#374151; border:2px solid #e2e8f0; }
+  .qb-btn-cancel:hover { background:#e2e8f0; border-color:#d1d5db; }
+  .qb-btn-full   { background:#fff; color:#2563eb; border:2px solid #2563eb; }
+  .qb-btn-full:hover { background:#eff6ff; }
+  .qb-btn-save   { background:#2563eb; color:#fff; border:2px solid #2563eb; }
+  .qb-btn-save:hover { background:#1d4ed8; border-color:#1d4ed8; }
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+{% set WORK_MIN = 480 %}
+{% if view == 'day' %}
+  {% set ns = namespace(booked=0) %}
+  {% for a in appointments %}{% if a.status != 'cancelled' %}{% set ns.booked = ns.booked + (a.duration_mins or 30) %}{% endif %}{% endfor %}
+  {% set total_min = WORK_MIN %}
+{% elif view == 'week' %}
+  {% set ns = namespace(booked=0, wd=0) %}
+  {% for day in week_days %}{% if day.weekday() < 5 %}{% set ns.wd = ns.wd + 1 %}{% for a in appt_by_date.get(day.isoformat(),[]) %}{% if a.status != 'cancelled' %}{% set ns.booked = ns.booked + (a.duration_mins or 30) %}{% endif %}{% endfor %}{% endif %}{% endfor %}
+  {% set total_min = ns.wd * WORK_MIN %}
+{% else %}
+  {% set ns = namespace(booked=0, wd=0) %}
+  {% for week in month_weeks %}{% for day in week %}{% if day.month == selected_date.month and day.weekday() < 5 %}{% set ns.wd = ns.wd + 1 %}{% for a in appt_by_date.get(day.isoformat(),[]) %}{% if a.status != 'cancelled' %}{% set ns.booked = ns.booked + (a.duration_mins or 30) %}{% endif %}{% endfor %}{% endif %}{% endfor %}{% endfor %}
+  {% set total_min = ns.wd * WORK_MIN %}
+{% endif %}
+{% set occ_pct   = [(ns.booked / total_min * 100), 100]|min|int if total_min > 0 else 0 %}
+{% set avail_pct = 100 - occ_pct %}
+{% set avail_min = total_min - ns.booked %}
+{% if occ_pct >= 85 %}{% set tier = 'red' %}{% elif occ_pct >= 55 %}{% set tier = 'yellow' %}{% else %}{% set tier = 'green' %}{% endif %}
+
+
+
+<div class="cal-layout">
+<div class="cal-main">
+<div class="calendar-container">
+
+  <!-- Header -->
+  <div class="calendar-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="date-title">
+        {% if view == 'day' %}{{ selected_date.strftime('%B %Y') }}
+        {% elif view == 'month' %}{{ selected_date.strftime('%B %Y') }}
+        {% else %}{{ week_days[0].strftime('%b %Y') }}{% endif %}
+      </div>
+      <div class="btn-group shadow-sm">
+        <a href="/calendar?view={{ view }}&date={{ prev_date }}" class="btn btn-white border border-end-0 px-2"><i class="bi bi-chevron-left"></i></a>
+        <a href="/calendar?view={{ view }}&date={{ today }}" class="btn btn-white border border-end-0 px-3 fw-bold" style="font-size:.82rem;">{{ t.misc_today }}</a>
+        <a href="/calendar?view={{ view }}&date={{ next_date }}" class="btn btn-white border px-2"><i class="bi bi-chevron-right"></i></a>
+      </div>
+      <div class="fw-semibold text-muted small">
+        {% if view == 'day' %}{{ selected_date.strftime('%A, %d %B') }}
+        {% elif view == 'month' %}{{ selected_date.strftime('%B %Y') }}
+        {% else %}{{ week_days[0].strftime('%d') }} – {{ week_days[6].strftime('%d %b %Y') }}{% endif %}
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <div class="bg-light rounded-3 d-flex p-1 gap-1 border">
+        <a href="/calendar?view=month&date={{ date_str }}" class="btn btn-view {% if view=='month' %}active{% endif %}">{{ t.misc_month }}</a>
+        <a href="/calendar?view=week&date={{ date_str }}"  class="btn btn-view {% if view=='week'  %}active{% endif %}">{{ t.misc_week }}</a>
+        <a href="/calendar?view=day&date={{ date_str }}"   class="btn btn-view {% if view=='day'   %}active{% endif %}">{{ t.misc_day }}</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Occupancy ribbon ── -->
+  <div class="occ-ribbon">
+
+    <!-- Booked % -->
+    <div class="occ-block">
+      <div class="occ-lbl">{% if view=='day' %}{{ t.cal_occ_today }}{% elif view=='week' %}{{ t.cal_occ_week }}{% else %}{{ t.cal_occ_month }}{% endif %}</div>
+      <div class="occ-val {{ tier }}">{{ occ_pct }}% {{ t.cal_booked }}</div>
+    </div>
+
+    <!-- Bar -->
+    <div class="occ-bar-wrap">
+      <div class="occ-bar-fill {{ tier }}" style="width:{{ occ_pct }}%;"></div>
+    </div>
+
+    <div class="occ-divider"></div>
+
+    <!-- Available time -->
+    <div class="occ-block">
+      <div class="occ-lbl">{{ t.cal_available }}</div>
+      <div class="occ-val" style="color:#1e293b;font-size:.85rem;">
+        {% if avail_min >= 60 %}{{ avail_min // 60 }}h {{ avail_min % 60 }}m{% else %}{{ avail_min }}m{% endif %}
+        <span style="font-size:.72rem;color:#94a3b8;font-weight:500;">&nbsp;/&nbsp;{% if total_min >= 60 %}{{ total_min // 60 }}h{% else %}{{ total_min }}m{% endif %} {{ t.cal_total }}</span>
+      </div>
+    </div>
+
+    <div class="occ-divider"></div>
+
+    <!-- Opportunity pill -->
+    {% if avail_pct >= 70 %}
+    <span class="occ-pill green">
+      <i class="bi bi-calendar-check"></i>
+      {{ avail_pct }}% lirë — Agjenda shumë e lirë, shumë mundësi rezervimesh
+    </span>
+    {% elif avail_pct >= 40 %}
+    <span class="occ-pill green">
+      <i class="bi bi-calendar-plus"></i>
+      {{ avail_pct }}% lirë — Mundësi e mirë për rezervime të reja
+    </span>
+    {% elif avail_pct >= 20 %}
+    <span class="occ-pill yellow">
+      <i class="bi bi-clock"></i>
+      {{ avail_pct }}% lirë — Disa vende akoma të lira
+    </span>
+    {% elif avail_pct >= 5 %}
+    <span class="occ-pill red">
+      <i class="bi bi-exclamation-circle"></i>
+      {{ avail_pct }}% lirë — Vende të kufizuara, rezervoni shpejt
+    </span>
+    {% else %}
+    <span class="occ-pill red">
+      <i class="bi bi-x-circle"></i> Plotësisht i zënë
+    </span>
+    {% endif %}
+
+    <!-- Week mini-bars -->
+    {% if view == 'week' %}
+    <div class="ms-auto d-flex gap-2 align-items-center">
+      {% set dns = ['Hën','Mar','Mër','Enj','Pre'] if session.get('lang','sq')=='sq' else ['Mon','Tue','Wed','Thu','Fri'] %}
+      {% for day in week_days %}{% if day.weekday() < 5 %}
+      {% set ns2 = namespace(dm=0) %}{% for a in appt_by_date.get(day.isoformat(),[]) %}{% if a.status!='cancelled' %}{% set ns2.dm = ns2.dm + (a.duration_mins or 30) %}{% endif %}{% endfor %}
+      {% set dp = [(ns2.dm / WORK_MIN * 100),100]|min|int %}
+      {% set dt = 'green' if dp < 55 else ('yellow' if dp < 85 else 'red') %}
+      <div style="text-align:center;min-width:28px;">
+        <div style="font-size:.57rem;font-weight:700;color:#94a3b8;text-transform:uppercase;">{{ dns[day.weekday()] }}</div>
+        <div style="height:28px;background:#f1f5f9;border-radius:4px;overflow:hidden;display:flex;flex-direction:column-reverse;margin-top:2px;">
+          <div style="height:{{ dp }}%;background:{% if dt=='green' %}#22c55e{% elif dt=='yellow' %}#f59e0b{% else %}#ef4444{% endif %};border-radius:4px;transition:height .4s;"></div>
+        </div>
+        <div style="font-size:.58rem;font-weight:700;color:#475569;margin-top:1px;">{{ dp }}%</div>
+      </div>
+      {% endif %}{% endfor %}
+    </div>
+    {% else %}
+    <span class="ms-auto" style="font-size:.7rem;color:#94a3b8;font-style:italic;">
+      <i class="bi bi-cursor me-1"></i>{{ t.cal_click_to_book }}
+    </span>
+    {% endif %}
+
+  </div>
+
+  <div class="p-0">
+
+  {# ── WEEK VIEW ── #}
+  {% if view == 'week' %}
+  <div class="tg-wrap" id="tgWrap">
+    <div class="tg-grid" style="--day-count:7;">
+      <div class="tg-head-cell" style="border-right:1px solid #e2e8f0;"></div>
+      {% for day in week_days %}
+      {% set ns3 = namespace(dm=0) %}{% for a in appt_by_date.get(day.isoformat(),[]) %}{% if a.status!='cancelled' %}{% set ns3.dm = ns3.dm + (a.duration_mins or 30) %}{% endif %}{% endfor %}
+      {% set dp3 = [(ns3.dm / WORK_MIN * 100),100]|min|int %}{% set dt3 = 'green' if dp3 < 55 else ('yellow' if dp3 < 85 else 'red') %}
+      <div class="tg-head-cell">
+        <div class="day-name">{% if session.get('lang','sq')=='sq' %}{{ ['Hën','Mar','Mër','Enj','Pre','Sht','Die'][day.weekday()] }}{% else %}{{ day.strftime('%a') }}{% endif %}</div>
+        <div class="day-num {% if day.isoformat()==today %}today-circle{% endif %}">{{ day.day }}</div>
+        <div class="col-occ-bar" style="background:{% if dt3=='green' %}#bbf7d0{% elif dt3=='yellow' %}#fde68a{% else %}#fecaca{% endif %};">
+          <div style="height:100%;width:{{ dp3 }}%;background:{% if dt3=='green' %}#22c55e{% elif dt3=='yellow' %}#f59e0b{% else %}#ef4444{% endif %};border-radius:2px;"></div>
+        </div>
+        <div style="font-size:.55rem;font-weight:700;color:{% if dt3=='green' %}#16a34a{% elif dt3=='yellow' %}#b45309{% else %}#b91c1c{% endif %};">{{ dp3 }}%</div>
+      </div>
+      {% endfor %}
+
+      {% for slot in range(14, 40) %}
+      {% set hour = slot // 2 %}{% set half = slot % 2 %}
+      <div class="tg-time-label" style="{% if half == 1 %}opacity:.45;font-size:.56rem;{% endif %}">
+        {% if half == 0 %}{{ '%02d:00' % hour }}{% else %}&nbsp;&nbsp;:30{% endif %}
+      </div>
+      {% for day in week_days %}
+      <div class="tg-cell {% if day.isoformat()==today %}today-col{% endif %}"
+           data-date="{{ day.isoformat() }}" data-hour="{{ hour }}" data-half="{{ half }}">
+        {% for a in appt_by_date.get(day.isoformat(),[]) %}
+        {% if a.start_time and a.start_time.hour == hour and ((half == 0 and a.start_time.minute < 30) or (half == 1 and a.start_time.minute >= 30)) %}
+        {% set top_pct = ((a.start_time.minute % 30) / 30) * 100 %}
+        {% set dur = a.duration_mins or 30 %}
+        {% set hpct = [(dur / 30 * 100), 20]|max %}
+        <a href="/calendar/{{ a.id }}/edit" class="appt-block status-{{ a.status }}"
+           style="top:{{ top_pct }}%;height:{{ hpct }}%;z-index:3;"
+           title="{{ a.patient_name }} {{ a.start_time.strftime('%H:%M') }} ({{ dur }}min)">
+          <div style="font-weight:700;white-space:nowrap;">{{ a.start_time.strftime('%H:%M') }}</div>
+          <div class="text-truncate">{{ a.patient_name }}</div>
+          {% if dur >= 45 %}<div style="opacity:.65;font-size:.62rem;">{{ a.appointment_type or '' }}</div>{% endif %}
+        </a>
+        {% endif %}{% endfor %}
+        {% if day.isoformat()==today and half==0 %}<div class="now-line" id="nowLine-{{ hour }}" style="display:none;"><div class="now-dot"></div></div>{% endif %}
+      </div>
+      {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── DAY VIEW ── #}
+  {% elif view == 'day' %}
+  <div class="tg-wrap" id="tgWrap">
+    <div class="tg-grid" style="--day-count:1;">
+      <div class="tg-head-cell" style="border-right:1px solid #e2e8f0;"></div>
+      <div class="tg-head-cell">
+        <div class="day-name">{% if session.get('lang','sq')=='sq' %}{{ ['Hën','Mar','Mër','Enj','Pre','Sht','Die'][selected_date.weekday()] }}{% else %}{{ selected_date.strftime('%A') }}{% endif %}</div>
+        <div class="day-num {% if selected_date.isoformat()==today %}today-circle{% endif %}">{{ selected_date.day }}</div>
+        <div class="col-occ-bar" style="background:{% if tier=='green' %}#bbf7d0{% elif tier=='yellow' %}#fde68a{% else %}#fecaca{% endif %};">
+          <div style="height:100%;width:{{ occ_pct }}%;background:{% if tier=='green' %}#22c55e{% elif tier=='yellow' %}#f59e0b{% else %}#ef4444{% endif %};border-radius:2px;"></div>
+        </div>
+        <div style="font-size:.55rem;font-weight:700;color:{% if tier=='green' %}#16a34a{% elif tier=='yellow' %}#b45309{% else %}#b91c1c{% endif %};">{{ occ_pct }}%</div>
+      </div>
+      {% for slot in range(14, 40) %}
+      {% set hour = slot // 2 %}{% set half = slot % 2 %}
+      <div class="tg-time-label" style="{% if half == 1 %}opacity:.45;font-size:.56rem;{% endif %}">
+        {% if half == 0 %}{{ '%02d:00' % hour }}{% else %}&nbsp;&nbsp;:30{% endif %}
+      </div>
+      <div class="tg-cell {% if selected_date.isoformat()==today %}today-col{% endif %}"
+           data-date="{{ selected_date.isoformat() }}" data-hour="{{ hour }}" data-half="{{ half }}">
+        {% for a in appointments %}
+        {% if a.start_time and a.start_time.hour == hour and ((half == 0 and a.start_time.minute < 30) or (half == 1 and a.start_time.minute >= 30)) %}
+        {% set top_pct = ((a.start_time.minute % 30) / 30) * 100 %}
+        {% set dur = a.duration_mins or 30 %}
+        {% set hpct = [(dur / 30 * 100), 22]|max %}
+        <a href="/calendar/{{ a.id }}/edit" class="appt-block status-{{ a.status }}"
+           style="top:{{ top_pct }}%;height:{{ hpct }}%;z-index:3;"
+           title="{{ a.patient_name }} {{ a.start_time.strftime('%H:%M') }} ({{ dur }}min)">
+          <div style="font-weight:700;">{{ a.start_time.strftime('%H:%M') }} — {{ a.patient_name }}</div>
+          <div>{{ a.appointment_type or '' }}{% if a.doctor_name %} · {{ a.doctor_name }}{% endif %}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:3px;">
+            <span style="opacity:.65;">{% if a.status=='scheduled' %}{{ t.opt_scheduled }}{% elif a.status=='completed' %}{{ t.opt_completed }}{% elif a.status=='cancelled' %}{{ t.opt_cancelled }}{% else %}{{ a.status }}{% endif %}</span>
+            {% if a.status == 'scheduled' and a.patient_id %}
+            <a href="/patients/{{ a.patient_id }}/visits/from-appointment/{{ a.id }}"
+               onclick="event.stopPropagation()"
+               style="font-size:.65rem;font-weight:800;padding:2px 6px;background:rgba(255,255,255,.9);color:#7c3aed;border-radius:5px;text-decoration:none;white-space:nowrap;"
+               title="Krijo shënim vizite me 1 klik">
+              + Shënim
+            </a>
+            {% endif %}
+          </div>
+        </a>
+        {% endif %}{% endfor %}
+        {% if selected_date.isoformat()==today and half==0 %}<div class="now-line" id="nowLine-{{ hour }}" style="display:none;"><div class="now-dot"></div></div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── MONTH VIEW ── #}
+  {% else %}
+  <div class="tg-wrap" id="tgWrap">
+    {% for week in month_weeks %}
+    <div class="tg-grid" style="--day-count:7;{% if not loop.first %}border-top:3px solid #e2e8f0;{% endif %}">
+      <div class="tg-head-cell" style="{% if not loop.first %}position:static;{% endif %}border-right:1px solid #e2e8f0;"></div>
+      {% for day in week %}
+      {% set ns4 = namespace(dm=0) %}{% for a in appt_by_date.get(day.isoformat(),[]) %}{% if a.status!='cancelled' and day.month==selected_date.month %}{% set ns4.dm = ns4.dm + (a.duration_mins or 30) %}{% endif %}{% endfor %}
+      {% set dp4 = [(ns4.dm / WORK_MIN * 100),100]|min|int %}{% set dt4 = 'green' if dp4 < 55 else ('yellow' if dp4 < 85 else 'red') %}
+      <div class="tg-head-cell" style="{% if not loop.first %}position:static;{% endif %}">
+        <div class="day-name" style="{% if day.month != selected_date.month %}opacity:.3;{% endif %}">{% if session.get('lang','sq')=='sq' %}{{ ['Hën','Mar','Mër','Enj','Pre','Sht','Die'][day.weekday()] }}{% else %}{{ day.strftime('%a') }}{% endif %}</div>
+        <a href="/calendar?view=day&date={{ day.isoformat() }}" style="text-decoration:none;">
+          <div class="day-num {% if day.isoformat()==today %}today-circle{% endif %}" style="{% if day.month != selected_date.month %}opacity:.3;{% endif %}">{{ day.day }}</div>
+        </a>
+        {% if day.month == selected_date.month and day.weekday() < 5 %}
+        <div class="col-occ-bar" style="background:{% if dt4=='green' %}#bbf7d0{% elif dt4=='yellow' %}#fde68a{% else %}#fecaca{% endif %};">
+          <div style="height:100%;width:{{ dp4 }}%;background:{% if dt4=='green' %}#22c55e{% elif dt4=='yellow' %}#f59e0b{% else %}#ef4444{% endif %};border-radius:2px;"></div>
+        </div>
+        <div style="font-size:.52rem;font-weight:700;color:{% if dt4=='green' %}#16a34a{% elif dt4=='yellow' %}#b45309{% else %}#b91c1c{% endif %};">{{ dp4 }}%</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      {% for slot in range(14, 40) %}
+      {% set hour = slot // 2 %}{% set half = slot % 2 %}
+      <div class="tg-time-label" style="{% if half == 1 %}opacity:.45;font-size:.56rem;{% endif %}">
+        {% if half == 0 %}{{ '%02d:00' % hour }}{% else %}&nbsp;&nbsp;:30{% endif %}
+      </div>
+      {% for day in week %}
+      <div class="tg-cell {% if day.isoformat()==today %}today-col{% endif %} {% if day.month != selected_date.month %}other-month{% endif %}"
+           data-date="{{ day.isoformat() }}" data-hour="{{ hour }}" data-half="{{ half }}">
+        {% for a in appt_by_date.get(day.isoformat(),[]) %}
+        {% if a.start_time and a.start_time.hour == hour and ((half == 0 and a.start_time.minute < 30) or (half == 1 and a.start_time.minute >= 30)) %}
+        {% set top_pct = ((a.start_time.minute % 30) / 30) * 100 %}
+        {% set dur = a.duration_mins or 30 %}
+        {% set hpct = [(dur / 30 * 100), 20]|max %}
+        <a href="/calendar/{{ a.id }}/edit" class="appt-block status-{{ a.status }}"
+           style="top:{{ top_pct }}%;height:{{ hpct }}%;z-index:3;"
+           title="{{ a.patient_name }} {{ a.start_time.strftime('%H:%M') }} ({{ dur }}min)">
+          <div style="font-weight:700;white-space:nowrap;">{{ a.start_time.strftime('%H:%M') }}</div>
+          <div class="text-truncate">{{ a.patient_name }}</div>
+          {% if dur >= 45 %}<div style="opacity:.65;font-size:.62rem;">{{ a.appointment_type or '' }}</div>{% endif %}
+        </a>
+        {% endif %}{% endfor %}
+        {% if day.isoformat()==today and half==0 %}<div class="now-line" id="nowLine-m-{{ hour }}" style="display:none;"><div class="now-dot"></div></div>{% endif %}
+      </div>
+      {% endfor %}
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  </div>
+</div>
+</div><!-- end cal-main -->
+
+<!-- ── MINI CALENDAR SIDEBAR ── -->
+<div class="mini-cal-wrap">
+
+  <!-- Mini month calendar -->
+  <div class="mini-cal">
+    <div class="mini-cal-header">
+      <a href="/calendar?view={{ view }}&date={{ prev_month }}" class="mini-cal-nav"><i class="bi bi-chevron-left"></i></a>
+      <div class="mini-cal-title">{{ selected_date.strftime('%B %Y') }}</div>
+      <a href="/calendar?view={{ view }}&date={{ next_month }}" class="mini-cal-nav"><i class="bi bi-chevron-right"></i></a>
+    </div>
+    <div class="mini-cal-grid">
+      {% for d in ['H','M','M','E','P','S','D'] %}
+      <div class="mini-cal-dow">{{ d }}</div>
+      {% endfor %}
+      {% for week in month_weeks %}
+        {% for day in week %}
+        {% set day_str = day.isoformat() %}
+        {% set is_today = day_str == today %}
+        {% set is_selected = day_str == date_str %}
+        {% set is_other = day.month != selected_date.month %}
+        {% set day_appts = appt_by_date.get(day_str, []) %}
+        {% set has_appts = day_appts|length > 0 %}
+        <a href="/calendar?view={{ view }}&date={{ day_str }}"
+           class="mini-cal-day{% if is_today %} today{% elif is_selected %} selected{% endif %}{% if is_other %} other-month{% endif %}{% if has_appts %} has-appts{% endif %}">
+          {{ day.day }}
+        </a>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Today's quick view -->
+  <div class="upcoming-panel">
+    <div class="upcoming-title">
+      <i class="bi bi-calendar-check" style="color:#2563eb;"></i>
+      Takimet e Sotme
+    </div>
+    {% set todays = appt_by_date.get(today, []) %}
+    {% if todays %}
+      {% for a in todays[:6] %}
+      <div class="upcoming-item">
+        <div class="upcoming-dot" style="background:{% if a.status=='completed' %}#10b981{% elif a.status=='cancelled' %}#ef4444{% else %}#2563eb{% endif %};"></div>
+        <div>
+          <div class="upcoming-time">{{ a.start_time.strftime('%H:%M') if a.start_time else '—' }}</div>
+          <div class="upcoming-name">{{ a.patient_name }}</div>
+          <div class="upcoming-type">{{ a.appointment_type or '' }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      {% if todays|length > 6 %}
+      <div style="font-size:.72rem;color:#94a3b8;text-align:center;padding-top:6px;">+{{ todays|length - 6 }} të tjera</div>
+      {% endif %}
+    {% else %}
+      <div style="text-align:center;padding:16px 0;color:#94a3b8;font-size:.78rem;">
+        <i class="bi bi-calendar" style="font-size:1.5rem;display:block;margin-bottom:6px;opacity:.4;"></i>
+        Asnjë takim sot
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Quick new appointment -->
+  <a href="/calendar/new" class="btn btn-primary w-100" style="font-size:.82rem;font-weight:700;">
+    <i class="bi bi-plus-lg me-1"></i> Takim i Ri
+  </a>
+
+</div><!-- end sidebar -->
+</div><!-- end cal-layout -->
+
+
+<!-- ══════════════════════════════════════
+     MODAL: Takim i Ri
+══════════════════════════════════════ -->
+<div id="qbOverlay" onclick="if(event.target===this)qbClose()" style="
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.6); z-index:9000;
+  align-items:center; justify-content:center;
+">
+  <div style="
+    background:#fff; border-radius:20px;
+    width:min(480px,96vw); max-height:94vh; overflow-y:auto;
+    box-shadow:0 32px 80px rgba(0,0,0,.28);
+    animation:qbIn .2s cubic-bezier(.16,1,.3,1);
+  ">
+
+    <!-- ▸ Header -->
+    <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:20px 20px 0 0;padding:1.1rem 1.3rem;display:flex;align-items:center;justify-content:space-between;">
+      <span style="color:#fff;font-weight:800;font-size:1rem;display:flex;align-items:center;gap:.5rem;">
+        <i class="bi bi-calendar-plus-fill" style="font-size:1rem;"></i>
+        Takim i Ri
+      </span>
+      <button type="button" onclick="qbClose()" style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:1.15rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#215;</button>
+    </div>
+
+    <!-- ▸ Date/time badge -->
+    <div style="padding:.9rem 1.3rem .4rem;">
+      <div id="qbBadge" style="display:flex;align-items:center;gap:.5rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:.55rem .9rem;font-weight:700;font-size:.88rem;color:#1d4ed8;">
+        <i class="bi bi-clock-fill"></i><span id="qbBadgeText">—</span>
+      </div>
+    </div>
+
+    <!-- ▸ Form — everything inside so submit works -->
+    <form id="qbForm" method="POST" action="/calendar/new" style="padding:.4rem 1.3rem 0;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="appointment_date" id="qbDate">
+      <input type="hidden" name="status" value="scheduled">
+
+      <!-- Time + Duration -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-bottom:.8rem;">
+        <div>
+          <label style="display:block;font-size:.7rem;font-weight:800;color:#4b5563;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;">Ora e Fillimit *</label>
+          <!-- Hidden field that gets submitted -->
+<input type="hidden" name="start_time" id="qbTime" required>
+<!-- Custom 24h time picker -->
+<div style="display:flex;gap:.4rem;align-items:center;">
+  <select id="qbHour" onchange="qbBuildTime()"
+    style="flex:1;padding:.55rem .6rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.92rem;font-weight:600;background:#fff;outline:none;color:#111827;cursor:pointer;"
+    onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
+    {% for h in range(7, 20) %}<option value="{{ '%02d' % h }}">{{ '%02d' % h }}:00</option>{% endfor %}
+  </select>
+  <span style="font-size:1.1rem;font-weight:800;color:#374151;">:</span>
+  <select id="qbMin" onchange="qbBuildTime()"
+    style="width:80px;padding:.55rem .6rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.92rem;font-weight:600;background:#fff;outline:none;color:#111827;cursor:pointer;"
+    onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
+    <option value="00">00</option>
+    <option value="30">30</option>
+  </select>
+</div>
+        </div>
+        <div>
+          <label style="display:block;font-size:.7rem;font-weight:800;color:#4b5563;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;">Kohëzgjatja</label>
+          <select name="duration_mins" style="display:block;width:100%;padding:.55rem .75rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.88rem;background:#fff;outline:none;box-sizing:border-box;color:#111827;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
+            <option value="15">15 min</option>
+            <option value="30" selected>30 min</option>
+            <option value="45">45 min</option>
+            <option value="60">60 min</option>
+            <option value="90">90 min</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Patient search -->
+      <div style="margin-bottom:.8rem;position:relative;">
+        <label style="display:block;font-size:.7rem;font-weight:800;color:#4b5563;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;">Pacienti *</label>
+        <div style="position:relative;">
+          <i class="bi bi-search" style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:.75rem;pointer-events:none;z-index:1;"></i>
+          <input type="text" id="qbPatientSearch" autocomplete="off" placeholder="Shkruaj emrin e pacientit..." oninput="qbFilter(this.value)" style="display:block;width:100%;padding:.55rem .75rem .55rem 2.1rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.88rem;background:#fff;outline:none;box-sizing:border-box;color:#111827;" onfocus="this.style.borderColor='#2563eb';this.style.boxShadow='0 0 0 3px rgba(37,99,235,.1)'" onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none'">
+        </div>
+        <input type="hidden" name="patient_id" id="qbPatientId" required>
+        <div id="qbDrop" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 2px);background:#fff;border:1.5px solid #2563eb;border-radius:10px;max-height:180px;overflow-y:auto;z-index:9999;box-shadow:0 10px 28px rgba(37,99,235,.15);"></div>
+      </div>
+
+      <!-- Doctor -->
+      <div style="margin-bottom:.8rem;">
+        <label style="display:block;font-size:.7rem;font-weight:800;color:#4b5563;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;">Mjeku</label>
+        <select name="doctor_id" style="display:block;width:100%;padding:.55rem .75rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.88rem;background:#fff;outline:none;box-sizing:border-box;color:#111827;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
+          <option value="">— Çdo mjek —</option>
+          {%- for s in staff if s.active and s.role in ('doctor','admin') %}
+          <option value="{{ s.id }}">{{ s.name }}</option>
+          {%- endfor %}
+        </select>
+      </div>
+
+      <!-- Type -->
+      <div style="margin-bottom:.8rem;">
+        <label style="display:block;font-size:.7rem;font-weight:800;color:#4b5563;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;">Lloji i Takimit</label>
+        <select name="appointment_type" style="display:block;width:100%;padding:.55rem .75rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.88rem;background:#fff;outline:none;box-sizing:border-box;color:#111827;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
+          <option value="Konsultim Standard">Konsultim Standard</option>
+          <option value="Follow-up">Follow-up</option>
+          <option value="Kontroll Vjetor">Kontroll Vjetor</option>
+          <option value="Pacient i Ri">Pacient i Ri</option>
+          <option value="Urgjencë">Urgjencë</option>
+          <option value="Procedurë">Procedurë</option>
+          <option value="Telehealth">Telehealth</option>
+          <option value="Rinovim Recete">Rinovim Recete</option>
+        </select>
+      </div>
+
+      <!-- Notes -->
+      <div style="margin-bottom:.8rem;">
+        <label style="display:block;font-size:.7rem;font-weight:800;color:#4b5563;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;">Shënime <span style="font-weight:400;text-transform:none;color:#9ca3af;font-size:.7rem;">(opsionale)</span></label>
+        <textarea name="notes" rows="2" placeholder="Arsye e shkurtër..." style="display:block;width:100%;padding:.55rem .75rem;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.88rem;background:#fff;outline:none;box-sizing:border-box;resize:vertical;min-height:55px;font-family:inherit;color:#111827;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+      </div>
+
+      <!-- ▸▸ Footer — 2 buttons -->
+      <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:.7rem;padding:1rem 0 1.2rem;border-top:1.5px solid #f1f5f9;margin-top:.4rem;">
+        <button type="button" onclick="qbClose()" style="padding:.75rem .5rem;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;border:2px solid #d1d5db;background:#f9fafb;color:#374151;text-align:center;line-height:1.3;">
+          ✕ Anulo
+        </button>
+        <button type="submit" style="padding:.75rem .5rem;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;border:none;background:#2563eb;color:#fff;text-align:center;line-height:1.3;">
+          ✓ Rezervo Takimin
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<style>
+@keyframes qbIn { from{opacity:0;transform:scale(.95) translateY(10px)} to{opacity:1;transform:none} }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var CAL_VIEW  = "{{ view }}";
+var CAL_TODAY = "{{ today }}";
+{% if session.get('lang','sq') == 'sq' %}
+var CAL_DAYS   = ['E Hënë','E Martë','E Mërkurë','E Enjte','E Premte','E Shtunë','E Diel'];
+var CAL_MONTHS = ['Jan','Shk','Mar','Pri','Maj','Qer','Kor','Gus','Sht','Tet','Nën','Dhj'];
+{% else %}
+var CAL_DAYS   = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+var CAL_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+{% endif %}
+
+/* Patient list */
+var QB_PAT = [
+{% for p in patients %}{"id":{{ p.id }},"n":"{{ (p.last_name ~ ', ' ~ p.first_name)|replace('"','')|replace("'","") }}"}{% if not loop.last %},{% endif %}
+{% endfor %}
+];
+
+/* ── Now-line ── */
+(function(){
+  var H=56,S=7;
+  function draw(){
+    var n=new Date(),h=n.getHours(),p=(n.getMinutes()/60)*100;
+    document.querySelectorAll('[id^="nowLine-"]').forEach(function(e){e.style.display='none';});
+    ['nowLine-'+h,'nowLine-m-'+h].forEach(function(id){
+      var l=document.getElementById(id);
+      if(l){l.style.display='block';l.style.top=p+'%';}
+    });
+  }
+  draw(); setInterval(draw,60000);
+  if(CAL_VIEW==='week'||CAL_VIEW==='day'){
+    var off=(new Date().getHours()-S)*H-60;
+    var w=document.getElementById('tgWrap');
+    if(w&&off>0) w.scrollTop=off;
+  }
+})();
+
+/* ── Modal open/close ── */
+var _fd='',_ft='';
+
+function qbOpen(dateStr,hour,relY,cellH){
+  /* Snap to nearest 30-min slot */
+  var mins = (relY / cellH) >= 0.5 ? 30 : 0;
+  var hh=String(hour).padStart(2,'0'), mm=String(mins).padStart(2,'0');
+  var ts=hh+':'+mm;
+  _fd=dateStr; _ft=ts;
+
+  var d=new Date(dateStr+'T12:00:00');
+  var dow=d.getDay()===0?6:d.getDay()-1;
+  var lbl=CAL_DAYS[dow]+' '+d.getDate()+' '+CAL_MONTHS[d.getMonth()]+' · '+ts;
+
+  document.getElementById('qbDate').value  = dateStr;
+  document.getElementById('qbTime').value  = ts;
+  document.getElementById('qbBadgeText').textContent = lbl;
+  /* Set the custom selects */
+  var hh = String(hour).padStart(2,'0');
+  var mm = mins === 30 ? '30' : '00';
+  document.getElementById('qbHour').value = hh;
+  document.getElementById('qbMin').value  = mm;
+  document.getElementById('qbPatientSearch').value = '';
+  document.getElementById('qbPatientId').value = '';
+  qbDropHide();
+
+  document.getElementById('qbOverlay').style.display='flex';
+  setTimeout(function(){ document.getElementById('qbPatientSearch').focus(); },180);
+}
+
+function qbBuildTime(){
+  var h = document.getElementById('qbHour').value;
+  var m = document.getElementById('qbMin').value;
+  var ts = h + ':' + m;
+  document.getElementById('qbTime').value = ts;
+  /* Sync badge */
+  var badge = document.getElementById('qbBadgeText');
+  if(badge && badge.textContent !== '—'){
+    var parts = badge.textContent.split(' · ');
+    if(parts.length >= 2) badge.textContent = parts[0] + ' · ' + ts;
+  }
+}
+
+function qbClose(){
+  document.getElementById('qbOverlay').style.display='none';
+  qbDropHide();
+}
+
+document.getElementById('qbOverlay').onclick=function(e){ if(e.target===this) qbClose(); };
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') qbClose(); });
+
+/* ── Patient search ── */
+function qbFilter(v){
+  var drop=document.getElementById('qbDrop');
+  document.getElementById('qbPatientId').value='';
+  if(!v){qbDropHide();return;}
+  var q=v.toLowerCase();
+  var hits=QB_PAT.filter(function(p){return p.n.toLowerCase().indexOf(q)!==-1;}).slice(0,8);
+  if(!hits.length){qbDropHide();return;}
+  drop.innerHTML='';
+  hits.forEach(function(p){
+    var div=document.createElement('div');
+    div.textContent=p.n;
+    div.style.cssText='padding:.55rem .9rem;cursor:pointer;font-size:.86rem;color:#1e293b;border-bottom:1px solid #f1f5f9;';
+    div.onmouseenter=function(){this.style.background='#eff6ff';};
+    div.onmouseleave=function(){this.style.background='';};
+    div.onclick=function(){
+      document.getElementById('qbPatientSearch').value=p.n;
+      document.getElementById('qbPatientId').value=p.id;
+      qbDropHide();
+    };
+    drop.appendChild(div);
+  });
+  drop.style.display='block';
+}
+function qbDropHide(){ var d=document.getElementById('qbDrop'); if(d) d.style.display='none'; }
+document.addEventListener('click',function(e){
+  if(e.target.id!=='qbPatientSearch' && !e.target.closest('#qbDrop')) qbDropHide();
+});
+
+/* ── Cell click ── */
+document.addEventListener('click',function(e){
+  var cell=e.target.closest('.tg-cell');
+  if(!cell||e.target.closest('.appt-block')) return;
+  var ds=cell.getAttribute('data-date');
+  var hr=parseInt(cell.getAttribute('data-hour'),10);
+  if(!ds||isNaN(hr)) return;
+  var r=cell.getBoundingClientRect();
+  qbOpen(ds,hr,e.clientY-r.top,r.height);
+});
+</script>
+{% endblock %}

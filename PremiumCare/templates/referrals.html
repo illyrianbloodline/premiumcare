@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-envelope-paper me-2 text-warning"></i>Referrals
+        <small class="text-muted fw-normal ms-2">{{ patient.first_name }} {{ patient.last_name }}</small>
+    </h5>
+    <div class="d-flex gap-2">
+        <a href="{{ '/patients/' + (patient.id)|string + '/referrals/new' }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>New Referral
+        </a>
+        <a href="{{ '/patients/' + (patient.id)|string }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+        </a>
+    </div>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        {% if items %}
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">{{ t.th_referred_to }}</th><th>{{ t.th_specialty }}</th><th>{{ t.th_reason }}</th>
+                <th>{{ t.th_urgency }}</th><th>{{ t.th_date }}</th><th>{{ t.th_status }}</th>
+                <th class="text-end pe-3">{{ t.th_actions }}</th>
+            </tr></thead>
+            <tbody>
+            {% for r in items %}
+            <tr>
+                <td class="ps-3 fw-semibold">{{ r.referred_to or '—' }}</td>
+                <td class="text-muted">{{ r.specialty or '—' }}</td>
+                <td class="text-muted" style="font-size:.85rem; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                    {{ r.reason or '—' }}
+                </td>
+                <td>
+                    <span class="badge {% if r.urgency=='urgent' %}bg-danger{% elif r.urgency=='soon' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                        {{ r.urgency }}
+                    </span>
+                </td>
+                <td style="font-size:.85rem;">{{ r.date_created.strftime('%d %b %Y') if r.date_created else '—' }}</td>
+                <td><span class="badge {% if r.status=='sent' %}bg-success{% else %}bg-secondary{% endif %}">{{ r.status }}</span></td>
+                <td class="text-end pe-3">
+                    <a href="{{ '/referrals/' + (r.id)|string + '/print' }}" target="_blank"
+                       class="btn btn-sm btn-outline-primary me-1">
+                        <i class="bi bi-printer"></i>
+                    </a>
+                    <form method="POST" action="{{ '/referrals/' + (r.id)|string + '/delete' }}"
+                          class="d-inline" onsubmit="return confirm('{{ t.confirm_delete }}')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-envelope-paper" style="font-size:2rem;"></i>
+            <p class="mt-2">{{ t.empty_referrals }}</p>
+            <a href="{{ '/patients/' + (patient.id)|string + '/referrals/new' }}" class="btn btn-primary btn-sm">{{ t.cta_create_referral }}</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

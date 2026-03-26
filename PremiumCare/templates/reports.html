@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-bar-chart-line me-2 text-primary"></i>{{ t.page_reports }}</h5>
+</div>
+<div class="row g-3">
+    <!-- Financial Reports -->
+    <div class="col-12"><h6 class="text-muted fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.06em;">{{ t.h_financial_reports }}</h6></div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="fw-bold"><i class="bi bi-receipt-cutoff me-2 text-primary"></i>{{ t.h_earnings_charges }}</h6>
+                <p class="text-muted" style="font-size:.85rem;">{{ t.rpt_charges_desc }}</p>
+                <form method="GET" action="{{ '/reports/earnings-charges' }}">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6"><label class="form-label" style="font-size:.8rem;">{{ t.lbl_from }}</label>
+                            <input type="date" name="start" class="form-control form-control-sm" value="{{ today[:7] }}-01"></div>
+                        <div class="col-6"><label class="form-label" style="font-size:.8rem;">Deri</label>
+                            <input type="date" name="end" class="form-control form-control-sm" value="{{ today }}"></div>
+                        <div class="col-12">
+                            <select name="doctor_id" class="form-select form-select-sm">
+                                <option value="">{{ t.opt_all_doctors }}</option>
+                                {% for s in staff %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-search me-1"></i>Gjenero Raportin
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="fw-bold"><i class="bi bi-cash-stack me-2 text-success"></i>{{ t.h_earnings_payments }}</h6>
+                <p class="text-muted" style="font-size:.85rem;">{{ t.rpt_payments_desc }}</p>
+                <form method="GET" action="{{ '/reports/earnings-payments' }}">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6"><label class="form-label" style="font-size:.8rem;">{{ t.lbl_from }}</label>
+                            <input type="date" name="start" class="form-control form-control-sm" value="{{ today[:7] }}-01"></div>
+                        <div class="col-6"><label class="form-label" style="font-size:.8rem;">Deri</label>
+                            <input type="date" name="end" class="form-control form-control-sm" value="{{ today }}"></div>
+                        <div class="col-12">
+                            <select name="doctor_id" class="form-select form-select-sm">
+                                <option value="">{{ t.opt_all_doctors }}</option>
+                                {% for s in staff %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm w-100">
+                        <i class="bi bi-search me-1"></i>Gjenero Raportin
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="fw-bold"><i class="bi bi-bank me-2 text-info"></i>{{ t.h_daily_banking }}</h6>
+                <p class="text-muted" style="font-size:.85rem;">{{ t.rpt_banking_desc }}</p>
+                <form method="GET" action="{{ '/reports/daily-banking' }}">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size:.8rem;">{{ t.cn_field_date }}</label>
+                        <input type="date" name="date" class="form-control form-control-sm" value="{{ today }}">
+                    </div>
+                    <button type="submit" class="btn btn-info btn-sm w-100 text-white">
+                        <i class="bi bi-search me-1"></i>Gjenero Raportin
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Administrative Reports -->
+    <div class="col-12 mt-2"><h6 class="text-muted fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.06em;">{{ t.h_admin_reports }}</h6></div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="fw-bold"><i class="bi bi-exclamation-circle me-2 text-danger"></i>{{ t.h_overdue }}</h6>
+                <p class="text-muted" style="font-size:.85rem;">{{ t.rpt_overdue_desc }}</p>
+                <a href="{{ '/reports/overdue' }}" class="btn btn-danger btn-sm w-100">
+                    <i class="bi bi-search me-1"></i>Shiko Llogaritë me Vonesë
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="fw-bold"><i class="bi bi-calendar-check me-2 text-warning"></i>{{ t.h_booking_report }}</h6>
+                <p class="text-muted" style="font-size:.85rem;">{{ t.rpt_booking_desc }}</p>
+                <form method="GET" action="{{ '/reports/booking' }}">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6"><label class="form-label" style="font-size:.8rem;">{{ t.lbl_from }}</label>
+                            <input type="date" name="start" class="form-control form-control-sm" value="{{ today }}"></div>
+                        <div class="col-6"><label class="form-label" style="font-size:.8rem;">Deri</label>
+                            <input type="date" name="end" class="form-control form-control-sm" value="{{ today }}"></div>
+                        <div class="col-12">
+                            <select name="doctor_id" class="form-select form-select-sm">
+                                <option value="">{{ t.opt_all_doctors }}</option>
+                                {% for s in staff %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark">
+                        <i class="bi bi-search me-1"></i>Gjenero Raportin
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="fw-bold"><i class="bi bi-list-columns me-2 text-primary"></i>{{ t.h_transactions }}</h6>
+                <p class="text-muted" style="font-size:.85rem;">{{ t.rpt_transactions_desc }}</p>
+                <form method="GET" action="/reports/transactions">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6"><label class="form-label" style="font-size:.8rem;">{{ t.lbl_from }}</label>
+                            <input type="date" name="start" class="form-control form-control-sm" value="{{ today[:7] }}-01"></div>
+                        <div class="col-6"><label class="form-label" style="font-size:.8rem;">Deri</label>
+                            <input type="date" name="end" class="form-control form-control-sm" value="{{ today }}"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-search me-1"></i>Gjenero Raportin
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="fw-bold"><i class="bi bi-people me-2 text-secondary"></i>{{ t.h_patient_tools }}</h6>
+                <p class="text-muted" style="font-size:.85rem;">{{ t.rpt_archive_desc }}</p>
+                <div class="d-grid gap-2">
+                    <a href="{{ '/patients/archived' }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-archive me-1"></i>Pacientët e Arkivuar
+                    </a>
+                    <a href="{{ '/patients/duplicates' }}" class="btn btn-outline-warning btn-sm">
+                        <i class="bi bi-copy me-1"></i>Gjej & Bashko Dublikimet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

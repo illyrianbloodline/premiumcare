@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.msg-row { display:flex; align-items:flex-start; gap:14px; padding:14px; border-bottom:1px solid #f0f0f0; cursor:pointer; transition:background .1s; }
+.msg-row:hover { background:#f8faff; }
+.msg-row.unread { background:#f0f7ff; border-left:3px solid #2d6fd4; }
+.msg-row.unread .msg-subject { font-weight:700; color:#1a2942; }
+.msg-avatar { width:38px; height:38px; border-radius:50%; background:#e6f1fb; color:#185fa5; display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700; flex-shrink:0; }
+.msg-subject { font-size:.9rem; color:#1a2942; margin-bottom:3px; }
+.msg-preview { font-size:.8rem; color:#aaa; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:500px; }
+.msg-meta { font-size:.75rem; color:#aaa; white-space:nowrap; margin-left:auto; text-align:right; }
+.msg-body-panel { background:#f8faff; border:1px solid #e6f1fb; border-radius:8px; padding:20px; margin-top:10px; display:none; }
+.msg-body-panel.open { display:block; }
+</style>
+
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-envelope me-2 text-primary"></i>{{ t.page_inbox }}</h5>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#composeModal">
+        <i class="bi bi-pencil-square me-1"></i>Shkruaj Mesazh
+    </button>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">
+                    Messages
+                    {% set unread = messages|selectattr('is_read','equalto',false)|list %}
+                    {% if unread %}
+                    <span class="badge bg-danger ms-2">{{ unread|length }} unread</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="card-body p-0">
+                {% if messages %}
+                {% for msg in messages %}
+                <div class="msg-row {% if not msg.is_read %}unread{% endif %}"
+                     onclick="toggleMsg({{ msg.id }})">
+                    <div class="msg-avatar">
+                        {{ msg.sender_name[0] if msg.sender_name else 'S' }}
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div class="msg-subject">{{ msg.subject or '(No subject)' }}</div>
+                        <div class="msg-preview">{{ msg.body[:100] }}</div>
+                        <div class="msg-body-panel" id="panel-{{ msg.id }}">
+                            <p class="mb-2" style="font-size:.9rem; color:#1a2942; white-space:pre-line;">{{ msg.body }}</p>
+                            <div class="d-flex gap-2 mt-3">
+                                {% if not msg.is_read %}
+                                <form method="POST" action="/inbox/{{ msg.id }}/read">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-check2 me-1"></i>Mark Read
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        onclick="replyTo('{{ msg.sender_name }}', {{ msg.sender_id }}, '{{ msg.subject }}')">
+                                    <i class="bi bi-reply me-1"></i>Reply
+                                </button>
+                                <form method="POST" action="/inbox/{{ msg.id }}/delete"
+                                      onsubmit="return confirm('Delete this message?')" class="ms-auto">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="msg-meta">
+                        <div>{{ msg.sender_name or 'System' }}</div>
+                        <div>{{ msg.created_at.strftime('%d/%m %H:%M') if msg.created_at else '' }}</div>
+                        {% if not msg.is_read %}
+                        <div class="mt-1"><span style="width:8px;height:8px;background:#2d6fd4;border-radius:50%;display:inline-block;"></span></div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-envelope-open" style="font-size:2.5rem; opacity:.3;"></i>
+                    <p class="mt-3 mb-0">{{ t.empty_messages }}</p>
+                    <button class="btn btn-primary btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#composeModal">
+                        Dërgo Mesazhin e Parë
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick compose sidebar -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header fw-semibold">
+                <i class="bi bi-people me-2"></i>Drejtoria e Stafit
+            </div>
+            <div class="card-body py-1">
+                {% for s in staff %}
+                {% if s.active %}
+                <div class="d-flex align-items-center gap-2 py-2 border-bottom"
+                     style="border-color:#f0f0f0 !important; font-size:.85rem;">
+                    <div style="width:32px;height:32px;border-radius:50%;background:#e6f1fb;color:#185fa5;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;">
+                        {{ s.name[0] }}
+                    </div>
+                    <div style="flex:1;">
+                        <div class="fw-semibold">{{ s.name }}</div>
+                        <div style="font-size:.72rem;color:#aaa;">{% if s.role=='doctor' %}Mjek{% elif s.role=='nurse' %}Infermier{% elif s.role=='admin' %}Admin{% elif s.role=='receptionist' %}Recepsionist{% else %}{{ s.role }}{% endif %} {% if s.specialty %}· {{ s.specialty }}{% endif %}</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary"
+                            style="font-size:.72rem; padding:2px 8px;"
+                            onclick="quickMessage('{{ s.name }}', {{ s.id }})">
+                        <i class="bi bi-envelope"></i>
+                    </button>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Compose Modal -->
+<div class="modal fade" id="composeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>{{ t.misc_new_message }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/inbox/send">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">To</label>
+                        <select name="receiver_id" class="form-select" id="receiverSelect" required>
+                            <option value="">{{ t.misc_select_staff }}</option>
+                            {% for s in staff %}
+                            {% if s.active %}
+                            <option value="{{ s.id }}">{{ s.name }} ({{ s.role }})</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_subject }}</label>
+                        <input type="text" name="subject" class="form-control"
+                               id="subjectInput" placeholder="{{ t.ph_msg_subject }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_message }}</label>
+                        <textarea name="body" class="form-control" rows="5"
+                                  id="bodyInput" required placeholder="{{ t.ph_msg_body }}"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ t.btn_cancel }}</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send me-1"></i>Send
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleMsg(id) {
+    const panel = document.getElementById('panel-' + id);
+    panel.classList.toggle('open');
+}
+function quickMessage(name, id) {
+    document.getElementById('receiverSelect').value = id;
+    document.getElementById('subjectInput').value = '';
+    document.getElementById('bodyInput').value = '';
+    new bootstrap.Modal(document.getElementById('composeModal')).show();
+}
+function replyTo(name, id, subject) {
+    document.getElementById('receiverSelect').value = id;
+    document.getElementById('subjectInput').value = 'Re: ' + subject;
+    document.getElementById('bodyInput').value = '';
+    document.getElementById('bodyInput').focus();
+    new bootstrap.Modal(document.getElementById('composeModal')).show();
+}
+</script>
+{% endblock %}

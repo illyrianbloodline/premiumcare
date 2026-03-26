@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2 text-primary"></i>{{ t.team_title }}</h5>
+    {% if user.role == 'admin' %}
+    <a href="{{ '/team/new' }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-person-plus me-1"></i>{{ t.team_new }}
+    </a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if staff %}
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">{{ t.team_name }}</th>
+                <th>{{ t.team_email }}</th>
+                <th>{{ t.team_role }}</th>
+                <th>{{ t.team_specialty }}</th>
+                <th>{{ t.team_phone }}</th>
+                <th>{{ t.team_status }}</th>
+                {% if user.role == 'admin' %}<th class="text-end pe-3">{{ t.actions }}</th>{% endif %}
+            </tr></thead>
+            <tbody>
+            {% for m in staff %}
+            <tr>
+                <td class="ps-3 fw-semibold">{{ m.name }}</td>
+                <td class="text-muted">{{ m.email }}</td>
+                <td>
+                    <span class="badge
+                        {% if m.role == 'admin' %}bg-danger
+                        {% elif m.role == 'doctor' %}bg-primary
+                        {% elif m.role == 'nurse' %}bg-success
+                        {% else %}bg-secondary{% endif %}">
+                        {% if m.role == 'admin' %}{{ t.team_role_admin }}
+                        {% elif m.role == 'doctor' %}{{ t.team_role_doctor }}
+                        {% elif m.role == 'nurse' %}{{ t.team_role_nurse }}
+                        {% else %}{{ t.team_role_recep }}{% endif %}
+                    </span>
+                </td>
+                <td class="text-muted">{{ m.specialty or '—' }}</td>
+                <td class="text-muted">{{ m.phone or '—' }}</td>
+                <td>
+                    {% if m.active %}
+                    <span class="badge bg-success">{{ t.active }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ t.inactive }}</span>
+                    {% endif %}
+                </td>
+                {% if user.role == 'admin' %}
+                <td class="text-end pe-3">
+                    <a href="{{ '/team/' + (m.id)|string + '/edit' }}"
+                       class="btn btn-sm btn-outline-secondary me-1">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    {% if m.id != user.id %}
+                    <form method="POST" action="{{ '/team/' + (m.id)|string + '/delete' }}"
+                          class="d-inline"
+                          onsubmit="return confirm('{{ t.confirm_delete }}')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-person-x"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted p-4 mb-0">{{ t.team_no_data }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

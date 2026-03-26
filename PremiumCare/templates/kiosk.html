@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>{{ practice_name }} — Check In</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * { -webkit-tap-highlight-color:transparent; }
+    body { background:#0f2347; min-height:100vh; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; padding:24px; }
+    .kiosk-wrap { max-width:680px; margin:0 auto; }
+    .kiosk-header { text-align:center; color:#fff; margin-bottom:32px; }
+    .kiosk-card { background:#fff; border-radius:20px; padding:36px; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+    .step { display:none; }
+    .step.active { display:block; }
+    .big-btn {
+      display:flex; align-items:center; gap:16px; width:100%;
+      background:#f8fafc; border:2px solid #e2e8f0; border-radius:14px;
+      padding:18px 20px; margin-bottom:10px; cursor:pointer;
+      transition:all .15s; text-align:left; color:#0f172a; font-size:.95rem; font-weight:600;
+    }
+    .big-btn:hover, .big-btn.selected { border-color:#2d6fd4; background:#eff6ff; color:#1d4ed8; }
+    .big-btn .btn-icon { width:44px;height:44px;border-radius:12px;background:#eff6ff;color:#1d4ed8;
+      display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0; }
+    .kiosk-label { font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:8px;display:block; }
+    .kiosk-input { width:100%;border:2px solid #e2e8f0;border-radius:10px;padding:14px 16px;font-size:1rem;font-family:inherit;outline:none; }
+    .kiosk-input:focus { border-color:#2d6fd4; }
+    .btn-next { width:100%;padding:16px;background:linear-gradient(135deg,#1d4ed8,#2d6fd4);color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:800;cursor:pointer;transition:all .2s; }
+    .btn-next:hover { filter:brightness(.96); transform:translateY(-1px); }
+    .btn-back { width:100%;padding:12px;background:none;border:2px solid #e2e8f0;border-radius:12px;font-size:.9rem;font-weight:700;color:#64748b;cursor:pointer;margin-top:10px; }
+    .progress-dots { display:flex;justify-content:center;gap:8px;margin-bottom:28px; }
+    .progress-dot { width:10px;height:10px;border-radius:50%;background:#e2e8f0;transition:background .2s; }
+    .progress-dot.active { background:#2d6fd4; }
+    .search-box { width:100%;border:2px solid #e2e8f0;border-radius:10px;padding:14px 16px 14px 44px;font-size:1rem;outline:none;background:#f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E") no-repeat 14px center; }
+    .patient-list { max-height:280px;overflow-y:auto;border:2px solid #e2e8f0;border-radius:10px;margin-top:8px; }
+    .patient-item { padding:14px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .1s;font-size:.9rem; }
+    .patient-item:last-child { border-bottom:none; }
+    .patient-item:hover, .patient-item.selected { background:#eff6ff;color:#1d4ed8; }
+    .consent-text { background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;font-size:.8rem;color:#475569;line-height:1.7;max-height:160px;overflow-y:auto; }
+  </style>
+</head>
+<body>
+<div class="kiosk-wrap">
+  <div class="kiosk-header">
+    <i class="bi bi-heart-pulse-fill" style="font-size:2.5rem;color:#60a5fa;display:block;margin-bottom:10px;"></i>
+    <h2 style="font-weight:900;margin-bottom:4px;">{{ practice_name }}</h2>
+    <p style="color:#94a3b8;font-size:.9rem;">{{ t.misc_kiosk_subtitle }}</p>
+  </div>
+
+  <div class="progress-dots">
+    <div class="progress-dot active" id="dot-1"></div>
+    <div class="progress-dot" id="dot-2"></div>
+    <div class="progress-dot" id="dot-3"></div>
+    <div class="progress-dot" id="dot-4"></div>
+  </div>
+
+  <div class="kiosk-card">
+    <form method="POST" action="/kiosk/checkin" id="kioskForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="patient_id" id="patient_id_input">
+      <input type="hidden" name="doctor_id"  id="doctor_id_input">
+
+      <!-- Step 1: Find patient -->
+      <div class="step active" id="step-1">
+        <h5 style="font-weight:800;color:#0f172a;margin-bottom:6px;">{{ t.h_find_name }}</h5>
+        <p style="color:#64748b;font-size:.85rem;margin-bottom:20px;">{{ t.misc_kiosk_surname }}</p>
+        <input type="text" id="patientSearch" class="search-box" placeholder="{{ t.ph_search_name }}" oninput="filterPatients(this.value)" autocomplete="off">
+        <div class="patient-list" id="patientList">
+          {% for p in patients %}
+          <div class="patient-item" onclick="selectPatient({{ p.id }}, '{{ p.first_name }} {{ p.last_name }}')">
+            {{ p.first_name }} {{ p.last_name }}
+            {% if p.dob %}<span style="color:#94a3b8;font-size:.8rem;float:right;">{{ p.dob.strftime('%d/%m/%Y') }}</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        <div id="selectedPatientDisplay" style="display:none;margin-top:12px;padding:14px;background:#eff6ff;border-radius:10px;border:2px solid #bfdbfe;font-weight:700;color:#1d4ed8;font-size:.95rem;"></div>
+      </div>
+
+      <!-- Step 2: Doctor -->
+      <div class="step" id="step-2">
+        <h5 style="font-weight:800;color:#0f172a;margin-bottom:6px;">{{ t.misc_kiosk_who }}</h5>
+        <p style="color:#64748b;font-size:.85rem;margin-bottom:20px;">{{ t.misc_kiosk_notsure }}</p>
+        <button type="button" class="big-btn" onclick="selectDoctor('', 'Not sure / walk-in', this)">
+          <div class="btn-icon"><i class="bi bi-question-lg"></i></div><span>{{ t.misc_kiosk_walkin }}</span>
+        </button>
+        {% for s in staff if s.active and s.role in ('doctor','admin') %}
+        <button type="button" class="big-btn" onclick="selectDoctor('{{ s.id }}', 'Dr. {{ s.name }}', this)">
+          <div class="btn-icon"><i class="bi bi-person-badge"></i></div><span>Dr. {{ s.name }}</span>
+          {% if s.specialty %}<span style="font-size:.75rem;color:#94a3b8;margin-left:auto;">{{ s.specialty }}</span>{% endif %}
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- Step 3: Reason -->
+      <div class="step" id="step-3">
+        <h5 style="font-weight:800;color:#0f172a;margin-bottom:6px;">{{ t.h_reason_visit }}</h5>
+        <p style="color:#64748b;font-size:.85rem;margin-bottom:20px;">{{ t.misc_kiosk_helps }}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+          {% for reason in ['Routine check-up','Follow-up visit','Prescription renewal','Test results','Illness / symptoms','Referral','Vaccination','Other'] %}
+          <button type="button" class="big-btn" style="padding:12px 14px;font-size:.83rem;" onclick="selectReason('{{ reason }}', this)">
+            {{ reason }}
+          </button>
+          {% endfor %}
+        </div>
+        <label class="kiosk-label">{{ t.misc_kiosk_extra }}</label>
+        <textarea name="notes" class="kiosk-input" rows="3" placeholder="{{ t.ph_kiosk_notes }}"></textarea>
+        <input type="hidden" name="reason" id="reason_input">
+      </div>
+
+      <!-- Step 4: Consent -->
+      <div class="step" id="step-4">
+        <h5 style="font-weight:800;color:#0f172a;margin-bottom:6px;">{{ t.h_consent }}</h5>
+        <p style="color:#64748b;font-size:.85rem;margin-bottom:16px;">{{ t.misc_kiosk_read }}</p>
+        <div class="consent-text mb-4">
+          <strong>{{ t.misc_kiosk_privacy }}</strong> Your personal and medical information is collected to provide healthcare services. It is stored securely and will only be shared with your treating clinicians and, where required by law, relevant authorities. You have the right to access and correct your information at any time. By checking in, you consent to the collection and use of your information for the purpose of your care at {{ practice_name }}.
+        </div>
+        <div class="form-check mb-4" style="padding-left:0;">
+          <input type="checkbox" id="consentCheck" class="form-check-input" required style="width:20px;height:20px;margin-right:10px;">
+          <label for="consentCheck" class="form-check-label fw-semibold" style="font-size:.9rem;">{{ t.lbl_consent }}</label>
+        </div>
+        <button type="submit" class="btn-next" id="submitBtn" disabled>
+          <i class="bi bi-check-circle me-2"></i>Complete Check-In
+        </button>
+      </div>
+
+    </form>
+
+    <!-- Navigation -->
+    <div id="navButtons" style="margin-top:16px;">
+      <button class="btn-back" id="backBtn" onclick="prevStep()" style="display:none;">
+        <i class="bi bi-arrow-left me-2"></i>Back
+      </button>
+      <button class="btn-next" id="nextBtn" onclick="nextStep()" disabled>
+        Next <i class="bi bi-arrow-right ms-2"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let currentStep = 1;
+const totalSteps = 4;
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach((s, i) => s.classList.toggle('active', i+1 === n));
+  document.querySelectorAll('.progress-dot').forEach((d, i) => d.classList.toggle('active', i+1 === n));
+  document.getElementById('backBtn').style.display = n === 1 ? 'none' : 'block';
+  document.getElementById('nextBtn').style.display = n === totalSteps ? 'none' : 'block';
+  validateStep(n);
+}
+
+function nextStep() { if(currentStep < totalSteps) { currentStep++; showStep(currentStep); } }
+function prevStep() { if(currentStep > 1) { currentStep--; showStep(currentStep); } }
+
+function validateStep(n) {
+  const btn = document.getElementById('nextBtn');
+  if (!btn) return;
+  if (n === 1) btn.disabled = !document.getElementById('patient_id_input').value;
+  if (n === 2) btn.disabled = false; // doctor optional
+  if (n === 3) btn.disabled = !document.getElementById('reason_input').value;
+  if (n === 4) btn.disabled = true; // handled by consent checkbox
+}
+
+// Patient search
+const allPatients = Array.from(document.querySelectorAll('.patient-item'));
+function filterPatients(q) {
+  allPatients.forEach(function(el) {
+    el.style.display = el.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function selectPatient(id, name) {
+  document.getElementById('patient_id_input').value = id;
+  document.getElementById('patientSearch').value = name;
+  document.getElementById('selectedPatientDisplay').style.display = 'block';
+  document.getElementById('selectedPatientDisplay').textContent = '✓ Selected: ' + name;
+  allPatients.forEach(function(el) { el.classList.toggle('selected', el.textContent.trim().startsWith(name)); });
+  validateStep(1);
+}
+function selectDoctor(id, name, btn) {
+  document.getElementById('doctor_id_input').value = id;
+  document.querySelectorAll('#step-2 .big-btn').forEach(function(b) { b.classList.remove('selected'); });
+  btn.classList.add('selected');
+  validateStep(2);
+  setTimeout(nextStep, 300);
+}
+function selectReason(reason, btn) {
+  document.getElementById('reason_input').value = reason;
+  document.querySelectorAll('#step-3 .big-btn').forEach(function(b) { b.classList.remove('selected'); });
+  btn.classList.add('selected');
+  validateStep(3);
+}
+document.getElementById('consentCheck').addEventListener('change', function() {
+  document.getElementById('submitBtn').disabled = !this.checked;
+});
+</script>
+</body>
+</html>

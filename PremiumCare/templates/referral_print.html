@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Referral Letter – {{ ref.patient_name }}</title>
+    <style>
+        body { font-family:'Segoe UI',Arial,sans-serif; margin:0; padding:40px; font-size:13px; color:#333; max-width:800px; margin:0 auto; }
+        .letterhead { border-bottom:3px solid #1a2942; padding-bottom:20px; margin-bottom:30px; display:flex; justify-content:space-between; align-items:flex-end; }
+        .practice-name { font-size:1.5rem; font-weight:700; color:#1a2942; }
+        .urgency-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; }
+        .routine { background:#e8f5e9; color:#1b5e20; }
+        .soon { background:#fff3e0; color:#e65100; }
+        .urgent { background:#ffebee; color:#b71c1c; border:2px solid #f44336; }
+        .date-line { color:#666; margin-bottom:20px; }
+        .recipient { margin-bottom:25px; }
+        .patient-box { background:#f8f9fa; border-left:4px solid #1a2942; padding:15px; margin:20px 0; border-radius:0 8px 8px 0; }
+        .letter-body { line-height:1.7; white-space:pre-wrap; margin:20px 0; }
+        .signature { margin-top:50px; }
+        .sig-line { border-bottom:1px solid #333; width:250px; margin-bottom:8px; }
+        .footer-bar { margin-top:40px; border-top:1px solid #ddd; padding-top:15px; font-size:11px; color:#999; display:flex; justify-content:space-between; }
+        @media print { .no-print { display:none; } body { padding:20px; } }
+    </style>
+</head>
+<body>
+<div class="letterhead">
+    <div>
+        <div class="practice-name">{{ practice_name }}</div>
+        <div style="color:#666; font-size:12px; margin-top:4px;">{{ t.misc_referral_title }}</div>
+    </div>
+    <div style="text-align:right;">
+        <span class="urgency-badge {{ ref.urgency }}">{{ ref.urgency|upper }}</span>
+        <div style="color:#666; font-size:12px; margin-top:6px;">{{ today.strftime('%d %B %Y') }}</div>
+    </div>
+</div>
+
+<div class="date-line">{{ today.strftime('%d %B %Y') }}</div>
+
+<div class="recipient">
+    <strong>{{ t.misc_to }}</strong> {{ ref.referred_to or '—' }}<br>
+    {% if ref.specialty %}<strong>{{ t.misc_specialty_colon }}</strong> {{ ref.specialty }}{% endif %}
+</div>
+
+<div class="patient-box">
+    <strong>{{ t.misc_patient_colon }}</strong> {{ ref.patient_name }}
+    {% if ref.dob %} · DOB: {{ ref.dob.strftime('%d %b %Y') }}{% endif %}
+    {% if ref.gender %} · {{ ref.gender }}{% endif %}<br>
+    {% if ref.phone %}<strong>{{ t.misc_phone_colon }}</strong> {{ ref.phone }}{% endif %}
+    {% if ref.email %} · <strong>{{ t.misc_email_colon }}</strong> {{ ref.email }}{% endif %}
+</div>
+
+<div class="letter-body">{{ ref.letter_content or ref.reason }}</div>
+
+{% if ref.reason and ref.letter_content %}
+<div style="margin:15px 0; padding:12px; background:#fff3cd; border-radius:6px; font-size:12px;">
+    <strong>{{ t.misc_reason_colon }}</strong> {{ ref.reason }}
+</div>
+{% endif %}
+
+<div class="signature">
+    <div class="sig-line"></div>
+    <div><strong>Dr. {{ ref.doctor_name }}</strong></div>
+    {% if ref.doctor_specialty %}<div style="color:#666;">{{ ref.doctor_specialty }}</div>{% endif %}
+    <div style="color:#666;">{{ practice_name }}</div>
+</div>
+
+<div class="footer-bar">
+    <div>{{ t.misc_confidential }}</div>
+    <div>Generated {{ today.strftime('%d %b %Y') }}</div>
+</div>
+
+<div class="no-print" style="text-align:center; margin-top:25px;">
+    <button onclick="window.print()" style="padding:10px 30px; background:#1a2942; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px;">
+        🖨️ Print Referral Letter
+    </button>
+    <button onclick="window.close()" style="padding:10px 30px; background:#6c757d; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px; margin-left:10px;">
+        Close
+    </button>
+</div>
+</body>
+</html>

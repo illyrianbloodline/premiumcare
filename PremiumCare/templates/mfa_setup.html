@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}MFA Setup — {{ practice_name }}{% endblock %}
+{% block page_title %}Two-Factor Authentication{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2 text-primary"></i>{{ t.h_two_fa }}</h5>
+  <a href="/security-profile" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>{{ t.btn_back }}</a>
+</div>
+
+<div class="row g-3" style="max-width:860px;">
+
+  <!-- Status card -->
+  <div class="col-md-5">
+    <div class="card border-0 h-100" style="background:{% if has_mfa %}#f0fdf4{% else %}#fff7ed{% endif %};border:1.5px solid {% if has_mfa %}#bbf7d0{% else %}#fed7aa{% endif %} !important;">
+      <div class="card-body p-4">
+        <div style="width:48px;height:48px;border-radius:14px;background:{% if has_mfa %}#22c55e{% else %}#f59e0b{% endif %};display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+          <i class="bi bi-{% if has_mfa %}shield-check{% else %}shield-exclamation{% endif %} text-white" style="font-size:1.4rem;"></i>
+        </div>
+        <div style="font-size:1rem;font-weight:800;color:#0f172a;margin-bottom:6px;">
+          MFA {% if has_mfa %}Enabled{% else %}Not Enabled{% endif %}
+        </div>
+        <div style="font-size:.82rem;color:#64748b;line-height:1.6;margin-bottom:16px;">
+          {% if has_mfa %}
+            Your account is protected with time-based one-time passwords (TOTP).
+          {% else %}
+            Your account uses only a password. Enable MFA to add a critical second layer of security.
+          {% endif %}
+        </div>
+        {% if has_mfa %}
+        <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="disable">
+          <button type="submit" class="btn btn-sm btn-outline-danger"
+                  onclick="return confirm('Are you sure? Disabling MFA reduces your account security.')">
+            <i class="bi bi-shield-x me-1"></i>Disable MFA
+          </button>
+        </form>
+        {% else %}
+        <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="generate">
+          <button type="submit" class="btn btn-primary fw-semibold">
+            <i class="bi bi-shield-plus me-1"></i>Set Up MFA Now
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- QR code + confirm form -->
+  {% if qr_uri %}
+  <div class="col-md-7">
+    <div class="card border-0" style="border:1px solid #e2e8f0 !important;">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-qr-code me-2 text-primary"></i>{{ t.h_mfa_scan }}</h6>
+        <ol style="font-size:.83rem;color:#475569;padding-left:18px;margin-bottom:16px;line-height:2;">
+          <li>{{ t.mfa_install_hint }}</li>
+          <li>{{ t.mfa_tap_scan }}</li>
+          <li>{{ t.misc_enter_6digit }}</li>
+        </ol>
+        <div class="text-center mb-3">
+          <img src="{{ qr_uri }}" alt="MFA QR Code" style="border-radius:12px;border:2px solid #e2e8f0;width:180px;height:180px;">
+        </div>
+        <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="confirm">
+          <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.misc_enter_6digit }}</label>
+          <div class="d-flex gap-2">
+            <input type="text" name="token" class="form-control fw-bold text-center"
+                   maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="000000"
+                   style="font-size:1.2rem;letter-spacing:.2em;font-family:monospace;" required autofocus>
+            <button type="submit" class="btn btn-primary fw-semibold px-4">{{ t.btn_confirm }}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Why MFA matters -->
+  <div class="col-12">
+    <div class="card border-0" style="background:#f8fafc;border:1px solid #e2e8f0 !important;">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-2 text-primary"></i>{{ t.h_why_mfa }}</h6>
+        <div class="row g-3" style="font-size:.82rem;color:#475569;">
+          <div class="col-md-4">
+            <div class="d-flex gap-2"><i class="bi bi-shield-check text-success mt-1"></i>
+            <span><strong>{{ t.misc_hipaa_comp }}</strong> — US law requires multi-factor auth for systems containing PHI</span></div>
+          </div>
+          <div class="col-md-4">
+            <div class="d-flex gap-2"><i class="bi bi-lock text-primary mt-1"></i>
+            <span><strong>{{ t.misc_cred_theft }}</strong> — 81% of healthcare breaches involve stolen passwords</span></div>
+          </div>
+          <div class="col-md-4">
+            <div class="d-flex gap-2"><i class="bi bi-eye-slash text-warning mt-1"></i>
+            <span><strong>{{ t.misc_session_hijack }}</strong> — TOTP codes expire every 30 seconds, limiting attack windows</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

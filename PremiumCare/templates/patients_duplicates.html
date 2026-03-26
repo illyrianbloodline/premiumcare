@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-copy me-2 text-warning"></i>Duplicate Patients
+        <span class="badge bg-warning text-dark ms-2">{{ dupes|length }} groups</span>
+    </h5>
+    <a href="{{ '/patients' }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back to Patients
+    </a>
+</div>
+
+{% if dupes %}
+{% for group in dupes %}
+<div class="card mb-3">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle text-warning"></i>
+        <strong>{{ group.first_name }} {{ group.last_name }}</strong>
+        {% if group.dob %}<span class="text-muted">· DOB: {{ group.dob.strftime('%d %b %Y') }}</span>{% endif %}
+        <span class="badge bg-warning text-dark ms-auto">{{ group.cnt }} records</span>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-3" style="font-size:.88rem;">
+            <i class="bi bi-info-circle me-1"></i>
+            Select which record to <strong>{{ t.misc_keep }}</strong>, then the other will be archived and all its data merged into the kept record.
+        </p>
+        <form method="POST" action="{{ '/patients/merge' }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-2 mb-3">
+                {% for pid in group.ids %}
+                <div class="col-md-6">
+                    <div class="border rounded p-3">
+                        <div class="form-check mb-2">
+                            <input type="radio" name="keep_id" value="{{ pid }}"
+                                   class="form-check-input" id="keep_{{ pid }}"
+                                   {% if loop.first %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold" for="keep_{{ pid }}">
+                                <i class="bi bi-shield-check text-success me-1"></i>Keep this record (ID #{{ pid }})
+                            </label>
+                        </div>
+                        <input type="hidden" name="merge_id" value="{{ group.ids | reject('equalto', pid) | first }}">
+                        <a href="{{ '/patients/' + (pid)|string }}" target="_blank"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i>View #{{ pid }}
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="submit" class="btn btn-warning"
+                    onclick="return confirm('Merge these patients? The non-kept record will be archived.')">
+                <i class="bi bi-arrow-left-right me-1"></i>Bashko Rekordet Dubliko
+            </button>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+    <div class="p-5 text-center text-muted">
+        <i class="bi bi-check-circle text-success" style="font-size:3rem;"></i>
+        <p class="mt-3 mb-0 fw-semibold">{{ t.empty_duplicates }}</p>
+        <p class="text-muted">{{ t.empty_duplicates2 }}</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

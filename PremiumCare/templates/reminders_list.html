@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-bell me-2 text-info"></i>
+        {% if patient %}Reminders — {{ patient.first_name }} {{ patient.last_name }}
+        {% else %}All Reminders{% endif %}
+    </h5>
+    {% if patient %}
+    <div class="d-flex gap-2">
+        <button class="btn btn-info btn-sm text-white" data-bs-toggle="modal" data-bs-target="#newReminderModal">
+            <i class="bi bi-plus-lg me-1"></i>New Reminder
+        </button>
+        <a href="{{ '/patients/' + (patient.id)|string }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% if patient %}
+<div class="modal fade" id="newReminderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ t.h_new_reminder }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ '/patients/' + (patient.id)|string + '/reminders/new' }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_due_date }} *</label>
+                        <input type="date" name="due_date" class="form-control" required value="{{ today }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_doctor }}</label>
+                        <select name="doctor_id" class="form-select">
+                            {% for s in staff %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_reason }} *</label>
+                        <input type="text" name="reason" class="form-control" required
+                               placeholder="{{ t.ph_reminder_reason }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.misc_notes }}</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ t.btn_cancel }}</button>
+                    <button type="submit" class="btn btn-info text-white">{{ t.btn_create_remind }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if items %}
+        {% for r in items %}
+        <div class="border-bottom p-3 {% if r.status=='returned' %}bg-light{% endif %}">
+            <div class="row align-items-start">
+                <div class="col-md-4">
+                    {% if not patient %}
+                    <div class="fw-bold">{{ r.patient_name }}</div>
+                    {% endif %}
+                    <div class="fw-semibold">{{ r.reason }}</div>
+                    <div class="text-muted" style="font-size:.85rem;">
+                        Dr. {{ r.doctor_name or '—' }}
+                        {% if r.due_date %}
+                        · Due: <span class="{% if r.due_date < today|string and r.status=='pending' %}text-danger fw-semibold{% endif %}">
+                            {{ r.due_date.strftime('%d %b %Y') }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if r.notes %}<div class="text-muted" style="font-size:.82rem;">{{ r.notes }}</div>{% endif %}
+                </div>
+                <div class="col-md-7">
+                    <form method="POST" action="{{ '/reminders/' + (r.id)|string + '/update' }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label fw-semibold" style="font-size:.78rem;">{{ t.lbl_contacted }}</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="date" name="contacted_date" class="form-control"
+                                           value="{{ r.contacted_date.isoformat() if r.contacted_date else '' }}">
+                                    <select name="contact_action" class="form-select" style="max-width:90px;">
+                                        <option value="">{{ t.misc_via }}</option>
+                                        <option {% if r.contact_action=='SMS' %}selected{% endif %}>SMS</option>
+                                        <option {% if r.contact_action=='Email' %}selected{% endif %}>Email</option>
+                                        <option {% if r.contact_action=='Phone' %}selected{% endif %}>{{ t.misc_phone }}</option>
+                                        <option {% if r.contact_action=='Letter' %}selected{% endif %}>Letter</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold" style="font-size:.78rem;">{{ t.lbl_returned }}</label>
+                                <input type="date" name="returned_date" class="form-control form-control-sm"
+                                       value="{{ r.returned_date.isoformat() if r.returned_date else '' }}">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end gap-1">
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-check"></i> Save
+                                </button>
+                                <form method="POST" action="{{ '/reminders/' + (r.id)|string + '/delete' }}"
+                                      class="d-inline" onsubmit="return confirm('Delete this reminder?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-1 text-end">
+                    <span class="badge {% if r.status=='returned' %}bg-success{% elif r.status=='contacted' %}bg-info{% else %}bg-warning text-dark{% endif %}">
+                        {{ r.status }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-bell" style="font-size:2rem;"></i>
+            <p class="mt-2">{{ t.empty_reminders }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

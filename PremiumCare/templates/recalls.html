@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-arrow-repeat me-2 text-danger"></i>
+        {% if patient %}Recalls — {{ patient.first_name }} {{ patient.last_name }}
+        {% else %}All Recalls{% endif %}
+    </h5>
+    {% if patient %}
+    <div class="d-flex gap-2">
+        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#newRecallModal">
+            <i class="bi bi-plus-lg me-1"></i>New Recall
+        </button>
+        <a href="{{ '/patients/' + (patient.id)|string }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% if patient %}
+<!-- New Recall Modal -->
+<div class="modal fade" id="newRecallModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">{{ t.h_new_recall }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ '/patients/' + (patient.id)|string + '/recalls/new' }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_result_reason }} *</label>
+                        <input type="text" name="result" class="form-control" required
+                               placeholder="{{ t.ph_recall_reason }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_doctor }}</label>
+                        <select name="doctor_id" class="form-select">
+                            {% for s in staff %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.misc_notes }}</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ t.btn_cancel }}</button>
+                    <button type="submit" class="btn btn-danger">{{ t.btn_create_recall }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if items %}
+        {% for r in items %}
+        <div class="border-bottom p-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    {% if not patient %}
+                    <div class="fw-bold">{{ r.patient_name }}</div>
+                    {% endif %}
+                    <div class="fw-semibold text-danger">{{ r.result }}</div>
+                    <div class="text-muted" style="font-size:.85rem;">Dr. {{ r.doctor_name or '—' }} · {{ r.created_at.strftime('%d %b %Y') }}</div>
+                    {% if r.notes %}<div class="text-muted" style="font-size:.85rem;">{{ r.notes }}</div>{% endif %}
+                </div>
+                <div>
+                    <span class="badge {% if r.status=='returned' %}bg-success{% elif r.status=='third' %}bg-danger{% elif r.status in ('first','second') %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                        {{ r.status }}
+                    </span>
+                </div>
+            </div>
+            <!-- 3-attempt tracker -->
+            <form method="POST" action="{{ '/recalls/' + (r.id)|string + '/update' }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold" style="font-size:.8rem;">1st Recall</label>
+                        <div class="input-group input-group-sm">
+                            <input type="date" name="first_recall_date" class="form-control"
+                                   value="{{ r.first_recall_date.isoformat() if r.first_recall_date else '' }}">
+                            <select name="first_action" class="form-select" style="max-width:100px;">
+                                <option value="">{{ t.misc_action }}<option>
+                                <option {% if r.first_action=='SMS' %}selected{% endif %}>SMS</option>
+                                <option {% if r.first_action=='Email' %}selected{% endif %}>Email</option>
+                                <option {% if r.first_action=='Phone' %}selected{% endif %}>{{ t.misc_phone }}</option>
+                                <option {% if r.first_action=='Letter' %}selected{% endif %}>Letter</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold" style="font-size:.8rem;">2nd Recall</label>
+                        <div class="input-group input-group-sm">
+                            <input type="date" name="second_recall_date" class="form-control"
+                                   value="{{ r.second_recall_date.isoformat() if r.second_recall_date else '' }}">
+                            <select name="second_action" class="form-select" style="max-width:100px;">
+                                <option value="">{{ t.misc_action }}<option>
+                                <option {% if r.second_action=='SMS' %}selected{% endif %}>SMS</option>
+                                <option {% if r.second_action=='Email' %}selected{% endif %}>Email</option>
+                                <option {% if r.second_action=='Phone' %}selected{% endif %}>{{ t.misc_phone }}</option>
+                                <option {% if r.second_action=='Letter' %}selected{% endif %}>Letter</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold" style="font-size:.8rem;">3rd Recall</label>
+                        <div class="input-group input-group-sm">
+                            <input type="date" name="third_recall_date" class="form-control"
+                                   value="{{ r.third_recall_date.isoformat() if r.third_recall_date else '' }}">
+                            <select name="third_action" class="form-select" style="max-width:100px;">
+                                <option value="">{{ t.misc_action }}<option>
+                                <option {% if r.third_action=='SMS' %}selected{% endif %}>SMS</option>
+                                <option {% if r.third_action=='Email' %}selected{% endif %}>Email</option>
+                                <option {% if r.third_action=='Phone' %}selected{% endif %}>{{ t.misc_phone }}</option>
+                                <option {% if r.third_action=='Letter' %}selected{% endif %}>Letter</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold" style="font-size:.8rem;">{{ t.misc_returned }}</label>
+                        <div class="input-group input-group-sm">
+                            <input type="date" name="returned_date" class="form-control"
+                                   value="{{ r.returned_date.isoformat() if r.returned_date else '' }}">
+                            <button type="submit" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-check"></i>
+                            </button>
+                            <form method="POST" action="{{ '/recalls/' + (r.id)|string + '/delete' }}"
+                                  class="d-inline" onsubmit="return confirm('Delete this recall?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-arrow-repeat" style="font-size:2rem;"></i>
+            <p class="mt-2">{{ t.empty_recalls }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block title %}{{ t.h_security_profile }} — {{ practice_name }}{% endblock %}
+{% block page_title %}<i class="bi bi-shield-lock me-2 text-primary"></i>{{ t.h_security_profile }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.sp-hero {
+  background: linear-gradient(135deg, #0c1a2e 0%, #1a3570 100%);
+  border-radius: 16px; padding: 24px 28px; margin-bottom: 22px;
+  display: flex; align-items: center; gap: 20px;
+  position: relative; overflow: hidden;
+}
+.sp-hero::after {
+  content:''; position:absolute; right:-40px; top:-40px;
+  width:160px; height:160px; border-radius:50%;
+  background:rgba(255,255,255,.04); pointer-events:none;
+}
+.sp-avatar {
+  width:58px; height:58px; border-radius:50%; flex-shrink:0;
+  background: linear-gradient(135deg, #2d6fd4, #7c3aed);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.2rem; font-weight:800; color:#fff;
+  border: 2.5px solid rgba(255,255,255,.25);
+}
+.sp-name   { font-size:1rem;  font-weight:800; color:#fff; }
+.sp-sub    { font-size:.78rem; color:rgba(255,255,255,.55); margin-top:3px; }
+.sp-meta-row { display:flex; gap:20px; flex-wrap:wrap; margin-top:14px; }
+.sp-meta-item {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px; padding: 10px 16px;
+}
+.sp-meta-lbl { font-size:.62rem; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.07em; margin-bottom:3px; }
+.sp-meta-val { font-size:.85rem; font-weight:700; color:#fff; font-family:monospace; }
+
+.sp-card {
+  background:#fff; border:1.5px solid #e2e8f0; border-radius:14px;
+  overflow:hidden; margin-bottom:18px;
+}
+.sp-card-hdr {
+  padding:14px 20px; background:#f8fafc; border-bottom:1.5px solid #e2e8f0;
+  display:flex; align-items:center; gap:10px;
+}
+.sp-card-title { font-weight:700; font-size:.88rem; color:#0d1f2d; }
+.sp-card-body  { padding:20px; }
+
+.sp-check-row {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 0; border-bottom:1px solid #f8fafc;
+  font-size:.82rem; color:#334155;
+}
+.sp-check-row:last-child { border-bottom:none; }
+
+.mfa-on  { background:#f0fdf4; border-color:#bbf7d0; }
+.mfa-off { background:#fff1f2; border-color:#fecdd3; }
+
+.sp-input {
+  width:100%; padding:10px 14px;
+  border:1.5px solid #e2e8f0; border-radius:9px;
+  font-size:.85rem; outline:none; font-family:inherit;
+  transition:border-color .15s;
+}
+.sp-input:focus { border-color:#2d6fd4; box-shadow:0 0 0 3px rgba(45,111,212,.1); }
+
+.sp-btn {
+  padding:10px 22px; background:#2d6fd4; color:#fff;
+  border:none; border-radius:9px; font-size:.85rem;
+  font-weight:700; cursor:pointer; transition:background .15s;
+}
+.sp-btn:hover { background:#1a5ab8; }
+
+.pw-strength { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.pw-pill {
+  font-size:.7rem; font-weight:600; padding:2px 9px;
+  border-radius:10px; background:#f1f5f9; color:#94a3b8;
+  transition:all .2s;
+}
+.pw-pill.ok { background:#dcfce7; color:#166534; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# Flash messages #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ cat }} py-2 px-3 mb-3" style="border-radius:9px;font-size:.83rem;">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+
+<!-- Hero -->
+<div class="sp-hero">
+  <div class="sp-avatar">{{ user.name[0]|upper }}</div>
+  <div style="flex:1;">
+    <div class="sp-name">{{ user.name }}</div>
+    <div class="sp-sub">{{ staff.email }} &bull; {{ user.role|title }}</div>
+    <div class="sp-meta-row">
+      <div class="sp-meta-item">
+        <div class="sp-meta-lbl">{{ t.misc_last_login_ip }}</div>
+        <div class="sp-meta-val">{{ login_ip }}</div>
+      </div>
+      <div class="sp-meta-item">
+        <div class="sp-meta-lbl">{{ t.misc_session_timeout }}</div>
+        <div class="sp-meta-val">{{ timeout_min }} min</div>
+      </div>
+      <div class="sp-meta-item">
+        <div class="sp-meta-lbl">{{ t.sf_active }}</div>
+        <div class="sp-meta-val" style="color:{% if staff.active %}#4ade80{% else %}#f87171{% endif %};">
+          {% if staff.active %}✓ Aktiv{% else %}✗ Joaktiv{% endif %}
+        </div>
+      </div>
+      <div class="sp-meta-item">
+        <div class="sp-meta-lbl">MFA</div>
+        <div class="sp-meta-val" style="color:{% if has_mfa %}#4ade80{% else %}#f87171{% endif %};">
+          {% if has_mfa %}✓ Aktiv{% else %}✗ Joaktiv{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+
+  <!-- MFA Card -->
+  <div class="sp-card {% if has_mfa %}mfa-on{% else %}mfa-off{% endif %}">
+    <div class="sp-card-hdr" style="background:{% if has_mfa %}#f0fdf4{% else %}#fff1f2{% endif %};">
+      <div style="width:34px;height:34px;border-radius:9px;background:{% if has_mfa %}#22c55e{% else %}#ef4444{% endif %};display:flex;align-items:center;justify-content:center;">
+        <i class="bi bi-{% if has_mfa %}shield-check{% else %}shield-x{% endif %} text-white"></i>
+      </div>
+      <span class="sp-card-title">{{ t.h_two_fa }}</span>
+    </div>
+    <div class="sp-card-body">
+      <div style="font-size:.82rem;color:{% if has_mfa %}#166534{% else %}#be123c{% endif %};font-weight:600;margin-bottom:12px;">
+        {% if has_mfa %}
+        ✓ Aktiv — llogaria juaj është e mbrojtur me dy faktorë.
+        {% else %}
+        ✗ Jo aktiv — rekomandohet shumë për llogaritë mjekësore.
+        {% endif %}
+      </div>
+      <a href="/mfa/setup" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:{% if has_mfa %}#f1f5f9{% else %}#ef4444{% endif %};color:{% if has_mfa %}#334155{% else %}#fff{% endif %};border-radius:8px;font-size:.8rem;font-weight:700;text-decoration:none;">
+        <i class="bi bi-{% if has_mfa %}gear{% else %}shield-plus{% endif %}"></i>
+        {% if has_mfa %}Menaxho MFA{% else %}Aktivizo MFA{% endif %}
+      </a>
+    </div>
+  </div>
+
+  <!-- Compliance Card -->
+  <div class="sp-card">
+    <div class="sp-card-hdr">
+      <i class="bi bi-clipboard2-check" style="color:#2d6fd4;font-size:1rem;"></i>
+      <span class="sp-card-title">{{ t.h_compliance }}</span>
+    </div>
+    <div class="sp-card-body" style="padding:14px 20px;">
+      {% set checks = [
+        ('Hashing i fjalëkalimit (BCrypt)', True),
+        ('Skadim automatik i sesionit', True),
+        ('Bllokimi pas përpjekjeve të dështuara', True),
+        ('Kokat e sigurisë (CSP/XSS)', True),
+        ('Regjistrim i plotë i aktivitetit', True),
+        ('Autentifikim me dy faktorë', has_mfa),
+      ] %}
+      {% for label, ok in checks %}
+      <div class="sp-check-row">
+        <i class="bi bi-{% if ok %}check-circle-fill{% else %}exclamation-circle-fill{% endif %}"
+           style="color:{% if ok %}#22c55e{% else %}#f59e0b{% endif %};font-size:.9rem;flex-shrink:0;"></i>
+        <span style="color:{% if ok %}#0f172a{% else %}#92400e{% endif %};">{{ label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Change Password -->
+<div class="sp-card">
+  <div class="sp-card-hdr">
+    <i class="bi bi-key-fill" style="color:#d97706;font-size:1rem;"></i>
+    <span class="sp-card-title">{{ t.h_change_password }}</span>
+  </div>
+  <div class="sp-card-body">
+    <form method="POST" style="max-width:460px;">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="change_password">
+      <div style="margin-bottom:14px;">
+        <label style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;display:block;margin-bottom:6px;">{{ t.lbl_cur_pwd }}</label>
+        <input type="password" name="current_password" class="sp-input" required>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;display:block;margin-bottom:6px;">{{ t.lbl_new_pwd }}</label>
+        <input type="password" name="new_password" id="newPw" class="sp-input" required>
+        <div class="pw-strength" id="pwStrength"></div>
+      </div>
+      <div style="margin-bottom:18px;">
+        <label style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;display:block;margin-bottom:6px;">{{ t.lbl_confirm_pwd }}</label>
+        <input type="password" name="confirm_password" class="sp-input" required>
+      </div>
+      <button type="submit" class="sp-btn">{{ t.btn_update_pwd }}</button>
+    </form>
+    <div style="margin-top:14px;padding:12px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;font-size:.76rem;color:#64748b;max-width:460px;">
+      <strong style="color:#334155;">{{ t.misc_pwd_req }}</strong>
+      12+ karaktere, shkronja të mëdha, shkronja të vogla, numër, karakter special.
+    </div>
+  </div>
+</div>
+
+<!-- Security Policy Info -->
+<div class="sp-card" style="background:#f8fafc;">
+  <div class="sp-card-hdr" style="background:#f1f5f9;">
+    <i class="bi bi-info-circle" style="color:#64748b;"></i>
+    <span class="sp-card-title">{{ t.h_security_policy }}</span>
+  </div>
+  <div class="sp-card-body">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:.79rem;color:#64748b;">
+      <div><i class="bi bi-clock me-1 text-primary"></i>Sesionet skadojnë pas <strong style="color:#334155;">{{ timeout_min }} min</strong> joaktiviteti</div>
+      <div><i class="bi bi-lock me-1 text-danger"></i>Llogaria bllokohet pas <strong style="color:#334155;">5 përpjekjeve</strong> të dështuara</div>
+      <div><i class="bi bi-journal-text me-1 text-warning"></i>I gjithë aksesi <strong style="color:#334155;">{{ t.misc_logged }}</strong> dhe i audituar</div>
+      <div><i class="bi bi-shield me-1 text-success"></i>Fjalëkalimet hashimi me <strong style="color:#334155;">BCrypt</strong></div>
+      <div><i class="bi bi-globe me-1"></i>Kokat CSP parandalojnë <strong style="color:#334155;">sulmet XSS</strong></div>
+      <div><i class="bi bi-database me-1"></i>PHI nuk shkruhet në <strong style="color:#334155;">{{ t.misc_server_logs }}</strong></div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('newPw').addEventListener('input', function() {
+  var pw   = this.value;
+  var div  = document.getElementById('pwStrength');
+  var checks = [
+    [pw.length >= 12,        '12+ kar.'],
+    [/[A-Z]/.test(pw),       'Majuskulë'],
+    [/[a-z]/.test(pw),       'Minuskulë'],
+    [/[0-9]/.test(pw),       'Numër'],
+    [/[^A-Za-z0-9]/.test(pw),'Karakter special'],
+  ];
+  div.innerHTML = checks.map(function(c) {
+    return '<span class="pw-pill' + (c[0] ? ' ok' : '') + '">' +
+           (c[0] ? '✓' : '○') + ' ' + c[1] + '</span>';
+  }).join('');
+});
+</script>
+{% endblock %}

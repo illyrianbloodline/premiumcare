@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ practice_name }} — Hyrje</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;overflow:hidden;}
+    :root{
+      --bg:#010b18;--cyan:#00BFFF;--cyan-bright:#00FFFF;
+      --cyan-glow:rgba(0,191,255,.25);--cyan-border:rgba(0,191,255,.25);
+      --green:#00ff88;--amber:#FFB800;--red:#ff4560;
+      --card-bg:linear-gradient(135deg,rgba(0,40,80,.5),rgba(0,60,100,.35));
+    }
+    body{font-family:'Inter',sans-serif;background:var(--bg);display:flex;min-height:100vh;}
+    .starfield{position:fixed;inset:0;z-index:0;
+      background-image:radial-gradient(1px 1px at 10% 15%,rgba(255,255,255,.7) 0%,transparent 100%),
+        radial-gradient(1px 1px at 25% 60%,rgba(255,255,255,.5) 0%,transparent 100%),
+        radial-gradient(1px 1px at 50% 10%,rgba(255,255,255,.8) 0%,transparent 100%),
+        radial-gradient(1px 1px at 70% 45%,rgba(255,255,255,.4) 0%,transparent 100%),
+        radial-gradient(1px 1px at 85% 80%,rgba(255,255,255,.6) 0%,transparent 100%),
+        radial-gradient(1.5px 1.5px at 90% 20%,rgba(0,191,255,.8) 0%,transparent 100%),
+        radial-gradient(1.5px 1.5px at 15% 90%,rgba(0,191,255,.6) 0%,transparent 100%);
+      animation:move-stars 120s linear infinite;}
+    @keyframes move-stars{
+      from{background-position:0 0,0 0,0 0,0 0,0 0,0 0,0 0;}
+      to{background-position:-5000px 2000px,-3000px 4000px,-6000px 1000px,-2000px 3000px,-4000px 5000px,-8000px 1500px,-3500px 7000px;}}
+    .left-panel{flex:0 0 55%;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:0;z-index:1;}
+    .left-panel::before{content:'';position:absolute;top:0;bottom:0;left:0;width:120px;background:linear-gradient(to right,var(--bg),transparent);z-index:10;pointer-events:none;}
+    .left-panel::after{content:'';position:absolute;top:0;bottom:0;right:0;width:120px;background:linear-gradient(to left,var(--bg),transparent);z-index:10;pointer-events:none;}
+    .top-fade{position:absolute;top:0;left:0;right:0;height:80px;background:linear-gradient(to bottom,var(--bg),transparent);z-index:10;pointer-events:none;}
+    .bot-fade{position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(to top,var(--bg),transparent);z-index:10;pointer-events:none;}
+    .brand-overlay{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);z-index:20;text-align:center;}
+    .brand-overlay h1{font-family:'Orbitron',monospace;font-size:1.4rem;font-weight:700;color:#fff;text-shadow:0 0 20px var(--cyan),0 0 40px var(--cyan-glow);letter-spacing:.1em;}
+    .brand-overlay p{font-size:.72rem;color:rgba(0,191,255,.6);letter-spacing:.15em;text-transform:uppercase;margin-top:4px;}
+    .scroll-row{overflow:hidden;padding:8px 0;}
+    .scroll-track{display:flex;gap:14px;width:max-content;animation:scroll-left var(--dur,80s) linear infinite;}
+    .scroll-track.rev{animation-name:scroll-right;}
+    @keyframes scroll-left{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+    @keyframes scroll-right{0%{transform:translateX(-50%);}100%{transform:translateX(0);}}
+    .holo-card{flex-shrink:0;width:180px;height:110px;background:var(--card-bg);border:1px solid var(--cyan-border);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px;position:relative;overflow:hidden;backdrop-filter:blur(8px);}
+    .holo-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,191,255,.04) 0%,transparent 60%);pointer-events:none;}
+    .card-lbl{font-size:.58rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,191,255,.5);}
+    .card-val{font-family:'Orbitron',monospace;font-size:1.4rem;font-weight:700;color:var(--cyan-bright);text-shadow:0 0 8px var(--cyan),0 0 20px rgba(0,191,255,.4);}
+    .card-val.green{color:var(--green);text-shadow:0 0 8px var(--green);}
+    .card-val.amber{color:var(--amber);text-shadow:0 0 8px var(--amber);}
+    .card-val.red{color:var(--red);text-shadow:0 0 8px var(--red);}
+    .card-val.sm{font-size:.85rem;letter-spacing:.04em;}
+    .card-progress{width:100%;height:5px;background:rgba(0,191,255,.1);border-radius:3px;overflow:hidden;}
+    .card-progress-inner{height:100%;background:linear-gradient(90deg,var(--cyan),var(--cyan-bright));border-radius:3px;box-shadow:0 0 6px var(--cyan);}
+    .dviz{display:flex;gap:3px;align-items:flex-end;height:32px;}
+    .dviz-bar{width:8px;background:linear-gradient(to top,var(--cyan),var(--cyan-bright));border-radius:2px 2px 0 0;animation:dance 1.4s ease-in-out infinite;box-shadow:0 0 4px var(--cyan);}
+    @keyframes dance{0%,100%{height:6px;opacity:.5;}50%{height:28px;opacity:1;}}
+    .orb{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(0,255,255,.6),rgba(0,100,180,.3));animation:orb-pulse 2.5s ease-in-out infinite;}
+    @keyframes orb-pulse{0%,100%{box-shadow:0 0 12px var(--cyan),0 0 24px rgba(0,191,255,.3);transform:scale(.95);}50%{box-shadow:0 0 20px var(--cyan),0 0 40px rgba(0,191,255,.5);transform:scale(1.05);}}
+    .hb-ring{width:36px;height:36px;border-radius:50%;border:2px solid var(--red);display:flex;align-items:center;justify-content:center;animation:hb 1s ease-in-out infinite;}
+    .hb-core{width:14px;height:14px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);}
+    @keyframes hb{0%,100%{transform:scale(1);}50%{transform:scale(1.15);box-shadow:0 0 12px rgba(255,69,96,.4);}}
+    .right-panel{flex:1;display:flex;align-items:center;justify-content:center;padding:40px;position:relative;z-index:2;}
+    .v-line{position:absolute;left:0;top:10%;height:80%;width:1px;background:linear-gradient(to bottom,transparent,rgba(0,191,255,.2) 30%,rgba(0,191,255,.2) 70%,transparent);}
+    .login-box{width:100%;max-width:400px;}
+    .login-logo{display:flex;align-items:center;gap:12px;margin-bottom:36px;}
+    .login-logo-icon{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,rgba(0,80,160,.6),rgba(0,140,220,.4));border:1px solid var(--cyan-border);display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
+    .login-logo-text h2{font-family:'Orbitron',monospace;font-size:.95rem;font-weight:700;color:#fff;letter-spacing:.07em;}
+    .login-logo-text p{font-size:.68rem;color:rgba(0,191,255,.55);letter-spacing:.12em;text-transform:uppercase;margin-top:1px;}
+    .login-title{font-size:1.6rem;font-weight:700;color:#fff;margin-bottom:6px;}
+    .login-sub{font-size:.84rem;color:rgba(255,255,255,.35);margin-bottom:32px;}
+    .flash{padding:10px 14px;border-radius:8px;font-size:.82rem;margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+    .flash.danger{background:rgba(255,69,96,.12);border:1px solid rgba(255,69,96,.3);color:#ff8098;}
+    .flash.success{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.25);color:#00ff88;}
+    .field-group{margin-bottom:20px;}
+    .field-label{display:block;font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(0,191,255,.55);margin-bottom:8px;}
+    .field-wrap{position:relative;}
+    .field-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:rgba(0,191,255,.4);font-size:1rem;pointer-events:none;}
+    .field-input{width:100%;padding:12px 14px 12px 42px;background:rgba(0,40,80,.35);border:1px solid var(--cyan-border);border-radius:10px;color:#fff;font-size:.9rem;font-family:'Inter',sans-serif;outline:none;transition:all .2s;backdrop-filter:blur(4px);}
+    .field-input::placeholder{color:rgba(255,255,255,.2);}
+    .field-input:focus{border-color:rgba(0,191,255,.7);background:rgba(0,60,100,.4);box-shadow:0 0 0 3px rgba(0,191,255,.12);}
+    .btn-login{width:100%;padding:13px;background:linear-gradient(135deg,rgba(0,80,160,.7),rgba(0,140,220,.6));border:1px solid rgba(0,191,255,.4);border-radius:10px;color:#fff;font-size:.92rem;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-top:8px;box-shadow:0 0 20px rgba(0,191,255,.1);}
+    .btn-login:hover{background:linear-gradient(135deg,rgba(0,100,190,.8),rgba(0,170,255,.7));border-color:rgba(0,191,255,.7);box-shadow:0 0 30px rgba(0,191,255,.25);transform:translateY(-1px);}
+    .sec-note{display:flex;align-items:center;gap:7px;margin-top:24px;padding:10px 14px;background:rgba(0,40,80,.25);border:1px solid rgba(0,191,255,.1);border-radius:8px;font-size:.72rem;color:rgba(0,191,255,.4);}
+    @media(max-width:768px){.left-panel{display:none;}.right-panel{padding:32px 20px;}}
+  </style>
+</head>
+<body>
+<div class="starfield"></div>
+
+<!-- LEFT: Scrolling holographic medical data -->
+<div class="left-panel">
+  <div class="top-fade"></div>
+  <div class="bot-fade"></div>
+
+  <!-- Row 1 left -->
+  <div class="scroll-row">
+    <div class="scroll-track" style="--dur:85s;">
+      <div class="holo-card"><div class="card-lbl">Presioni</div><div class="card-val">132/84</div></div>
+      <div class="holo-card"><div class="card-lbl">Pulsi</div><div class="card-val green">72 bpm</div><div class="card-progress"><div class="card-progress-inner" style="width:60%;"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Saturimi O₂</div><div class="card-val green">98%</div></div>
+      <div class="holo-card"><div class="card-lbl">Temperatura</div><div class="card-val amber">36.8°C</div></div>
+      <div class="holo-card"><div class="card-lbl">Glukoza</div><div class="card-val">7.2</div><div class="card-lbl">mmol/L</div></div>
+      <div class="holo-card"><div class="card-lbl">ECG</div><svg viewBox="0 0 140 32" width="140" height="32" fill="none"><polyline points="0,20 15,20 22,4 28,28 35,20 55,20 62,2 68,30 75,20 95,20 102,6 108,26 115,20 140,20" stroke="#00FFFF" stroke-width="1.5" fill="none" opacity=".8"/></svg></div>
+      <div class="holo-card"><div class="card-lbl">HbA1c</div><div class="card-val amber">8.9%</div></div>
+      <div class="holo-card"><div class="card-lbl">Aktiviteti</div><div class="dviz"><div class="dviz-bar" style="animation-delay:0s"></div><div class="dviz-bar" style="animation-delay:.2s"></div><div class="dviz-bar" style="animation-delay:.4s"></div><div class="dviz-bar" style="animation-delay:.6s"></div><div class="dviz-bar" style="animation-delay:.8s"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Kolesteroli</div><div class="card-val red">5.8</div></div>
+      <div class="holo-card"><div class="card-lbl">Zemra</div><div class="hb-ring"><div class="hb-core"></div></div></div>
+      <!-- duplicate -->
+      <div class="holo-card"><div class="card-lbl">Presioni</div><div class="card-val">132/84</div></div>
+      <div class="holo-card"><div class="card-lbl">Pulsi</div><div class="card-val green">72 bpm</div><div class="card-progress"><div class="card-progress-inner" style="width:60%;"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Saturimi O₂</div><div class="card-val green">98%</div></div>
+      <div class="holo-card"><div class="card-lbl">Temperatura</div><div class="card-val amber">36.8°C</div></div>
+      <div class="holo-card"><div class="card-lbl">Glukoza</div><div class="card-val">7.2</div><div class="card-lbl">mmol/L</div></div>
+      <div class="holo-card"><div class="card-lbl">ECG</div><svg viewBox="0 0 140 32" width="140" height="32" fill="none"><polyline points="0,20 15,20 22,4 28,28 35,20 55,20 62,2 68,30 75,20 95,20 102,6 108,26 115,20 140,20" stroke="#00FFFF" stroke-width="1.5" fill="none" opacity=".8"/></svg></div>
+      <div class="holo-card"><div class="card-lbl">HbA1c</div><div class="card-val amber">8.9%</div></div>
+      <div class="holo-card"><div class="card-lbl">Aktiviteti</div><div class="dviz"><div class="dviz-bar" style="animation-delay:0s"></div><div class="dviz-bar" style="animation-delay:.2s"></div><div class="dviz-bar" style="animation-delay:.4s"></div><div class="dviz-bar" style="animation-delay:.6s"></div><div class="dviz-bar" style="animation-delay:.8s"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Kolesteroli</div><div class="card-val red">5.8</div></div>
+      <div class="holo-card"><div class="card-lbl">Zemra</div><div class="hb-ring"><div class="hb-core"></div></div></div>
+    </div>
+  </div>
+
+  <!-- Row 2 right -->
+  <div class="scroll-row">
+    <div class="scroll-track rev" style="--dur:100s;">
+      <div class="holo-card"><div class="card-lbl">Pacientë Sot</div><div class="card-val">24</div></div>
+      <div class="holo-card"><div class="card-lbl">Takime</div><div class="card-val green">7</div><div class="card-progress"><div class="card-progress-inner" style="width:75%;background:linear-gradient(90deg,#00ff88,#00ffaa);box-shadow:0 0 6px #00ff88;"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">BMI</div><div class="card-val amber sm">27.4</div></div>
+      <div class="holo-card"><div class="card-lbl">INR</div><div class="card-val green">2.4</div></div>
+      <div class="holo-card"><div class="card-lbl">TSH</div><div class="card-val green sm">2.4 µIU/mL</div></div>
+      <div class="holo-card"><div class="card-lbl">Insulina</div><div class="orb"></div></div>
+      <div class="holo-card"><div class="card-lbl">Kreatin.</div><div class="card-val red sm">1.8 mg/dL</div></div>
+      <div class="holo-card"><div class="card-lbl">Gjumi</div><div class="card-val green sm">7.2 orë</div><div class="card-progress"><div class="card-progress-inner" style="width:85%;background:linear-gradient(90deg,#00ff88,#00ffaa);box-shadow:0 0 6px #00ff88;"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Ngarkesa</div><div class="card-val">62%</div><div class="card-progress"><div class="card-progress-inner" style="width:62%;"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Stafi Aktiv</div><div class="card-val">12</div></div>
+      <!-- duplicate -->
+      <div class="holo-card"><div class="card-lbl">Pacientë Sot</div><div class="card-val">24</div></div>
+      <div class="holo-card"><div class="card-lbl">Takime</div><div class="card-val green">7</div><div class="card-progress"><div class="card-progress-inner" style="width:75%;background:linear-gradient(90deg,#00ff88,#00ffaa);box-shadow:0 0 6px #00ff88;"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">BMI</div><div class="card-val amber sm">27.4</div></div>
+      <div class="holo-card"><div class="card-lbl">INR</div><div class="card-val green">2.4</div></div>
+      <div class="holo-card"><div class="card-lbl">TSH</div><div class="card-val green sm">2.4 µIU/mL</div></div>
+      <div class="holo-card"><div class="card-lbl">Insulina</div><div class="orb"></div></div>
+      <div class="holo-card"><div class="card-lbl">Kreatin.</div><div class="card-val red sm">1.8 mg/dL</div></div>
+      <div class="holo-card"><div class="card-lbl">Gjumi</div><div class="card-val green sm">7.2 orë</div><div class="card-progress"><div class="card-progress-inner" style="width:85%;background:linear-gradient(90deg,#00ff88,#00ffaa);box-shadow:0 0 6px #00ff88;"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Ngarkesa</div><div class="card-val">62%</div><div class="card-progress"><div class="card-progress-inner" style="width:62%;"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Stafi Aktiv</div><div class="card-val">12</div></div>
+    </div>
+  </div>
+
+  <!-- Row 3 left -->
+  <div class="scroll-row">
+    <div class="scroll-track" style="--dur:75s;">
+      <div class="holo-card"><div class="card-lbl">Ferritina</div><div class="card-val amber sm">18 ng/mL</div></div>
+      <div class="holo-card"><div class="card-lbl">Urea</div><div class="card-val sm">6.2 mmol/L</div></div>
+      <div class="holo-card"><div class="card-lbl">Vaksinim</div><div class="card-val green sm">Kryer ✓</div></div>
+      <div class="holo-card"><div class="card-lbl">Rezistenca</div><div class="dviz"><div class="dviz-bar" style="animation-delay:0s;background:linear-gradient(to top,#7c3aed,#a78bfa);box-shadow:0 0 4px #7c3aed;"></div><div class="dviz-bar" style="animation-delay:.2s;background:linear-gradient(to top,#7c3aed,#a78bfa);"></div><div class="dviz-bar" style="animation-delay:.4s;background:linear-gradient(to top,#7c3aed,#a78bfa);"></div><div class="dviz-bar" style="animation-delay:.6s;background:linear-gradient(to top,#7c3aed,#a78bfa);"></div><div class="dviz-bar" style="animation-delay:.8s;background:linear-gradient(to top,#7c3aed,#a78bfa);"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Skanime AI</div><div class="card-val sm" style="color:#a78bfa;text-shadow:0 0 8px #7c3aed;font-size:.75rem;">ANALIZË</div></div>
+      <div class="holo-card"><div class="card-lbl">Tiroide</div><div class="card-val green sm">Normal</div></div>
+      <div class="holo-card"><div class="card-lbl">Pesha</div><div class="card-val">84 kg</div></div>
+      <div class="holo-card"><div class="card-lbl">Hemat.</div><div class="dviz"><div class="dviz-bar" style="animation-delay:.1s;background:linear-gradient(to top,#ff4560,#ff7090);box-shadow:0 0 4px #ff4560;"></div><div class="dviz-bar" style="animation-delay:.3s;background:linear-gradient(to top,#ff4560,#ff7090);"></div><div class="dviz-bar" style="animation-delay:.5s;background:linear-gradient(to top,#ff4560,#ff7090);"></div><div class="dviz-bar" style="animation-delay:.7s;background:linear-gradient(to top,#ff4560,#ff7090);"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Sistemi</div><div class="card-val green sm" style="font-size:.72rem;letter-spacing:.04em;">OPERACIONAL</div></div>
+      <div class="holo-card"><div class="card-lbl">Orb</div><div class="orb" style="background:radial-gradient(circle at 35% 35%,rgba(255,184,0,.6),rgba(150,100,0,.3));animation:orb-pulse 2s ease-in-out infinite;"></div></div>
+      <!-- duplicate -->
+      <div class="holo-card"><div class="card-lbl">Ferritina</div><div class="card-val amber sm">18 ng/mL</div></div>
+      <div class="holo-card"><div class="card-lbl">Urea</div><div class="card-val sm">6.2 mmol/L</div></div>
+      <div class="holo-card"><div class="card-lbl">Vaksinim</div><div class="card-val green sm">Kryer ✓</div></div>
+      <div class="holo-card"><div class="card-lbl">Rezistenca</div><div class="dviz"><div class="dviz-bar" style="animation-delay:0s;background:linear-gradient(to top,#7c3aed,#a78bfa);"></div><div class="dviz-bar" style="animation-delay:.2s;background:linear-gradient(to top,#7c3aed,#a78bfa);"></div><div class="dviz-bar" style="animation-delay:.4s;background:linear-gradient(to top,#7c3aed,#a78bfa);"></div><div class="dviz-bar" style="animation-delay:.6s;background:linear-gradient(to top,#7c3aed,#a78bfa);"></div><div class="dviz-bar" style="animation-delay:.8s;background:linear-gradient(to top,#7c3aed,#a78bfa);"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Skanime AI</div><div class="card-val sm" style="color:#a78bfa;font-size:.75rem;">ANALIZË</div></div>
+      <div class="holo-card"><div class="card-lbl">Tiroide</div><div class="card-val green sm">Normal</div></div>
+      <div class="holo-card"><div class="card-lbl">Pesha</div><div class="card-val">84 kg</div></div>
+      <div class="holo-card"><div class="card-lbl">Hemat.</div><div class="dviz"><div class="dviz-bar" style="animation-delay:.1s;background:linear-gradient(to top,#ff4560,#ff7090);"></div><div class="dviz-bar" style="animation-delay:.3s;background:linear-gradient(to top,#ff4560,#ff7090);"></div><div class="dviz-bar" style="animation-delay:.5s;background:linear-gradient(to top,#ff4560,#ff7090);"></div><div class="dviz-bar" style="animation-delay:.7s;background:linear-gradient(to top,#ff4560,#ff7090);"></div></div></div>
+      <div class="holo-card"><div class="card-lbl">Sistemi</div><div class="card-val green sm" style="font-size:.72rem;">OPERACIONAL</div></div>
+      <div class="holo-card"><div class="card-lbl">Orb</div><div class="orb" style="background:radial-gradient(circle at 35% 35%,rgba(255,184,0,.6),rgba(150,100,0,.3));"></div></div>
+    </div>
+  </div>
+
+  <div class="brand-overlay">
+    <h1>{{ practice_name | upper }}</h1>
+    <p>Sistem Mjekësor i Avancuar</p>
+  </div>
+</div>
+
+<!-- RIGHT: Login -->
+<div class="right-panel">
+  <div class="v-line"></div>
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🏥</div>
+      <div class="login-logo-text">
+        <h2>{{ practice_name }}</h2>
+        <p>Platformë Mjekësore</p>
+      </div>
+    </div>
+    <div class="login-title">Mirë se vini</div>
+    <div class="login-sub">Hyni me kredencialet tuaja profesionale</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">
+          <i class="bi bi-{% if category == 'danger' %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"></i>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="/login">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field-group">
+        <label class="field-label" for="email">Adresa Email</label>
+        <div class="field-wrap">
+          <i class="bi bi-envelope field-icon"></i>
+          <input type="email" id="email" name="email" class="field-input" placeholder="mjeku@klinika.com" required autocomplete="username">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="password">Fjalëkalimi</label>
+        <div class="field-wrap">
+          <i class="bi bi-lock field-icon"></i>
+          <input type="password" id="password" name="password" class="field-input" placeholder="••••••••••" required autocomplete="current-password">
+        </div>
+      </div>
+      <button type="submit" class="btn-login">
+        <i class="bi bi-box-arrow-in-right"></i>
+        Hyr në Sistem
+      </button>
+    </form>
+
+    <div class="sec-note">
+      <i class="bi bi-shield-lock-fill" style="color:rgba(0,191,255,.5);"></i>
+      Lidhje e siguruar · Sesion i enkriptuar · Të dhënat tuaja janë të mbrojtura
+    </div>
+  </div>
+</div>
+</body>
+</html>

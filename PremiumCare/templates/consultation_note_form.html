@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-journal-plus me-2 text-primary"></i>
+        {{ 'Edit' if note else 'New' }} Consultation Note — {{ patient.first_name }} {{ patient.last_name }}
+    </h5>
+    <a href="/patients/{{ patient.id }}/notes" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+</div>
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.lbl_visit_date }} *</label>
+                    <input type="date" name="visit_date" class="form-control" required
+                           value="{{ note.visit_date.isoformat() if note and note.visit_date else today }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.lbl_doctor }}</label>
+                    <select name="doctor_id" class="form-select">
+                        {% for s in staff %}
+                        <option value="{{ s.id }}" {% if note and note.doctor_id == s.id %}selected{% endif %}>
+                            {{ s.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- SOAP Notes -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-person text-primary me-1"></i>
+                        S — Subjective <small class="text-muted fw-normal">({{ t.soap_s_hint }})</small>
+                    </label>
+                    <textarea name="subjective" class="form-control" rows="4"
+                              placeholder="{{ t.ph_subj_complaint }}">{{ note.subjective if note else '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-clipboard-pulse text-success me-1"></i>
+                        O — Objective <small class="text-muted fw-normal">(examination findings)</small>
+                    </label>
+                    <textarea name="objective" class="form-control" rows="4"
+                              placeholder="{{ t.ph_obj_findings }}">{{ note.objective if note else '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-diagram-3 text-warning me-1"></i>
+                        A — Assessment <small class="text-muted fw-normal">(diagnosis)</small>
+                    </label>
+                    <textarea name="assessment" class="form-control" rows="4"
+                              placeholder="{{ t.ph_assessment }}">{{ note.assessment if note else '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-list-check text-danger me-1"></i>
+                        P — Plan <small class="text-muted fw-normal">(treatment)</small>
+                    </label>
+                    <textarea name="plan" class="form-control" rows="4"
+                              placeholder="{{ t.ph_plan }}">{{ note.plan if note else '' }}</textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">
+                        <i class="bi bi-chat-text text-secondary me-1"></i>Additional Notes
+                    </label>
+                    <textarea name="notes" class="form-control" rows="2"
+                              placeholder="{{ t.ph_extra_notes }}">{{ note.notes if note else '' }}</textarea>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Save Note
+                    </button>
+                    <a href="/patients/{{ patient.id }}/notes" class="btn btn-outline-secondary">{{ t.btn_cancel }}</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

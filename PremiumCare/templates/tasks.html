@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}Detyrat — {{ practice_name }}{% endblock %}
+{% block page_title %}{{ t.page_tasks }}{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5 class="mb-0 fw-bold"><i class="bi bi-check2-square me-2 text-primary"></i>Detyrat
+    {% if my_tasks|selectattr('status','eq','pending')|list|length > 0 %}
+    <span class="badge ms-2" style="background:#3b82f6;font-size:.7rem;">{{ my_tasks|selectattr('status','eq','pending')|list|length }} pending</span>
+    {% endif %}
+  </h5>
+  <button class="btn btn-primary btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#newTaskModal">
+    <i class="bi bi-plus me-1"></i>Detyrë e Re
+  </button>
+</div>
+
+<div class="row g-3">
+  <!-- My Tasks -->
+  <div class="col-lg-7">
+    <div class="card border-0" style="border:1px solid #e8edf2 !important;">
+      <div class="card-header py-3 px-4" style="background:#f8fafc;border-bottom:1px solid #e8edf2;">
+        <span class="fw-bold" style="font-size:.9rem;"><i class="bi bi-person-check me-2 text-primary"></i>{{ t.h_my_tasks }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% set pending = my_tasks|selectattr('status','eq','pending')|list %}
+        {% set done    = my_tasks|rejectattr('status','eq','pending')|list %}
+        {% if pending %}
+        {% for task in pending %}
+        <div class="d-flex align-items-start gap-3 px-4 py-3 border-bottom" style="border-color:#f1f5f9 !important;">
+          <form method="POST" action="/tasks/{{ task.id }}/status" class="mt-1">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="completed">
+            <button type="submit" style="width:20px;height:20px;border-radius:50%;border:2px solid #cbd5e1;background:#fff;cursor:pointer;flex-shrink:0;transition:all .15s;"
+                    onmouseover="this.style.borderColor='#22c55e'" onmouseout="this.style.borderColor='#cbd5e1'"></button>
+          </form>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.87rem;font-weight:600;color:#0f172a;">{{ task.title }}</div>
+            {% if task.description %}<div style="font-size:.76rem;color:#64748b;margin-top:2px;">{{ task.description[:80] }}</div>{% endif %}
+            <div style="display:flex;gap:8px;margin-top:5px;flex-wrap:wrap;">
+              {% if task.patient_name %}
+              <span style="font-size:.7rem;background:#eff6ff;color:#1d4ed8;padding:2px 8px;border-radius:20px;">
+                <i class="bi bi-person me-1"></i>{{ task.patient_name }}
+              </span>
+              {% endif %}
+              <span style="font-size:.7rem;padding:2px 8px;border-radius:20px;
+                background:{% if task.priority=='urgent' %}#fff1f2;color:#be123c{% elif task.priority=='high' %}#fffbeb;color:#92400e{% else %}#f8fafc;color:#64748b{% endif %};">
+                {{ task.priority }}
+              </span>
+              {% if task.task_type != 'general' %}
+              <span style="font-size:.7rem;background:#faf5ff;color:#6d28d9;padding:2px 8px;border-radius:20px;">{{ task.task_type }}</span>
+              {% endif %}
+              {% if task.due_date %}
+              <span style="font-size:.7rem;color:{% if task.due_date <= today %}#ef4444{% else %}#94a3b8{% endif %};">
+                <i class="bi bi-calendar3 me-1"></i>{{ task.due_date.strftime('%d %b') }}
+              </span>
+              {% endif %}
+            </div>
+          </div>
+          <form method="POST" action="/tasks/{{ task.id }}/delete" onsubmit="return confirm('Delete?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:.85rem;padding:2px;" title="Delete">
+              <i class="bi bi-x"></i>
+            </button>
+          </form>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-check-circle" style="font-size:2.5rem;color:#e2e8f0;display:block;margin-bottom:8px;"></i>
+          <div style="font-size:.88rem;color:#94a3b8;">{{ t.h_all_caught_up }}</div>
+        </div>
+        {% endif %}
+
+        {% if done %}
+        <div class="px-4 py-2" style="background:#f8fafc;border-top:1px solid #f1f5f9;">
+          <span style="font-size:.72rem;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Completed ({{ done|length }})</span>
+        </div>
+        {% for task in done[:5] %}
+        <div class="d-flex align-items-center gap-3 px-4 py-2 border-bottom" style="border-color:#f1f5f9 !important;opacity:.5;">
+          <i class="bi bi-check-circle-fill text-success" style="font-size:.9rem;"></i>
+          <div style="font-size:.83rem;color:#64748b;text-decoration:line-through;">{{ task.title }}</div>
+        </div>
+        {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick create + All tasks (admin) -->
+  <div class="col-lg-5">
+    <div class="card border-0 mb-3" style="border:1px solid #e8edf2 !important;background:linear-gradient(135deg,#f8fafc,#fff);">
+      <div class="card-body p-4">
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:14px;">{{ t.h_quick_task }}</div>
+        <form method="POST" action="/tasks/new">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <input type="text" name="title" class="form-control form-control-sm" placeholder="{{ t.ph_task_title }}" required>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <select name="assigned_to" class="form-select form-select-sm">
+                <option value="">{{ t.opt_unassigned }}</option>
+                {% for s in staff if s.active %}
+                <option value="{{ s.id }}" {% if s.id == user.id %}selected{% endif %}>{{ s.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <select name="priority" class="form-select form-select-sm">
+                <option value="normal">{{ t.opt_normal }}</option>
+                <option value="high">{{ t.opt_high }}</option>
+                <option value="urgent">{{ t.opt_urgent }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <select name="task_type" class="form-select form-select-sm">
+                <option value="general">{{ t.opt_general }}</option>
+                <option value="blood_draw">{{ t.opt_blood_draw }}</option>
+                <option value="prescription">{{ t.opt_rx_task }}</option>
+                <option value="callback">{{ t.opt_callback }}</option>
+                <option value="referral">{{ t.opt_referral }}</option>
+                <option value="lab_result">{{ t.opt_lab_result_task }}</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <input type="date" name="due_date" class="form-control form-control-sm" value="{{ today.isoformat() }}">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm w-100 fw-semibold">
+            <i class="bi bi-plus me-1"></i>Krijo Detyrë
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {% if user.role == 'admin' and all_tasks %}
+    <div class="card border-0" style="border:1px solid #e8edf2 !important;">
+      <div class="card-header py-3 px-4" style="background:#f8fafc;border-bottom:1px solid #e8edf2;">
+        <span class="fw-bold" style="font-size:.9rem;"><i class="bi bi-people me-2"></i>{{ t.h_all_team_tasks }}</span>
+      </div>
+      <div class="card-body p-0" style="max-height:340px;overflow-y:auto;">
+        {% for task in all_tasks[:20] %}
+        <div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom" style="border-color:#f1f5f9 !important;font-size:.8rem;">
+          <i class="bi bi-{% if task.status=='completed' %}check-circle-fill text-success{% elif task.priority=='urgent' %}exclamation-circle-fill text-danger{% else %}circle text-muted{% endif %}"></i>
+          <div style="flex:1;min-width:0;">
+            <div class="fw-semibold text-truncate">{{ task.title }}</div>
+            <div style="color:#94a3b8;font-size:.72rem;">→ {{ task.assigned_to_name or 'Unassigned' }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- New Task Modal -->
+<div class="modal fade" id="newTaskModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title fw-bold">{{ t.h_new_task }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="POST" action="/tasks/new">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.lbl_title }} *</label>
+            <input type="text" name="title" class="form-control" required>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.lbl_assign_to }}</label>
+              <select name="assigned_to" class="form-select">
+                <option value="">{{ t.opt_unassigned }}</option>
+                {% for s in staff if s.active %}
+                <option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.lbl_patient }}</label>
+              <select name="patient_id" class="form-select">
+                <option value="">{{ t.misc_none }}<option>
+                {% for p in patients %}
+                <option value="{{ p.id }}">{{ p.first_name }} {{ p.last_name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.lbl_priority }}</label>
+              <select name="priority" class="form-select">
+                <option value="normal">{{ t.opt_normal }}</option>
+                <option value="high">{{ t.opt_high }}</option>
+                <option value="urgent">{{ t.opt_urgent }}</option>
+              </select>
+            </div>
+            <div class="col-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.misc_type }}</label>
+              <select name="task_type" class="form-select">
+                <option value="general">{{ t.opt_general }}</option>
+                <option value="blood_draw">{{ t.opt_blood_draw }}</option>
+                <option value="prescription">{{ t.opt_rx_task }}</option>
+                <option value="callback">{{ t.opt_callback }}</option>
+                <option value="referral">{{ t.opt_referral }}</option>
+                <option value="lab_result">{{ t.opt_lab_result_task }}</option>
+              </select>
+            </div>
+            <div class="col-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Due</label>
+              <input type="date" name="due_date" class="form-control" value="{{ today.isoformat() }}">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.lbl_description }}</label>
+            <textarea name="description" class="form-control" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ t.btn_cancel }}</button>
+          <button type="submit" class="btn btn-primary fw-semibold">{{ t.btn_create_task }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

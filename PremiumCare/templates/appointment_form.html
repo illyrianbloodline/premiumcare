@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{% if appt %}Edit Appointment{% else %}New Appointment{% endif %} — {{ practice_name }}{% endblock %}
+{% block page_title %}{% if appt %}Edit Appointment{% else %}New Appointment{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:700px;">
+  <div class="card-header py-3 px-4">
+    <span class="fw-semibold"><i class="bi bi-calendar3 me-2 text-primary"></i>{% if appt %}Edit Appointment{% else %}New Appointment{% endif %}</span>
+  </div>
+  <div class="card-body p-4">
+    <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem;">{{ t.lbl_patient }} <span class="text-danger">*</span></label>
+          <select name="patient_id" class="form-select form-select-sm" required>
+            <option value="">{{ t.misc_select_patient }}</option>
+            {% for p in patients %}
+            <option value="{{ p.id }}" {% if appt and appt.patient_id == p.id %}selected{% endif %}>
+              {{ p.first_name }} {{ p.last_name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem;">{{ t.lbl_doctor }}</label>
+          <select name="doctor_id" class="form-select form-select-sm">
+            <option value="">—</option>
+            {% for s in staff %}
+            <option value="{{ s.id }}" {% if appt and appt.doctor_id == s.id %}selected{% endif %}>
+              {{ s.name }}{% if s.specialty %} ({{ s.specialty }}){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:.83rem;">Date <span class="text-danger">*</span></label>
+          <input type="date" name="appointment_date" class="form-control form-control-sm" required
+                 value="{{ appt.appointment_date.isoformat() if appt and appt.appointment_date else today }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:.83rem;">Start Time <span class="text-danger">*</span></label>
+          <input type="time" name="start_time" class="form-control form-control-sm" required
+                 value="{{ appt.start_time.strftime('%H:%M') if appt and appt.start_time else '09:00' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold" style="font-size:.83rem;">{{ t.lbl_duration_min }}</label>
+          <select name="duration_mins" class="form-select form-select-sm">
+            {% for d in [15,20,30,45,60,90] %}
+            <option value="{{ d }}" {% if appt and appt.duration_mins == d %}selected{% elif not appt and d == 30 %}selected{% endif %}>{{ d }} min</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem;">{{ t.misc_type }}</label>
+          <select name="appointment_type" class="form-select form-select-sm">
+            {% for vt_opt in [t.opt_consultation,t.opt_checkup,t.opt_followup,t.opt_emergency,t.opt_procedure,t.opt_telehealth,t.opt_new_patient] %}
+            <option {% if appt and appt.appointment_type == vt_opt %}selected{% endif %}>{{ vt_opt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold" style="font-size:.83rem;">{{ t.th_status }}</label>
+          <select name="status" class="form-select form-select-sm">
+            {% for s in ['scheduled','completed','cancelled','no-show'] %}
+            <option {% if appt and appt.status == s %}selected{% elif not appt and s == 'scheduled' %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold" style="font-size:.83rem;">{{ t.lbl_title_notes }}</label>
+          <textarea name="notes" class="form-control form-control-sm" rows="3">{{ appt.notes if appt and appt.notes else '' }}</textarea>
+        </div>
+        <div class="col-12 d-flex gap-2">
+          <button type="submit" class="btn btn-primary px-4">
+            {% if appt %}Update{% else %}Schedule{% endif %} Appointment
+          </button>
+          <a href="/calendar" class="btn btn-outline-secondary px-4">{{ t.btn_cancel }}</a>
+          {% if appt %}
+          <form method="POST" action="/calendar/{{ appt.id }}/delete" style="margin-left:auto;"
+                onsubmit="return confirm('Delete this appointment?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-danger">{{ t.btn_delete }}</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

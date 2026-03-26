@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="
+  margin-bottom:1rem;
+  padding:.65rem 1rem;
+  background:#fefce8;
+  border:1px solid #fde68a;
+  border-left:4px solid #f59e0b;
+  border-radius:10px;
+  font-size:.76rem;
+  color:#78350f;
+  line-height:1.5;
+">
+  
+  <div>{{ t.disclaimer_clinical }}</div>
+</div>
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-image me-2 text-success"></i>{{ t.ai_scan_title }}
+        <small class="text-muted fw-normal ms-2">{{ patient.first_name }} {{ patient.last_name }}</small>
+    </h5>
+    <a href="{{ '/patients/' + (patient.id)|string }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-upload me-2"></i>{{ t.ai_scan_upload }}</div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.ai_scan_type }}</label>
+                        <select name="scan_type" class="form-select">
+                            <option>{{ t.opt_xray }}</option>
+                            <option>{{ t.opt_ct }}</option>
+                            <option>{{ t.opt_mri }}</option>
+                            <option>{{ t.opt_ultrasound }}</option>
+                            <option>{{ t.opt_ecg }}</option>
+                            <option>{{ t.opt_blood_test }}</option>
+                            <option>{{ t.opt_other }}</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.ai_scan_context }}</label>
+                        <textarea name="context" class="form-control" rows="3"
+                                  placeholder="{{ t.optional }}..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.ai_scan_upload }}</label>
+                        <input type="file" name="scan_file" class="form-control"
+                               accept=".png,.jpg,.jpeg,.gif,.bmp,.pdf" required>
+                        <div class="form-text">{{ t.misc_scan_formats }}</div>
+                    </div>
+                    <!-- IA-DISCLAIMER -->
+
+<button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-cpu me-2"></i>{{ t.ai_scan_btn }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        {% if result %}
+        <div style="margin-bottom:12px;padding:8px 14px;background:#fef3c7;border:1px solid #fcd34d;border-left:4px solid #f59e0b;border-radius:8px;font-size:.76rem;color:#92400e;display:flex;align-items:flex-start;gap:8px;line-height:1.5;">
+          <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;margin-top:1px;"></i>
+          <span>{{ t.ai_result_disclaimer }}</span>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-stars me-2"></i>{{ t.ai_scan_result }}
+            </div>
+            <div class="card-body">
+                <pre style="white-space:pre-wrap;font-family:inherit;font-size:.9rem;margin:0;">{{ result }}</pre>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if past %}
+        <div class="card">
+            <div class="card-header"><i class="bi bi-clock-history me-2"></i>{{ t.ai_scan_past }}</div>
+            <div class="card-body p-0">
+                <div class="accordion accordion-flush" id="scanAcc">
+                {% for s in past %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed py-2" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#s{{ s.id }}">
+                            <span style="font-size:.85rem;">
+                                <strong>{{ s.created_at.strftime('%d %b %Y %H:%M') }}</strong>
+                                <span class="badge bg-secondary ms-2">{{ s.scan_type }}</span>
+                                <span class="text-muted ms-2">{{ s.doctor_name or '' }}</span>
+                            </span>
+                        </button>
+                    </h2>
+                    <div id="s{{ s.id }}" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                            <pre style="white-space:pre-wrap;font-family:inherit;font-size:.85rem;">{{ s.ai_result }}</pre>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

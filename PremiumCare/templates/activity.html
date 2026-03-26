@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Activity Log — {{ practice_name }}{% endblock %}
+{% block page_title %}{{ t.page_audit }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header py-3 px-4">
+    <span class="fw-semibold"><i class="bi bi-clock-history me-2 text-secondary"></i>{{ t.h_activity_log }}</span>
+    <span class="badge bg-secondary ms-2">{{ logs|length }} entries</span>
+  </div>
+  <div class="card-body p-0">
+    {% if logs %}
+    <table class="table table-hover mb-0">
+      <thead><tr><th class="ps-4">{{ t.th_time }}</th><th>{{ t.th_user }}</th><th>{{ t.th_action }}</th><th class="pe-4">{{ t.th_detail }}</th></tr></thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="ps-4 text-muted" style="font-size:.8rem;white-space:nowrap;">
+            {{ log.created_at.strftime('%d/%m/%Y %H:%M') }}
+          </td>
+          <td style="font-size:.85rem;">{{ log.staff_name or 'System' }}</td>
+          <td style="font-size:.85rem;font-weight:600;">{{ log.action }}</td>
+          <td class="pe-4 text-muted" style="font-size:.82rem;">{{ log.detail or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-clock-history" style="font-size:2rem;opacity:.3;"></i>
+      <p class="mt-2">{{ t.empty_activity }}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

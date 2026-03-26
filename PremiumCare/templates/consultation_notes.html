@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-journal-medical me-2 text-primary"></i>
+        Consultation Notes — {{ patient.first_name }} {{ patient.last_name }}
+    </h5>
+    <div class="d-flex gap-2">
+        <a href="/patients/{{ patient.id }}/notes/new" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>New Note
+        </a>
+        <a href="/patients/{{ patient.id }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+{% if notes %}
+{% for note in notes %}
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-calendar3 me-2 text-muted"></i>
+            <strong>{{ note.visit_date.strftime('%A, %d %B %Y') }}</strong>
+            <span class="text-muted ms-3" style="font-size:.85rem;">Dr. {{ note.doctor_name or '—' }}</span>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/notes/{{ note.id }}/edit" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-pencil"></i>
+            </a>
+            <form method="POST" action="/notes/{{ note.id }}/delete" class="d-inline"
+                  onsubmit="return confirm('Delete this note?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% if note.subjective %}
+            <div class="col-md-6">
+                <div class="fw-semibold text-muted mb-1" style="font-size:.78rem; text-transform:uppercase; letter-spacing:.05em;">
+                    <i class="bi bi-person me-1"></i>Subjective (Patient Reports)
+                </div>
+                <p style="font-size:.9rem;">{{ note.subjective }}</p>
+            </div>
+            {% endif %}
+            {% if note.objective %}
+            <div class="col-md-6">
+                <div class="fw-semibold text-muted mb-1" style="font-size:.78rem; text-transform:uppercase; letter-spacing:.05em;">
+                    <i class="bi bi-clipboard-pulse me-1"></i>Objective (Examination)
+                </div>
+                <p style="font-size:.9rem;">{{ note.objective }}</p>
+            </div>
+            {% endif %}
+            {% if note.assessment %}
+            <div class="col-md-6">
+                <div class="fw-semibold text-muted mb-1" style="font-size:.78rem; text-transform:uppercase; letter-spacing:.05em;">
+                    <i class="bi bi-diagram-3 me-1"></i>Assessment (Diagnosis)
+                </div>
+                <p style="font-size:.9rem;">{{ note.assessment }}</p>
+            </div>
+            {% endif %}
+            {% if note.plan %}
+            <div class="col-md-6">
+                <div class="fw-semibold text-muted mb-1" style="font-size:.78rem; text-transform:uppercase; letter-spacing:.05em;">
+                    <i class="bi bi-list-check me-1"></i>Plan (Treatment)
+                </div>
+                <p style="font-size:.9rem;">{{ note.plan }}</p>
+            </div>
+            {% endif %}
+            {% if note.notes %}
+            <div class="col-12">
+                <div class="fw-semibold text-muted mb-1" style="font-size:.78rem; text-transform:uppercase; letter-spacing:.05em;">
+                    <i class="bi bi-chat-text me-1"></i>Additional Notes
+                </div>
+                <p style="font-size:.9rem;" class="mb-0">{{ note.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+    <div class="p-5 text-center text-muted">
+        <i class="bi bi-journal-medical" style="font-size:2.5rem;"></i>
+        <p class="mt-3">{{ t.empty_consultation }}</p>
+        <a href="/patients/{{ patient.id }}/notes/new" class="btn btn-primary btn-sm">
+            Add First Note
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

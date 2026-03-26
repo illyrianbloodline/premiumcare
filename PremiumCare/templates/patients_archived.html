@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-archive me-2 text-secondary"></i>Archived Patients
+        <span class="badge bg-secondary ms-2">{{ patients|length }}</span>
+    </h5>
+    <a href="{{ '/patients' }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Active Patients
+    </a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        {% if patients %}
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">{{ t.th_name }}</th><th>{{ t.th_dob }}</th><th>{{ t.misc_phone }}</th>
+                <th class="text-end pe-3">{{ t.th_actions }}</th>
+            </tr></thead>
+            <tbody>
+            {% for p in patients %}
+            <tr class="text-muted">
+                <td class="ps-3">
+                    <i class="bi bi-archive me-1" style="font-size:.8rem;"></i>
+                    {{ p.last_name }}, {{ p.first_name }}
+                </td>
+                <td style="font-size:.85rem;">{{ p.dob.strftime('%d %b %Y') if p.dob else '—' }}</td>
+                <td style="font-size:.85rem;">{{ p.phone or '—' }}</td>
+                <td class="text-end pe-3">
+                    <form method="POST" action="{{ '/patients/' + (p.id)|string + '/unarchive' }}" class="d-inline">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-success me-1" title="Unarchive / Reactivate">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Unarchive
+                        </button>
+                    </form>
+                    <a href="{{ '/patients/' + (p.id)|string }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-archive" style="font-size:2rem;"></i>
+            <p class="mt-2">{{ t.empty_archived }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

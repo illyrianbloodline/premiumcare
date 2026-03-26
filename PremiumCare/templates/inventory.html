@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Inventory{% endblock %}
+{% block page_title %}{{ t.page_inventory }}{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5 class="mb-0 fw-bold"><i class="bi bi-box-seam me-2 text-primary"></i>{{ t.page_inventory }}</h5>
+  <button class="btn btn-primary btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#addItemModal">
+    <i class="bi bi-plus me-1"></i>Shto Artikull
+  </button>
+</div>
+
+<!-- Low stock alerts -->
+{% set low_stock = items|selectattr('quantity','le',items|map(attribute='reorder_level')|first)|list %}
+{% for item in items if item.quantity <= item.reorder_level %}
+{% if loop.first %}
+<div class="alert border-0 mb-3" style="background:#fff7ed;border:1.5px solid #fed7aa !important;border-radius:12px;">
+  <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+  <strong>{{ t.misc_low_stock }}</strong>
+  {% for item in items if item.quantity <= item.reorder_level %}
+    {{ item.item_name }} ({{ item.quantity }} remaining){% if not loop.last %}, {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+{% endfor %}
+
+<div class="card border-0" style="border:1px solid #e8edf2 !important;">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0" style="font-size:.83rem;">
+      <thead><tr style="background:#f8fafc;font-size:.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;">
+        <th class="ps-4">{{ t.misc_item }}</th>
+        <th>{{ t.th_category }}</th>
+        <th class="text-center">{{ t.th_qty }}</th>
+        <th class="text-center">{{ t.th_reorder }}</th>
+        <th>{{ t.th_cpt }}</th>
+        <th>{{ t.th_unit_cost }}</th>
+        <th class="text-end pe-4">{{ t.th_actions }}</th>
+      </tr></thead>
+      <tbody>
+      {% for item in items %}
+      <tr {% if item.quantity <= item.reorder_level %}style="background:#fffbeb;"{% endif %}>
+        <td class="ps-4 fw-semibold">
+          {{ item.item_name }}
+          {% if item.quantity <= item.reorder_level %}
+          <i class="bi bi-exclamation-triangle-fill text-warning ms-1" style="font-size:.75rem;"></i>
+          {% endif %}
+        </td>
+        <td><span style="padding:2px 8px;border-radius:20px;font-size:.72rem;background:#f1f5f9;color:#475569;">{{ item.category or '—' }}</span></td>
+        <td class="text-center fw-bold {% if item.quantity <= item.reorder_level %}text-danger{% else %}text-success{% endif %}">
+          {{ item.quantity }} {{ item.unit or '' }}
+        </td>
+        <td class="text-center text-muted">{{ item.reorder_level }}</td>
+        <td style="font-family:monospace;color:#64748b;">{{ item.cpt_code or '—' }}</td>
+        <td>{% if item.unit_cost %}€{{ '%.2f'|format(item.unit_cost) }}{% else %}—{% endif %}</td>
+        <td class="text-end pe-4">
+          <div class="d-flex gap-2 justify-content-end">
+            <form method="POST" action="/inventory/{{ item.id }}/use" class="d-inline">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="qty" value="1">
+              <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Use 1 unit">
+                <i class="bi bi-dash"></i>
+              </button>
+            </form>
+            <button class="btn btn-sm btn-outline-primary py-0 px-2"
+                    onclick="editItem({{ item.id }}, '{{ item.item_name }}', '{{ item.category or '' }}', {{ item.quantity }}, '{{ item.unit or '' }}', {{ item.reorder_level }}, '{{ item.cpt_code or '' }}', {{ item.unit_cost or 0 }})">
+              <i class="bi bi-pencil"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="modalTitle">{{ t.h_add_item }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="/inventory/save" id="inventoryForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="item_id" id="itemId" value="">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.lbl_item_name }} *</label>
+              <input type="text" name="item_name" id="f-name" class="form-control" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.lbl_category }}</label>
+              <select name="category" id="f-cat" class="form-select">
+                <option>{{ t.opt_vax_cat }}</option><option>{{ t.opt_supplies }}</option>
+                <option>{{ t.opt_diagnostics }}</option><option>{{ t.opt_medications }}</option><option>{{ t.opt_equipment }}</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.lbl_unit }}</label>
+              <input type="text" name="unit" id="f-unit" class="form-control" placeholder="{{ t.ph_pack_unit }}">
+            </div>
+            <div class="col-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.lbl_quantity }}</label>
+              <input type="number" name="quantity" id="f-qty" class="form-control" min="0" value="0">
+            </div>
+            <div class="col-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.lbl_reorder }}</label>
+              <input type="number" name="reorder_level" id="f-reorder" class="form-control" min="0" value="5">
+            </div>
+            <div class="col-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.misc_unit_cost_eur }}</label>
+              <input type="number" name="unit_cost" id="f-cost" class="form-control" step="0.01" min="0">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">{{ t.th_cpt }}</label>
+              <input type="text" name="cpt_code" id="f-cpt" class="form-control" placeholder="{{ t.ph_cpt_code }}">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ t.btn_cancel }}</button>
+          <button type="submit" class="btn btn-primary fw-semibold">{{ t.btn_save }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function editItem(id, name, cat, qty, unit, reorder, cpt, cost) {
+  document.getElementById('modalTitle').textContent = 'Ndrysho Artikullin';
+  document.getElementById('itemId').value = id;
+  document.getElementById('f-name').value = name;
+  document.getElementById('f-cat').value  = cat;
+  document.getElementById('f-qty').value  = qty;
+  document.getElementById('f-unit').value = unit;
+  document.getElementById('f-reorder').value = reorder;
+  document.getElementById('f-cpt').value  = cpt;
+  document.getElementById('f-cost').value = cost || '';
+  new bootstrap.Modal(document.getElementById('addItemModal')).show();
+}
+</script>
+{% endblock %}

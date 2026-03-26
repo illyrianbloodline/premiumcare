@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-bank me-2 text-info"></i>{{ t.h_daily_banking }}</h5>
+    <div class="d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print">
+            <i class="bi bi-printer me-1"></i>Print
+        </button>
+        <a href="{{ '/reports' }}" class="btn btn-outline-secondary btn-sm no-print">
+            <i class="bi bi-arrow-left me-1"></i>Reports
+        </a>
+    </div>
+</div>
+<div class="row g-3 mb-3 no-print">
+    <div class="col-12">
+        <form method="GET" class="d-flex gap-2 align-items-end">
+            <div><label class="form-label mb-1" style="font-size:.8rem;">{{ t.cn_field_date }}</label>
+                <input type="date" name="date" class="form-control form-control-sm" value="{{ report_date }}"></div>
+            <button type="submit" class="btn btn-info btn-sm text-white">{{ t.btn_update }}</button>
+        </form>
+    </div>
+</div>
+{% if rows %}
+<div class="row g-3 mb-3">
+    <div class="col-sm-6">
+        <div class="stat-card" style="background:linear-gradient(135deg,#198754,#0f6640);">
+            <div class="stat-num">€{{ "%.2f"|format(total) }}</div>
+            <div class="stat-label">Total Banking — {{ report_date }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <div class="stat-card" style="background:linear-gradient(135deg,#2d6fd4,#1a5abf);">
+            <div class="stat-num">{{ rows|length }}</div>
+            <div class="stat-label">{{ t.misc_transactions }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+<div class="card">
+    <div class="card-header fw-semibold">Payments Received — {{ report_date }}</div>
+    <div class="card-body p-0">
+        {% if rows %}
+        <table class="table table-hover mb-0" style="font-size:.87rem;">
+            <thead><tr>
+                <th class="ps-3">{{ t.th_patient }}</th><th>{{ t.th_doctor }}</th>
+                <th>{{ t.th_invoice_date }}</th><th class="text-end pe-3">{{ t.th_amount }}</th>
+            </tr></thead>
+            <tbody>
+            {% for r in rows %}
+            <tr>
+                <td class="ps-3 fw-semibold">{{ r.patient_name }}</td>
+                <td class="text-muted">{{ r.doctor_name or '—' }}</td>
+                <td>{{ r.invoice_date.strftime('%d %b %Y') if r.invoice_date else '—' }}</td>
+                <td class="text-end pe-3 fw-semibold text-success">€{{ "%.2f"|format(r.amount_paid or 0) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <td colspan="3" class="ps-3 fw-bold">{{ t.misc_total_banking }}</td>
+                    <td class="text-end pe-3 fw-bold text-success">€{{ "%.2f"|format(total) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-bank" style="font-size:2rem;"></i>
+            <p class="mt-2">No payments recorded for {{ report_date }}.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

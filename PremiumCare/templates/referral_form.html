@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-envelope-paper me-2 text-warning"></i>{{ t.h_new_referral }}</h5>
+    <a href="{{ '/patients/' + (patient.id)|string + '/referrals' }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+    </a>
+</div>
+<div class="card" style="max-width:700px;">
+    <div class="card-body">
+        <div class="alert alert-light border mb-3" style="font-size:.88rem;">
+            <i class="bi bi-person-circle me-2 text-primary"></i>
+            <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+            {% if patient.dob %} · DOB: {{ patient.dob.strftime('%d %b %Y') }}{% endif %}
+        </div>
+        <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ t.lbl_referred_to }} *</label>
+                    <input type="text" name="referred_to" class="form-control" required
+                           placeholder="{{ t.ph_referral_to }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ t.lbl_specialty }}</label>
+                    <input type="text" name="specialty" class="form-control" list="spec-list"
+                           placeholder="{{ t.ph_specialty }}">
+                    <datalist id="spec-list">
+                        <option>{{ t.opt_cardiology }}</option><option>{{ t.opt_neurology }}</option>
+                        <option>{{ t.opt_ortho }}</option><option>{{ t.opt_oncology }}</option>
+                        <option>{{ t.opt_gastro }}</option><option>{{ t.opt_derm }}</option>
+                        <option>{{ t.opt_psych }}</option><option>{{ t.opt_ophthal }}</option>
+                        <option>ENT</option><option>{{ t.opt_urology }}</option>
+                    </datalist>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.lbl_urgency }}</label>
+                    <select name="urgency" class="form-select">
+                        <option value="routine" selected>{{ t.opt_routine }}<option>
+                        <option value="soon">{{ t.opt_soon }}</option>
+                        <option value="urgent">{{ t.opt_urgent }}</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.th_status }}</label>
+                    <select name="status" class="form-select">
+                        <option value="draft" selected>{{ t.opt_draft }}<option>
+                        <option value="sent">{{ t.opt_sent }}</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">{{ t.lbl_ref_reason }} *</label>
+                    <textarea name="reason" class="form-control" rows="3" required
+                              placeholder="{{ t.ph_referral_reason }}"></textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">{{ t.lbl_letter }}</label>
+                    <textarea name="letter_content" class="form-control" rows="6"
+                              placeholder="{{ t.ph_letter }}">Dear Colleague,
+
+I am referring {{ patient.first_name }} {{ patient.last_name }}{% if patient.dob %}, born {{ patient.dob.strftime('%d %b %Y') }}{% endif %}, for your assessment.
+
+{% if patient.medical_history %}Relevant history: {{ patient.medical_history }}{% endif %}
+
+{% if patient.medications %}Current medications: {{ patient.medications }}{% endif %}
+
+{% if patient.drug_allergies %}Allergies: {{ patient.drug_allergies }}{% endif %}
+
+Thank you for seeing this patient.
+
+Yours sincerely,
+Dr. {{ doctor.name }}{% if doctor.specialty %} ({{ doctor.specialty }}){% endif %}</textarea>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Save & Preview
+                    </button>
+                    <a href="{{ '/patients/' + (patient.id)|string + '/referrals' }}" class="btn btn-outline-secondary">{{ t.cancel }}</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

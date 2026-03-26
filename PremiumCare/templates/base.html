@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ practice_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+  :root { --sb-w: 256px; }
+  * { box-sizing:border-box; }
+  body { background:#f0f4f8; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; margin:0; }
+
+  #sidebar {
+    position:fixed; top:0; left:0; z-index:1000;
+    width:var(--sb-w); height:100vh;
+    background:#0c1a2e;
+    display:flex; flex-direction:column;
+    border-right:1px solid rgba(255,255,255,.04);
+    overflow:hidden;
+    overscroll-behavior:contain;
+  }
+  .sb-brand {
+    height:58px; flex-shrink:0;
+    display:flex; align-items:center; gap:11px;
+    padding:0 16px;
+    border-bottom:1px solid rgba(255,255,255,.05);
+    overflow:hidden;
+  }
+  .sb-icon {
+    width:34px; height:34px; border-radius:9px; flex-shrink:0;
+    background:linear-gradient(135deg,#2d6fd4,#1a2942);
+    display:flex; align-items:center; justify-content:center;
+    font-size:.95rem; color:#fff;
+  }
+  .sb-name { font-size:.88rem; font-weight:800; color:#fff; flex:1; white-space:nowrap; overflow:hidden; }
+  .sb-scroll {
+    flex:1; overflow-y:auto; overflow-x:hidden;
+    overscroll-behavior:contain;
+    padding:10px 0 6px; scrollbar-width:none;
+  }
+  .sb-scroll::-webkit-scrollbar { display:none; }
+  .sb-sect {
+    padding:14px 16px 4px; font-size:.58rem; font-weight:800;
+    text-transform:uppercase; letter-spacing:.12em; color:#243a52;
+  }
+  .sb-divider { display:none; }
+  .sb-a {
+    display:flex; align-items:center; gap:11px;
+    padding:9px 14px; margin:1px 8px;
+    color:#6b8fac; text-decoration:none;
+    font-size:.82rem; font-weight:500;
+    border-radius:8px;
+    transition:background .12s, color .12s;
+    white-space:nowrap; position:relative;
+  }
+  .sb-a .sb-ico { width:20px; height:20px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1rem; }
+  .sb-a .sb-lbl { flex:1; }
+  .sb-a .sb-cnt { font-size:.6rem; font-weight:800; padding:1px 6px; border-radius:20px; flex-shrink:0; }
+  .sb-cnt-red  { background:#ef4444; color:#fff; }
+  .sb-cnt-blue { background:#3b82f6; color:#fff; }
+  .sb-a:hover { background:rgba(45,111,212,.12); color:#c5d8f0; }
+  .sb-a.on    { background:rgba(45,111,212,.18); color:#fff; font-weight:600; }
+  .sb-a.on .sb-ico i { color:#60a5fa; }
+  .sb-a.ai    { margin:4px 8px; background:linear-gradient(135deg,#4c1d95,#6d28d9); color:#e9d5ff; }
+  .sb-a.ai:hover { background:linear-gradient(135deg,#5b21b6,#7c3aed); color:#fff; }
+  .sb-a.ai.on    { background:linear-gradient(135deg,#5b21b6,#7c3aed); color:#fff; }
+  .sb-foot { flex-shrink:0; padding:6px 0 4px; border-top:1px solid rgba(255,255,255,.05); }
+  .sb-who { padding:6px 16px 8px; font-size:.7rem; color:#3d5a72; }
+  .sb-who strong { color:#8bafc8; }
+  #main { margin-left:var(--sb-w); min-height:100vh; }
+
+  /* ── Collapse toggle ── */
+  .sb-collapse-btn {
+    width:28px; height:28px; border-radius:7px; border:none;
+    background:rgba(255,255,255,.07); color:#6b8fac;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:all .15s; flex-shrink:0; margin-left:auto;
+    font-size:.85rem;
+  }
+  .sb-collapse-btn:hover { background:rgba(255,255,255,.15); color:#fff; }
+
+  /* Collapsed state */
+  body.sb-collapsed { --sb-w: 68px; }
+  body.sb-collapsed .sb-name,
+  body.sb-collapsed .sb-lbl,
+  body.sb-collapsed .sb-sect,
+  body.sb-collapsed .sb-who,
+  body.sb-collapsed .sb-cnt { display:none !important; }
+  body.sb-collapsed .sb-a { justify-content:center; padding:9px 0; margin:1px 8px; }
+  body.sb-collapsed .sb-a .sb-ico { width:24px; height:24px; font-size:1.1rem; }
+  body.sb-collapsed .sb-brand { justify-content:center; padding:0 12px; }
+  body.sb-collapsed .sb-icon { margin:0 auto; }
+  body.sb-collapsed .sb-collapse-btn i { transform:rotate(180deg); }
+  body.sb-collapsed .sb-foot { padding:6px 4px 4px; }
+  body.sb-collapsed .sb-foot .sb-a { margin:1px 4px; }
+
+  /* Tooltip on hover when collapsed */
+  body.sb-collapsed .sb-a { position:relative; }
+  body.sb-collapsed .sb-a:hover::after {
+    content: attr(data-tip);
+    position:absolute; left:calc(100% + 10px); top:50%; transform:translateY(-50%);
+    background:#1e293b; color:#fff; font-size:.75rem; font-weight:600;
+    padding:5px 10px; border-radius:7px; white-space:nowrap;
+    pointer-events:none; z-index:9999;
+    box-shadow:0 4px 12px rgba(0,0,0,.3);
+  }
+  body.sb-collapsed .sb-a:hover::before {
+    content:'';
+    position:absolute; left:calc(100% + 6px); top:50%; transform:translateY(-50%);
+    border:4px solid transparent; border-right-color:#1e293b;
+    pointer-events:none; z-index:9999;
+  }
+  .topbar {
+    background:#fff; border-bottom:1px solid #e2e8f0;
+    padding:0 24px; height:54px;
+    display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:100;
+  }
+  .content-area { padding:20px 24px; }
+  .card { border:1px solid #e2e8f0; border-radius:10px; }
+  .card-header { border-bottom:1px solid #e2e8f0; background:#f8fafc; }
+  .stat-card { border-radius:12px; padding:18px 20px; color:#fff; border:none; }
+  .stat-card .stat-number { font-size:1.8rem; font-weight:700; line-height:1; }
+  .stat-card .stat-label  { font-size:.78rem; opacity:.85; margin-top:4px; }
+  .stat-card .stat-icon   { font-size:2rem; opacity:.35; }
+  .alert { border-radius:8px; }
+  .table th { font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:#6c757d; font-weight:600; border-bottom:2px solid #e2e8f0; }
+  .table td { font-size:.875rem; vertical-align:middle; }
+  .badge { font-weight:500; }
+  </style>
+    {% block extra_head %}{% endblock %}
+<style>
+{% set s = practice_settings %}
+
+{# ── LOCALE LOOKUP — reads country_code from practice_settings, no Python changes needed ── #}
+{% set _cc = s.get('country_code','XK') %}
+{% set _locales = {
+  'XK': {
+    'flag': '🇽🇰', 'name': 'Kosovë',
+    'currency_symbol': '€', 'currency_name': 'Euro', 'currency_code': 'EUR',
+    'phone_code': '+383', 'phone_placeholder': '044 123 456',
+    'id_name': 'Numri Personal', 'id_placeholder': '1234567890', 'id_format': '10 shifra',
+    'insurance_name': 'Numri i Sigurimit', 'insurance_placeholder': 'KS-1234567',
+    'postal_name': 'Kodi Postar', 'postal_placeholder': '10000',
+    'date_format': 'DD/MM/YYYY',
+    'decimal_sep': ',', 'thousands_sep': '.',
+    'emergency_ambulance': '194', 'emergency_police': '192', 'emergency_general': '112',
+    'healthcare': 'FSDSK',
+    'cities': 'Prishtinë, Prizren, Ferizaj, Pejë, Gjakovë, Mitrovicë, Gjilan'
+  },
+  'AL': {
+    'flag': '🇦🇱', 'name': 'Shqipëri',
+    'currency_symbol': 'L', 'currency_name': 'Lek Shqiptar', 'currency_code': 'ALL',
+    'phone_code': '+355', 'phone_placeholder': '069 123 4567',
+    'id_name': 'Numri i Identitetit', 'id_placeholder': 'A12345678B', 'id_format': 'Shkronjë + 8 shifra + shkronjë',
+    'insurance_name': 'Numri i Sigurimit Shoqëror', 'insurance_placeholder': '123-456-789-0',
+    'postal_name': 'Kodi Postar', 'postal_placeholder': '1001',
+    'date_format': 'DD.MM.YYYY',
+    'decimal_sep': ',', 'thousands_sep': ' ',
+    'emergency_ambulance': '127', 'emergency_police': '129', 'emergency_general': '112',
+    'healthcare': 'ISSH',
+    'cities': 'Tiranë, Durrës, Vlorë, Shkodër, Elbasan, Fier, Korçë, Berat'
+  },
+  'MK': {
+    'flag': '🇲🇰', 'name': 'Maqedoni e Veriut',
+    'currency_symbol': 'ден', 'currency_name': 'Denar Maqedonas', 'currency_code': 'MKD',
+    'phone_code': '+389', 'phone_placeholder': '070 123 456',
+    'id_name': 'Numri Amë (EMBG)', 'id_placeholder': '2807993450058', 'id_format': '13 shifra',
+    'insurance_name': 'Numri i Sigurimit Shëndetësor', 'insurance_placeholder': '1234567890',
+    'postal_name': 'Kodi Postar', 'postal_placeholder': '1000',
+    'date_format': 'DD.MM.YYYY',
+    'decimal_sep': ',', 'thousands_sep': '.',
+    'emergency_ambulance': '194', 'emergency_police': '192', 'emergency_general': '112',
+    'healthcare': 'FZOM',
+    'cities': 'Shkup, Tetovë, Gostivar, Kumanovë, Manastir, Ohër, Strumicë, Veles'
+  }
+} %}
+{% set locale = _locales.get(_cc, _locales['XK']) %}
+:root {
+  --brand-primary: {{ practice_settings.get('primary_color','#2d6fd4') }};
+  --brand-accent:  {{ practice_settings.get('accent_color','#1a3570') }};
+  --brand-sidebar: {{ practice_settings.get('sidebar_color','#0c1a2e') }};
+  --brand-font:    {{ s.get('font_family','system-ui') }};
+}
+.sb-nav { background: var(--brand-sidebar) !important; }
+.sb-a:hover, .sb-a.on { color: var(--brand-primary) !important; }
+body { font-family: var(--brand-font), sans-serif; }
+/* ── Brand color propagation — overrides Bootstrap 5 ── */
+:root {
+  --bs-primary: var(--brand-primary);
+  --bs-primary-rgb: 45,111,212;
+  --bs-link-color: var(--brand-primary);
+  --bs-link-hover-color: var(--brand-accent);
+}
+.btn-primary {
+  --bs-btn-bg: var(--brand-primary);
+  --bs-btn-border-color: var(--brand-primary);
+  --bs-btn-hover-bg: var(--brand-accent);
+  --bs-btn-hover-border-color: var(--brand-accent);
+  --bs-btn-active-bg: var(--brand-accent);
+  --bs-btn-disabled-bg: var(--brand-primary);
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--brand-primary);
+  --bs-btn-border-color: var(--brand-primary);
+  --bs-btn-hover-bg: var(--brand-primary);
+  --bs-btn-hover-border-color: var(--brand-primary);
+  --bs-btn-active-bg: var(--brand-primary);
+}
+.text-primary { color: var(--brand-primary) !important; }
+.bg-primary { background-color: var(--brand-primary) !important; }
+.border-primary { border-color: var(--brand-primary) !important; }
+.form-check-input:checked { background-color: var(--brand-primary) !important; border-color: var(--brand-primary) !important; }
+.pt-tab.active { border-bottom-color: var(--brand-primary) !important; color: var(--brand-primary) !important; }
+a:not(.btn):not(.sb-a):not(.nav-link):not([class*="text-"]) { color: var(--brand-primary); }
+</style>
+  <script>
+  /* Browser fingerprint — feeds security.get_client_fingerprint() */
+  (function(){
+    'use strict';
+    async function buildFp() {
+      var p=[];
+      p.push(navigator.userAgent||'');
+      p.push(navigator.language||'');
+      p.push(screen.width+'x'+screen.height+'x'+screen.colorDepth);
+      p.push(String(new Date().getTimezoneOffset()));
+      p.push(String(navigator.hardwareConcurrency||0));
+      try{
+        var c=document.createElement('canvas'),x=c.getContext('2d');
+        x.textBaseline='top';x.font='14px Arial';
+        x.fillStyle='#f60';x.fillRect(125,1,62,20);
+        x.fillStyle='#069';x.fillText('Med©',2,15);
+        p.push(c.toDataURL());
+      }catch(e){p.push('nc');}
+      try{
+        var gl=document.createElement('canvas').getContext('webgl');
+        if(gl){var ext=gl.getExtension('WEBGL_debug_renderer_info');
+          if(ext){p.push(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)||'');}}
+      }catch(e){}
+      try{
+        var raw=p.join('||');
+        var buf=new TextEncoder().encode(raw);
+        var h=await crypto.subtle.digest('SHA-256',buf);
+        var hex=Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');
+        document.cookie='__fp='+hex.slice(0,48)+';path=/;SameSite=Strict';
+      }catch(e){}
+    }
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded',buildFp);
+    }else{buildFp();}
+  })();
+  </script>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<script>
+// Auto-inject CSRF token into all fetch() calls to /api/* endpoints
+(function() {
+  var _csrf = document.querySelector('meta[name="csrf-token"]');
+  if (!_csrf) return;
+  var _token = _csrf.content;
+  var _origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    opts = opts || {};
+    if (typeof url === 'string' && url.startsWith('/api/') && opts.method && opts.method.toUpperCase() === 'POST') {
+      opts.headers = Object.assign({}, opts.headers || {}, {'X-CSRFToken': _token});
+    }
+    return _origFetch.apply(this, [url, opts]);
+  };
+})();
+</script>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<nav id="sidebar">
+
+  <!-- Brand + toggle -->
+  <div class="sb-brand">
+    {% if practice_settings.get('logo_filename') %}
+    <img src="/uploads/{{ practice_settings.logo_filename }}"
+         alt="{{ practice_name }}"
+         style="height:36px;width:auto;max-width:140px;object-fit:contain;border-radius:5px;">
+    {% else %}
+    <div class="sb-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+    <div class="sb-name">{{ practice_name }}</div>
+    {% endif %}
+    <button class="sb-collapse-btn" onclick="toggleSidebar()" title="Ngushto / Zgjero">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+  </div>
+
+  <div class="sb-scroll">
+
+    <!-- Overview -->
+    <div class="sb-sect">{{ t.nav_overview }}</div>
+    <div class="sb-divider"></div>
+
+    <a href="/" class="sb-a {% if request.path == '/' %}on{% endif %}"
+       data-tip="{{ t.nav_dashboard }}">
+      <span class="sb-ico"><i class="bi bi-speedometer2"></i></span>
+      <span class="sb-lbl">Paneli</span>
+    </a>
+    <a href="/team-chat" class="sb-a {% if request.path == '/team-chat' %}on{% endif %}"
+       data-tip="{{ t.nav_team_chat }}">
+      <span class="sb-ico"><i class="bi bi-chat-dots"></i></span>
+      <span class="sb-lbl">{{ t.nav_team_chat }}</span>
+    </a>
+    <a href="/inbox" class="sb-a {% if request.path.startswith('/inbox') %}on{% endif %}"
+       data-tip="{{ t.nav_inbox }}">
+      <span class="sb-ico"><i class="bi bi-envelope"></i></span>
+      <span class="sb-lbl">{{ t.nav_inbox }}</span>
+      {% if unread_count > 0 %}<span class="sb-cnt sb-cnt-red">{{ unread_count }}</span>{% endif %}
+    </a>
+
+    <!-- Clinical -->
+    {% if has_perm('patients_view') or has_perm('clinical') or has_perm('appointments') %}
+    <div class="sb-sect">{{ t.nav_clinical }}</div>
+    <div class="sb-divider"></div>
+
+    {% if has_perm('patients_view') %}
+    <a href="/patients" class="sb-a {% if request.path.startswith('/patients') and '/forms' not in request.path %}on{% endif %}"
+       data-tip="{{ t.nav_patients }}">
+      <span class="sb-ico"><i class="bi bi-people"></i></span>
+      <span class="sb-lbl">{{ t.nav_patients }}</span>
+    </a>
+    <a href="/forms" class="sb-a {% if request.path == '/forms' %}on{% endif %}"
+       data-tip="{{ t.nav_forms }}">
+      <span class="sb-ico"><i class="bi bi-file-earmark-check"></i></span>
+      <span class="sb-lbl">{{ t.nav_forms }}</span>
+    </a>
+
+
+    {% endif %}
+    {% if has_perm('appointments') %}
+    <a href="/calendar" class="sb-a {% if request.path.startswith('/calendar') %}on{% endif %}"
+       data-tip="{{ t.nav_calendar }}">
+      <span class="sb-ico"><i class="bi bi-calendar3"></i></span>
+      <span class="sb-lbl">Kalendari</span>
+    </a>
+    <a href="/waiting-room" class="sb-a {% if request.path in ('/waiting-room','/room-status') %}on{% endif %}"
+       data-tip="{{ t.nav_waiting_room }}">
+      <span class="sb-ico"><i class="bi bi-clock-history"></i></span>
+      <span class="sb-lbl">{{ t.nav_waiting_room }}</span>
+    </a>
+    {% endif %}
+    {% if has_perm('clinical') %}
+    <a href="/campaigns" class="sb-a {% if request.path.startswith('/campaigns') %}on{% endif %}"
+       data-tip="Mesazhe për Pacientët">
+      <span class="sb-ico"><i class="bi bi-megaphone-fill"></i></span>
+      <span class="sb-lbl">Mesazhe për Pacientët</span>
+    </a>
+    <a href="/tasks" class="sb-a {% if request.path.startswith('/tasks') %}on{% endif %}"
+       data-tip="{{ t.nav_tasks }}">
+      <span class="sb-ico"><i class="bi bi-check2-square"></i></span>
+      <span class="sb-lbl">{{ t.nav_tasks }}</span>
+      {% if pending_tasks > 0 %}<span class="sb-cnt sb-cnt-blue">{{ pending_tasks }}</span>{% endif %}
+    </a>
+    {% endif %}
+    {% endif %}
+
+    <!-- IA Tools -->
+    {% if has_perm('clinical') %}
+    <div class="sb-sect" style="color:#6d28d9;">{{ t.nav_group_ai }}</div>
+    <div class="sb-divider"></div>
+
+    <a href="/ai-assistant" class="sb-a ai {% if request.path == '/ai-assistant' %}on{% endif %}"
+       data-tip="{{ t.nav_ai_assistant }}">
+      <span class="sb-ico"><i class="bi bi-stars"></i></span>
+      <span class="sb-lbl">Asistenti AI</span>
+    </a>
+    {% endif %}
+
+    <!-- Finance -->
+    {% if has_perm('billing') %}
+    <div class="sb-sect">{{ t.nav_finance }}</div>
+    <div class="sb-divider"></div>
+
+    <a href="/inventory" class="sb-a {% if request.path.startswith('/inventory') %}on{% endif %}"
+       data-tip="{{ t.nav_inventory }}">
+      <span class="sb-ico"><i class="bi bi-box-seam"></i></span>
+      <span class="sb-lbl">{{ t.nav_inventory }}</span>
+    </a>
+    <a href="/billing" class="sb-a {% if request.path.startswith('/billing') %}on{% endif %}"
+       data-tip="{{ t.nav_billing }}">
+      <span class="sb-ico"><i class="bi bi-receipt"></i></span>
+      <span class="sb-lbl">{{ t.nav_billing }}</span>
+    </a>
+    <a href="/reports" class="sb-a {% if request.path.startswith('/reports') and not request.path.startswith('/reports/audit') %}on{% endif %}"
+       data-tip="{{ t.nav_reports }}">
+      <span class="sb-ico"><i class="bi bi-bar-chart-line"></i></span>
+      <span class="sb-lbl">{{ t.nav_reports }}</span>
+    </a>
+    {% endif %}
+
+    <!-- Administration -->
+    {% if has_perm('team_view') or has_perm('activity_log') %}
+    <div class="sb-sect">{{ t.nav_admin }}</div>
+    <div class="sb-divider"></div>
+
+    <a href="/address-book" class="sb-a {% if request.path.startswith('/address-book') %}on{% endif %}"
+       data-tip="{{ t.nav_address_book }}">
+      <span class="sb-ico"><i class="bi bi-book"></i></span>
+      <span class="sb-lbl">{{ t.nav_address_book }}</span>
+    </a>
+    {% if has_perm('team_view') %}
+    <a href="/team" class="sb-a {% if request.path.startswith('/team') %}on{% endif %}"
+       data-tip="{{ t.nav_team }}">
+      <span class="sb-ico"><i class="bi bi-person-badge"></i></span>
+      <span class="sb-lbl">Ekipi</span>
+    </a>
+    {% endif %}
+    {% if has_perm('activity_log') %}
+    <a href="/btg-log" class="sb-a {% if request.path == '/btg-log' %}on{% endif %}"
+       data-tip="{{ t.nav_btg_log }}">
+      <span class="sb-ico"><i class="bi bi-journal-text" style="color:#ef4444;"></i></span>
+      <span class="sb-lbl">{{ t.nav_btg_log }}</span>
+    </a>
+    <a href="/security-dashboard" class="sb-a {% if request.path == '/security-dashboard' %}on{% endif %}"
+       data-tip="Monitorimi i Sigurisë">
+      <span class="sb-ico"><i class="bi bi-activity" style="color:#f87171;"></i></span>
+      <span class="sb-lbl">Monitorimi</span>
+    </a>
+    {% endif %}
+    {% endif %}
+
+  </div><!-- /sb-scroll -->
+
+  <!-- Footer -->
+  <div class="sb-foot">
+    <div class="sb-who">
+      Hyrë si <strong>{{ user.name }}</strong>
+    </div>
+    <a href="/security-profile"
+       class="sb-a {% if request.path == '/security-profile' or request.path.startswith('/mfa') %}on{% endif %}"
+       data-tip="{{ t.nav_my_security }}">
+      <span class="sb-ico"><i class="bi bi-person-lock"></i></span>
+      <span class="sb-lbl">{{ t.nav_my_security }}</span>
+      {% if not session.get('mfa_verified') %}<span class="sb-cnt sb-cnt-red">!</span>{% endif %}
+    </a>
+    {% if session.get('role') == 'admin' %}
+    <a href="/settings" class="sb-a {% if request.path == '/settings' %}on{% endif %}"
+       data-tip="{{ t.get('nav_settings','Cilësimet') }}">
+      <span class="sb-ico"><i class="bi bi-gear"></i></span>
+      <span class="sb-lbl">{{ t.get('nav_settings','Cilësimet') }}</span>
+    </a>
+    {% endif %}
+    <a href="/logout" class="sb-a" data-tip="{{ t.nav_logout }}">
+      <span class="sb-ico"><i class="bi bi-box-arrow-left"></i></span>
+      <span class="sb-lbl">{{ t.nav_logout }}</span>
+    </a>
+  </div>
+
+</nav>
+<!-- ══ MAIN ══ -->
+<div id="main">
+  <div class="topbar">
+    <span style="font-size:1rem;font-weight:600;color:#1a2942;">{% block page_title %}{% endblock %}</span>
+    <span style="font-size:.82rem;color:#6c757d;">
+      <i class="bi bi-clock me-1"></i><span id="clock"></span>
+    </span>
+  </div>
+  <div class="content-area">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show py-2 mb-3">
+          {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ── Clock ── */
+function tick() {
+  var now = new Date();
+  var days   = ['Die','Hën','Mar','Mër','Enj','Pre','Sht'];
+  var months = ['Jan','Shk','Mar','Pri','Maj','Qer','Kor','Gus','Sht','Tet','Nën','Dhj'];
+  var day  = days[now.getDay()];
+  var mon  = months[now.getMonth()];
+  var date = now.getDate();
+  var hr   = String(now.getHours()).padStart(2,'0');
+  var mn   = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('clock').textContent = day + ' ' + date + ' ' + mon + ' ' + hr + ':' + mn;
+}
+tick(); setInterval(tick, 30000);
+
+/* Sidebar fixed-width */
+</script>
+{% block extra_js %}{% endblock %}
+<script>
+(function(){
+  // Restore state
+  if(localStorage.getItem('sb_collapsed')==='1') document.body.classList.add('sb-collapsed');
+})();
+function toggleSidebar(){
+  document.body.classList.toggle('sb-collapsed');
+  localStorage.setItem('sb_collapsed', document.body.classList.contains('sb-collapsed') ? '1' : '0');
+}
+</script>
+</body>
+</html>

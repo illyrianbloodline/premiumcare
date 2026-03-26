@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block page_title %}{{ t.nav_forms }}{% endblock %}
+
+{% block extra_head %}
+<style>
+:root{--ink:#0d1f2d;--mid:#334155;--soft:#64748b;--line:#e2e8f0;--fog:#f8fafc;--blue:#2d6fd4;--green:#059669;--amber:#d97706;--red:#dc2626;--purple:#7c3aed;}
+.pg-header{background:linear-gradient(135deg,#0c1a2e 0%,#1a3570 100%);border-radius:16px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:24px;position:relative;overflow:hidden;}
+.pg-header::after{content:'';position:absolute;top:-80px;right:-80px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none;}
+.pg-header-title{font-size:1.2rem;font-weight:800;color:#fff;display:flex;align-items:center;gap:10px;}
+.pg-header-sub{font-size:.78rem;color:rgba(255,255,255,.5);margin-top:3px;}
+.kpi-row{display:flex;gap:12px;}
+.kpi{text-align:center;padding:10px 18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:12px;min-width:72px;}
+.kpi-val{font-size:1.5rem;font-weight:800;color:#fff;line-height:1;}
+.kpi-lbl{font-size:.62rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;}
+.kpi.g .kpi-val{color:#4ade80;}.kpi.a .kpi-val{color:#fbbf24;}
+.pg-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin-bottom:24px;}
+.pg-tab{padding:11px 22px;font-size:.85rem;font-weight:700;color:var(--soft);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;display:flex;align-items:center;gap:8px;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;}
+.pg-tab:hover{color:var(--blue);}
+.pg-tab.on{color:var(--blue);border-bottom-color:var(--blue);}
+.pg-tab-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:.68rem;background:var(--line);color:var(--soft);font-weight:800;}
+.pg-tab.on .pg-tab-badge{background:#dbeafe;color:var(--blue);}
+.tab-pane{display:none;}.tab-pane.on{display:block;}
+.send-layout{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start;}
+@media(max-width:1100px){.send-layout{grid-template-columns:1fr;}}
+.send-panel{background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;position:sticky;top:80px;}
+.send-panel-hdr{padding:14px 18px;border-bottom:1.5px solid var(--line);font-weight:700;font-size:.85rem;color:var(--ink);display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#f8fafc,#fff);}
+.send-panel-body{padding:18px;}
+.tmpl-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;cursor:pointer;transition:all .12s;margin-bottom:6px;background:#fff;}
+.tmpl-item:hover{border-color:var(--blue);background:#f0f7ff;}
+.tmpl-item.active{border-color:var(--blue);background:#eff6ff;}
+.tmpl-dot{width:7px;height:7px;border-radius:50%;background:var(--line);flex-shrink:0;transition:background .12s;}
+.tmpl-item.active .tmpl-dot{background:var(--blue);}
+.tmpl-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;}
+.tmpl-name{font-size:.78rem;font-weight:600;color:var(--ink);flex:1;line-height:1.3;}
+.tmpl-tick{margin-left:auto;width:16px;height:16px;border-radius:50%;background:var(--blue);color:#fff;display:none;align-items:center;justify-content:center;font-size:.6rem;flex-shrink:0;}
+.tmpl-item.active .tmpl-tick{display:flex;}
+.pat-search{width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:9px;font-size:.82rem;outline:none;transition:border-color .15s;font-family:inherit;color:var(--ink);}
+.pat-search:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(45,111,212,.1);}
+.pat-dropdown{position:absolute;z-index:200;background:#fff;border:1.5px solid var(--line);border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;box-shadow:0 8px 28px rgba(0,0,0,.12);display:none;left:0;right:0;}
+.pat-opt{padding:9px 12px;font-size:.82rem;cursor:pointer;display:flex;align-items:center;gap:9px;}
+.pat-opt:hover{background:#f0f7ff;}
+.pat-av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#2d6fd4,#1a3570);color:#fff;font-size:.63rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pat-info-name{font-weight:600;color:var(--ink);}.pat-info-sub{font-size:.69rem;color:var(--soft);}
+.btn-send{width:100%;padding:11px;background:linear-gradient(135deg,#1a3570,#2d6fd4);color:#fff;border:none;border-radius:10px;font-size:.86rem;font-weight:700;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;}
+.btn-send:hover{opacity:.9;}
+.list-panel{background:#fff;border:1.5px solid var(--line);border-radius:14px;overflow:hidden;}
+.list-hdr{padding:14px 20px;border-bottom:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:linear-gradient(135deg,#f8fafc,#fff);}
+.filter-pills{display:flex;gap:6px;}
+.f-pill{padding:4px 13px;border-radius:20px;font-size:.72rem;font-weight:600;border:1.5px solid var(--line);text-decoration:none;transition:all .12s;color:var(--mid);background:#fff;}
+.f-pill:hover{border-color:var(--blue);color:var(--blue);}
+.f-pill.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+.search-box{padding:7px 11px;border:1.5px solid var(--line);border-radius:8px;font-size:.79rem;outline:none;font-family:inherit;width:190px;transition:border-color .15s;}
+.search-box:focus{border-color:var(--blue);}
+.f-row{display:grid;grid-template-columns:2fr 1.3fr 1fr 1fr auto;align-items:center;padding:13px 20px;border-bottom:1px solid #f8fafc;gap:14px;transition:background .1s;}
+.f-row:hover{background:#f8fafc;}.f-row:last-child{border-bottom:none;}
+.f-row-name{font-weight:600;font-size:.82rem;color:var(--ink);}
+.f-row-type{font-size:.69rem;color:var(--soft);margin-top:2px;}
+.f-row-pat{font-size:.81rem;color:var(--mid);display:flex;align-items:center;gap:7px;}
+.f-row-date{font-size:.77rem;color:var(--soft);}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.69rem;font-weight:700;}
+.badge-signed{background:#dcfce7;color:#14532d;}.badge-pending{background:#fef3c7;color:#92400e;}
+.f-btn{padding:5px 9px;border-radius:7px;font-size:.71rem;font-weight:600;border:1.5px solid var(--line);background:#fff;cursor:pointer;transition:all .12s;display:inline-flex;align-items:center;gap:4px;text-decoration:none;color:var(--mid);}
+.f-btn:hover{border-color:var(--blue);color:var(--blue);background:#f0f7ff;}
+.f-btn.del:hover{border-color:var(--red);color:var(--red);background:#fff1f2;}
+.f-btn.copy:hover{border-color:var(--green);color:var(--green);background:#f0fdf4;}
+.f-actions{display:flex;gap:5px;}
+.empty-state{padding:56px 24px;text-align:center;}
+.empty-icon{width:68px;height:68px;border-radius:16px;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);display:inline-flex;align-items:center;justify-content:center;font-size:1.6rem;margin-bottom:14px;}
+.f-row.hl{background:#fffbeb;animation:hl 3s ease forwards;}
+@keyframes hl{0%,30%{background:#fef9c3;}100%{background:transparent;}}
+.lib-section{margin-bottom:28px;}
+.lib-section-hd{font-size:.7rem;font-weight:800;color:var(--soft);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+.pdf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px;}
+.pdf-card{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;transition:all .14s;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.pdf-card:hover{border-color:#bfdbfe;box-shadow:0 4px 14px rgba(0,0,0,.09);transform:translateY(-2px);}
+.pdf-card-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;color:#fff;flex-shrink:0;}
+.pdf-card-name{font-size:.84rem;font-weight:700;color:#111827;}
+.pdf-card-sub{font-size:.71rem;color:#6b7280;margin-top:2px;}
+.pdf-dl-btn{margin-left:auto;flex-shrink:0;padding:7px 14px;background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:8px;font-size:.77rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;transition:all .12s;}
+.pdf-dl-btn:hover{background:#1d4ed8;color:#fff;border-color:#1d4ed8;}
+.upload-strip{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:20px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:10px;}
+.upload-strip-icon{width:44px;height:44px;border-radius:10px;background:#f5f3ff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--purple);flex-shrink:0;}
+#toast{position:fixed;bottom:22px;right:22px;background:#0d1f2d;color:#fff;padding:10px 18px;border-radius:10px;font-size:.81rem;display:none;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.25);}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set total  = forms|length %}
+{% set signed = forms|selectattr('status','eq','signed')|list|length %}
+{% set pending= forms|selectattr('status','eq','pending')|list|length %}
+
+<div class="pg-header">
+  <div>
+    <div class="pg-header-title"><i class="bi bi-file-earmark-check"></i>{{ t.nav_forms }}</div>
+    <div class="pg-header-sub">Dërgoni formularë për nënshkrim digjital ose shkarkoni PDF</div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-val">{{ total }}</div><div class="kpi-lbl">Gjithsej</div></div>
+    <div class="kpi g"><div class="kpi-val">{{ signed }}</div><div class="kpi-lbl">Nënshkruar</div></div>
+    <div class="kpi a"><div class="kpi-val">{{ pending }}</div><div class="kpi-lbl">Në Pritje</div></div>
+  </div>
+</div>
+
+<div class="pg-tabs">
+  <button class="pg-tab on" onclick="switchTab('digital',this)">
+    <i class="bi bi-send"></i> Formularet Digjitale
+    <span class="pg-tab-badge">{{ total }}</span>
+  </button>
+  <button class="pg-tab" onclick="switchTab('library',this)">
+    <i class="bi bi-file-earmark-pdf" style="color:#ef4444;"></i> Biblioteca PDF
+    <span class="pg-tab-badge">6</span>
+  </button>
+</div>
+
+<!-- TAB 1: Digital -->
+<div class="tab-pane on" id="tab-digital">
+  <div class="send-layout">
+    <div class="send-panel">
+      <div class="send-panel-hdr"><i class="bi bi-send-check" style="color:var(--blue);"></i> Dërgo Formular tek Pacienti</div>
+      <div class="send-panel-body">
+        {% set icons = {
+          'consent_general':    ('bi-file-medical','#eff6ff','#2d6fd4'),
+          'consent_privacy':    ('bi-shield-lock','#f0fdf4','#059669'),
+          'consent_telehealth': ('bi-camera-video','#faf5ff','#7c3aed'),
+          'consent_photo':      ('bi-camera','#fff7ed','#ea580c'),
+          'intake_new_patient': ('bi-person-plus','#f0f9ff','#0369a1'),
+          'consent_medication': ('bi-capsule','#fef3c7','#d97706'),
+        } %}
+        <div style="margin-bottom:14px;">
+          {% for key, tmpl in form_templates.items() %}
+          {% set ic = icons.get(key, ('bi-file-text','#f1f5f9','#64748b')) %}
+          <div class="tmpl-item {% if loop.first %}active{% endif %}" id="tmpl-{{ key }}" onclick="selectTmpl('{{ key }}','{{ tmpl.title|replace("'","\\'") }}')">
+            <div class="tmpl-dot"></div>
+            <div class="tmpl-icon" style="background:{{ ic[1] }};color:{{ ic[2] }};"><i class="bi {{ ic[0] }}"></i></div>
+            <span class="tmpl-name">{{ tmpl.title }}</span>
+            <div class="tmpl-tick"><i class="bi bi-check"></i></div>
+          </div>
+          {% endfor %}
+        </div>
+        <form method="POST" action="/forms/send" id="sendForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="form_type"  id="fType"  value="{{ form_templates.keys()|list|first }}">
+          <input type="hidden" name="form_title" id="fTitle" value="">
+          <input type="hidden" name="patient_id" id="fPid"   value="">
+          <label style="font-size:.72rem;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Pacienti *</label>
+          <div style="position:relative;">
+            <input type="text" id="patSearch" class="pat-search" placeholder="{{ t.ph_search_patient }}" autocomplete="off" oninput="filterPats(this.value)">
+            <div class="pat-dropdown" id="patDropdown">
+              {% for p in patients_list %}
+              {% set initials = (p.first_name[0]|upper) + (p.last_name[0]|upper) %}
+              <div class="pat-opt" onclick="selectPat('{{ p.id }}','{{ p.first_name }} {{ p.last_name }}')">
+                <div class="pat-av">{{ initials }}</div>
+                <div><div class="pat-info-name">{{ p.first_name }} {{ p.last_name }}</div>{% if p.dob %}<div class="pat-info-sub">{{ ((today - p.dob).days // 365) }} vjeç</div>{% endif %}</div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div id="patSelected" style="display:none;margin-top:6px;padding:6px 11px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;font-size:.79rem;font-weight:600;color:#166534;">
+            <i class="bi bi-check-circle me-1"></i><span id="patName"></span>
+          </div>
+          <div style="margin-top:14px;">
+            <button type="submit" class="btn-send"><i class="bi bi-send"></i> Gjenero Lidhjen e Nënshkrimit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="list-panel">
+      <div class="list-hdr">
+        <div style="display:flex;align-items:center;gap:8px;"><i class="bi bi-files" style="color:var(--blue);font-size:.95rem;"></i><span style="font-weight:700;font-size:.88rem;color:var(--ink);">Formularet e Dërguar</span></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div class="filter-pills">
+            <a href="/forms" class="f-pill {% if not status_filter %}on{% endif %}">Të gjitha</a>
+            <a href="/forms?status=pending" class="f-pill {% if status_filter=='pending' %}on{% endif %}">⏳ Në pritje</a>
+            <a href="/forms?status=signed"  class="f-pill {% if status_filter=='signed'  %}on{% endif %}">✓ Nënshkruar</a>
+          </div>
+          <form method="GET" action="/forms" style="display:flex;gap:6px;">
+            {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+            <input type="text" name="q" class="search-box" placeholder="Kërko..." value="{{ search }}">
+            <button type="submit" style="padding:7px 11px;background:var(--blue);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.79rem;"><i class="bi bi-search"></i></button>
+          </form>
+        </div>
+      </div>
+      {% if not forms %}
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div style="font-weight:700;font-size:.92rem;color:var(--ink);margin-bottom:6px;">Asnjë formular i dërguar ende</div>
+        <div style="font-size:.8rem;color:var(--soft);">Zgjidhni shabllonin majtas, gjeni pacientin dhe klikoni Gjenero.</div>
+      </div>
+      {% else %}
+      <div style="display:grid;grid-template-columns:2fr 1.3fr 1fr 1fr auto;padding:8px 20px;border-bottom:1.5px solid var(--line);gap:14px;">
+        {% for lbl in ['Formulari','Pacienti','Statusi','Data','Veprime'] %}
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--soft);">{{ lbl }}</div>
+        {% endfor %}
+      </div>
+      {% set hlid = request.args.get('highlight','') %}
+      {% for f in forms %}
+      <div class="f-row {% if hlid and f.id|string == hlid %}hl{% endif %}">
+        <div><div class="f-row-name">{{ f.form_title }}</div><div class="f-row-type">{{ f.form_type|replace('_',' ')|title }}</div></div>
+        <div class="f-row-pat">
+          <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#2d6fd4,#1a3570);color:#fff;font-size:.62rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">{{ (f.first_name[0]|upper) if f.first_name else '?' }}{{ (f.last_name[0]|upper) if f.last_name else '' }}</div>
+          <span style="font-size:.8rem;font-weight:600;color:var(--ink);">{{ f.first_name }} {{ f.last_name }}</span>
+        </div>
+        <div>
+          <span class="badge {% if f.status=='signed' %}badge-signed{% else %}badge-pending{% endif %}">
+            {% if f.status=='signed' %}<i class="bi bi-check-circle-fill"></i> Nënshkruar{% else %}<i class="bi bi-clock"></i> Në pritje{% endif %}
+          </span>
+        </div>
+        <div class="f-row-date">{{ f.created_at.strftime('%d/%m/%Y') }}{% if f.signed_at %}<div style="color:var(--green);font-size:.69rem;margin-top:2px;">✓ {{ f.signed_at.strftime('%d/%m/%Y') }}</div>{% endif %}</div>
+        <div class="f-actions">
+          {% if f.status=='pending' %}<button class="f-btn copy" onclick="copyLink('{{ request.host_url }}forms/{{ f.id }}/sign')"><i class="bi bi-link-45deg"></i> Linku</button>
+          {% else %}<a href="/forms/{{ f.id }}/sign" target="_blank" class="f-btn"><i class="bi bi-eye"></i></a>{% endif %}
+          <a href="/patients/{{ f.patient_id }}/forms" class="f-btn"><i class="bi bi-person"></i></a>
+          <form method="POST" action="/patients/{{ f.patient_id }}/forms/{{ f.id }}/delete" style="display:inline;" onsubmit="return confirm('Fshij këtë formular?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="f-btn del"><i class="bi bi-trash"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: PDF Library -->
+<div class="tab-pane" id="tab-library">
+  <div class="lib-section">
+    <div class="lib-section-hd"><i class="bi bi-star-fill" style="color:#f59e0b;"></i> Formularet Standarde të Klinikës</div>
+    <div class="pdf-grid">
+      {% for key,name,color,icon,desc in [
+        ('intake_new_patient','Formulari i Pacientit të Ri','#0369a1','bi-person-plus-fill','Plotësohet gjatë regjistrimit të pacientit të ri'),
+        ('consent_general','Pëlqim i Përgjithshëm','#059669','bi-shield-check','Autorizim për ekzaminim dhe trajtim'),
+        ('consent_privacy','Njoftim mbi Privatësinë','#7c3aed','bi-lock-fill','GDPR / konfidencialiteti i të dhënave'),
+        ('consent_telehealth','Pëlqim për Telehealth','#0891b2','bi-camera-video-fill','Konsultim online / video-vizitë'),
+        ('consent_photo','Fotografim / Imazhe Klinike','#d97706','bi-camera-fill','Dokumentim fotografik klinik'),
+        ('consent_medication','Pëlqim për Medikamentin','#dc2626','bi-capsule','Konfirmim i recetës dhe efekteve'),
+      ] %}
+      <div class="pdf-card">
+        <div class="pdf-card-icon" style="background:{{ color }};"><i class="bi {{ icon }}"></i></div>
+        <div style="flex:1;min-width:0;"><div class="pdf-card-name">{{ name }}</div><div class="pdf-card-sub">{{ desc }}</div></div>
+        <a href="/forms/pdf/{{ key }}" class="pdf-dl-btn"><i class="bi bi-download"></i> Shkarko</a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% if user.role=='admin' %}
+  <div class="lib-section">
+    <div class="lib-section-hd"><i class="bi bi-cloud-upload" style="color:var(--purple);"></i> Ngarko Formular të Klinikës Suaj</div>
+    <div class="upload-strip">
+      <div class="upload-strip-icon"><i class="bi bi-file-earmark-plus"></i></div>
+      <div style="flex:1;"><div style="font-weight:700;font-size:.88rem;color:#111827;margin-bottom:2px;">Shto formular të personalizuar</div><div style="font-size:.74rem;color:#6b7280;">Ngarkoni çdo formular PDF të klinikës suaj</div></div>
+      <form method="POST" action="/forms/upload" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="form_name" placeholder="Emri i formularit..." required style="padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.82rem;outline:none;min-width:180px;font-family:inherit;">
+        <label style="padding:8px 14px;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.81rem;font-weight:600;cursor:pointer;color:#374151;display:inline-flex;align-items:center;gap:6px;">
+          <i class="bi bi-paperclip"></i> Zgjidhni PDF
+          <input type="file" name="pdf_file" accept=".pdf" class="d-none" required>
+        </label>
+        <button type="submit" style="padding:8px 18px;background:var(--purple);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;"><i class="bi bi-upload me-1"></i>Ngarko</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div id="toast"><i class="bi bi-check-circle-fill me-2" style="color:#4ade80;"></i>Linku u kopjua!</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var allPatients={{ patients_list|tojson }};
+function switchTab(name,btn){
+  document.querySelectorAll('.pg-tab').forEach(function(b){b.classList.remove('on');});
+  document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('on');});
+  btn.classList.add('on');
+  document.getElementById('tab-'+name).classList.add('on');
+}
+function selectTmpl(key,title){
+  document.querySelectorAll('.tmpl-item').forEach(function(el){el.classList.remove('active');});
+  var el=document.getElementById('tmpl-'+key);if(el)el.classList.add('active');
+  document.getElementById('fType').value=key;document.getElementById('fTitle').value=title;
+}
+(function(){var first=document.querySelector('.tmpl-item');if(first){var key=first.id.replace('tmpl-','');var title=first.querySelector('.tmpl-name').textContent.trim();document.getElementById('fType').value=key;document.getElementById('fTitle').value=title;}})();
+function filterPats(q){
+  var dd=document.getElementById('patDropdown');var ql=q.toLowerCase().trim();
+  dd.querySelectorAll('.pat-opt').forEach(function(opt){var name=opt.querySelector('.pat-info-name').textContent.toLowerCase();opt.style.display=(!ql||name.includes(ql))?'':'none';});
+  dd.style.display=q.length>0?'block':'none';
+}
+function selectPat(id,name){
+  document.getElementById('fPid').value=id;document.getElementById('patSearch').value=name;
+  document.getElementById('patDropdown').style.display='none';
+  document.getElementById('patSelected').style.display='flex';document.getElementById('patName').textContent=name;
+}
+document.addEventListener('click',function(e){if(!e.target.closest('#patSearch')&&!e.target.closest('#patDropdown'))document.getElementById('patDropdown').style.display='none';});
+function copyLink(url){navigator.clipboard.writeText(url).then(function(){var t=document.getElementById('toast');t.style.display='block';setTimeout(function(){t.style.display='none';},2400);}).catch(function(){prompt('Kopjoje lidhjen:',url);});}
+var hl=document.querySelector('.f-row.hl');if(hl)hl.scrollIntoView({behavior:'smooth',block:'center'});
+document.getElementById('sendForm').addEventListener('submit',function(e){if(!document.getElementById('fPid').value){e.preventDefault();document.getElementById('patSearch').style.borderColor='#dc2626';document.getElementById('patSearch').focus();}});
+</script>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-capsule-pill me-2 text-primary"></i>{{ t.h_new_rx }}</h5>
+    <a href="{{ '/patients/' + (patient.id)|string + '/prescriptions' }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+    </a>
+</div>
+<div class="card" style="max-width:700px;">
+    <div class="card-body">
+        <div class="alert alert-light border mb-3" style="font-size:.88rem;">
+            <i class="bi bi-person-circle me-2 text-primary"></i>
+            <strong>{{ patient.first_name }} {{ patient.last_name }}</strong>
+            {% if patient.drug_allergies %}
+            <span class="badge bg-danger ms-3"><i class="bi bi-exclamation-triangle me-1"></i>Allergies: {{ patient.drug_allergies }}</span>
+            {% endif %}
+        </div>
+        <form method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">{{ t.lbl_drug_name }} *</label>
+                    <input type="text" name="drug_name" class="form-control" required autofocus>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.lbl_route }}</label>
+                    <select name="route" class="form-select">
+                        <option>{{ t.opt_oral }}</option><option>{{ t.opt_topical }}</option>
+                        <option>IV</option><option>IM</option>
+                        <option>{{ t.opt_sublingual }}</option><option>{{ t.opt_inhaled }}</option>
+                        <option>{{ t.opt_other }}</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.lbl_dosage }}</label>
+                    <input type="text" name="dosage" class="form-control" placeholder="{{ t.ph_dosage }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.lbl_frequency }}</label>
+                    <select name="frequency" class="form-select">
+                        <option>{{ t.opt_once_daily }}</option><option>{{ t.opt_twice_daily }}</option>
+                        <option>{{ t.opt_tds }}</option><option>{{ t.opt_qds }}</option>
+                        <option>{{ t.opt_every4 }}</option><option>{{ t.opt_every6 }}</option>
+                        <option>{{ t.opt_every8 }}</option><option>{{ t.opt_prn }}</option>
+                        <option>{{ t.opt_weekly }}</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.lbl_repeats }}</label>
+                    <input type="number" name="repeats" class="form-control" value="0" min="0" max="12">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ t.lbl_start_date }}</label>
+                    <input type="date" name="start_date" class="form-control" value="{{ today }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ t.lbl_end_date }}</label>
+                    <input type="date" name="end_date" class="form-control">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">{{ t.lbl_instructions }}</label>
+                    <textarea name="instructions" class="form-control" rows="2"
+                              placeholder="{{ t.ph_rx_instructions }}"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.th_status }}</label>
+                    <select name="status" class="form-select">
+                        <option value="active" selected>{{ t.status_active }}<option>
+                        <option value="completed">{{ t.opt_completed }}</option>
+                        <option value="cancelled">{{ t.opt_cancelled }}</option>
+                    </select>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Issue Prescription
+                    </button>
+                    <a href="{{ '/patients/' + (patient.id)|string + '/prescriptions' }}" class="btn btn-outline-secondary">{{ t.cancel }}</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

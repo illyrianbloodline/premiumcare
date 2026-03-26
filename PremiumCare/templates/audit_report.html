@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Audit Security Report — {{ practice_name }}{% endblock %}
+{% block page_title %}Audit Report{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h5 class="mb-0 fw-bold"><i class="bi bi-file-earmark-lock2 me-2 text-danger"></i>{{ t.page_audit }}</h5>
+  <div class="d-flex gap-2">
+    <button onclick="window.print()" class="btn btn-sm btn-outline-secondary"><i class="bi bi-printer me-1"></i>{{ t.btn_print }}</button>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="card border-0 mb-4" style="border:1px solid #e8edf2 !important;">
+  <div class="card-body py-3 px-4">
+    <form method="GET" class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label style="font-size:.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px;">{{ t.lbl_period }}</label>
+        <select name="days" class="form-select form-select-sm" style="width:140px;">
+          <option value="7"  {% if days==7  %}selected{% endif %}>{{ t.misc_last7 }}<option>
+          <option value="30" {% if days==30 %}selected{% endif %}>{{ t.misc_last30 }}<option>
+          <option value="90" {% if days==90 %}selected{% endif %}>{{ t.misc_last90 }}<option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px;">{{ t.th_staff_member }}</label>
+        <select name="staff_id" class="form-select form-select-sm" style="width:200px;">
+          <option value="">{{ t.misc_all_staff }}<option>
+          {% for s in staff %}
+          <option value="{{ s.id }}" {% if filter_staff==s.id %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm fw-semibold">{{ t.btn_apply }}</button>
+    </form>
+  </div>
+</div>
+
+<!-- Summary table -->
+{% if summary %}
+<div class="card border-0 mb-4" style="border:1px solid #e8edf2 !important;">
+  <div class="card-header py-3 px-4" style="background:#f8fafc;">
+    <span class="fw-bold" style="font-size:.9rem;"><i class="bi bi-people me-2 text-primary"></i>Staff Activity Summary — Last {{ days }} days</span>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0" style="font-size:.83rem;">
+      <thead><tr>
+        <th class="ps-4">{{ t.th_staff_member }}</th><th>{{ t.th_role }}</th>
+        <th class="text-center">{{ t.th_total_actions }}</th>
+        <th class="text-center">{{ t.th_phi }}</th>
+        <th class="text-center">{{ t.th_security }}</th>
+        <th>{{ t.th_last_active }}</th>
+      </tr></thead>
+      <tbody>
+      {% for row in summary %}
+      <tr>
+        <td class="ps-4 fw-semibold">{{ row.name or 'System' }}</td>
+        <td><span class="badge {% if row.role=='admin' %}bg-danger{% elif row.role=='doctor' %}bg-primary{% elif row.role=='nurse' %}bg-success{% else %}bg-secondary{% endif %}">{{ row.role or '—' }}</span></td>
+        <td class="text-center">{{ row.total_actions }}</td>
+        <td class="text-center">
+          {% if row.phi_accesses > 0 %}
+          <span class="badge bg-warning text-dark">{{ row.phi_accesses }}</span>
+          {% else %}0{% endif %}
+        </td>
+        <td class="text-center">
+          {% if row.security_events > 0 %}
+          <span class="badge bg-danger">{{ row.security_events }}</span>
+          {% else %}0{% endif %}
+        </td>
+        <td style="color:#64748b;">{{ row.last_action.strftime('%d %b %H:%M') if row.last_action else '—' }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Full log -->
+<div class="card border-0" style="border:1px solid #e8edf2 !important;">
+  <div class="card-header py-3 px-4" style="background:#f8fafc;d-flex justify-content-between">
+    <span class="fw-bold" style="font-size:.9rem;"><i class="bi bi-list-ul me-2 text-secondary"></i>Full Event Log ({{ logs|length }} events)</span>
+  </div>
+  <div class="card-body p-0">
+    {% if logs %}
+    <table class="table table-hover mb-0" style="font-size:.8rem;">
+      <thead><tr>
+        <th class="ps-4">{{ t.th_timestamp }}</th><th>{{ t.th_staff_member }}</th><th>{{ t.th_action }}</th><th>{{ t.th_detail }}</th>
+      </tr></thead>
+      <tbody>
+      {% for log in logs %}
+      <tr {% if 'SECURITY' in (log.action or '') %}style="background:#fff5f5"{% elif 'PHI' in (log.action or '') %}style="background:#fffbeb"{% endif %}>
+        <td class="ps-4 text-muted" style="white-space:nowrap;font-family:monospace;font-size:.75rem;">
+          {{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}
+        </td>
+        <td style="white-space:nowrap;">
+          {% if log.staff_name %}
+          <div class="fw-semibold">{{ log.staff_name }}</div>
+          <div style="font-size:.7rem;color:#94a3b8;">{{ log.staff_role or '' }}</div>
+          {% else %}
+          <span style="color:#94a3b8;">{{ t.misc_system }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if 'SECURITY' in (log.action or '') %}
+          <span class="badge bg-danger" style="font-size:.68rem;">{{ log.action }}</span>
+          {% elif 'PHI' in (log.action or '') %}
+          <span class="badge bg-warning text-dark" style="font-size:.68rem;">{{ log.action }}</span>
+          {% else %}
+          <span style="color:#475569;">{{ log.action }}</span>
+          {% endif %}
+        </td>
+        <td style="color:#64748b;max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          {{ log.detail or '' }}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">{{ t.misc_no_data }}</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

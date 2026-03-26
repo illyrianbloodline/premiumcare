@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+{% block page_title %}{{ t.get('settings_title','Cilësimet') }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.stg-hero{
+  background:linear-gradient(135deg,#0c1a2e 0%,#1a3570 100%);
+  border-radius:16px;padding:24px 32px;margin-bottom:24px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  position:relative;overflow:hidden;
+}
+.stg-hero::after{
+  content:'';position:absolute;right:-50px;top:-50px;width:200px;height:200px;
+  border-radius:50%;background:rgba(255,255,255,.04);pointer-events:none;
+}
+.stg-hero-title{font-size:1.25rem;font-weight:800;color:#fff;}
+.stg-hero-sub{font-size:.78rem;color:rgba(255,255,255,.5);margin-top:3px;}
+
+.stg-grid{display:grid;grid-template-columns:280px 1fr;gap:22px;align-items:start;}
+@media (max-width:900px){.stg-grid{grid-template-columns:1fr;}}
+
+/* Left column sticky wrapper */
+.stg-left{
+  position:sticky;
+  top:80px;
+  align-self:start;
+  z-index:20;
+}
+@media (max-width:900px){
+  .stg-left{position:static;top:auto;}
+}
+
+/* Nav panel */
+.stg-nav{
+  background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;overflow:hidden;
+  box-shadow:0 8px 24px rgba(15,23,42,.06);
+  position:relative;z-index:3;
+}
+.stg-nav-hdr{
+  padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;
+  font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;
+}
+.stg-nav-item{
+  display:flex;align-items:center;gap:10px;padding:12px 18px;font-size:.83rem;font-weight:600;
+  color:#334155;cursor:pointer;transition:all .12s;border-left:3px solid transparent;text-decoration:none;
+}
+.stg-nav-item:hover{background:#f0f7ff;color:#2d6fd4;border-left-color:#2d6fd4;}
+.stg-nav-item.active{background:#eff6ff;color:#2d6fd4;border-left-color:#2d6fd4;}
+.stg-nav-item i{width:18px;text-align:center;font-size:.9rem;}
+
+/* Preview card under nav */
+.stg-side-preview{margin-top:16px;position:relative;z-index:2;}
+.stg-side-preview-label{
+  font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:8px;
+}
+.stg-panel,.stg-preview-card{
+  background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;overflow:hidden;
+}
+.stg-preview-card{box-shadow:0 8px 24px rgba(15,23,42,.06);}
+
+/* Content panels */
+.stg-panel{margin-bottom:20px;}
+.stg-panel-hdr{
+  padding:16px 22px;background:#f8fafc;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;gap:10px;
+}
+.stg-panel-title{font-weight:700;font-size:.9rem;color:#0d1f2d;}
+.stg-panel-sub{font-size:.75rem;color:#64748b;margin-top:2px;}
+.stg-panel-body{padding:22px;}
+
+.country-card{
+  border:2px solid #e2e8f0;border-radius:12px;padding:16px 12px;text-align:center;transition:all .15s;background:#fff;
+}
+.country-card:hover{border-color:#2d6fd4;background:#f8fbff;}
+.country-card.selected{border-color:#059669;background:#f0fdf4;}
+
+/* Logo upload zone */
+.logo-zone{
+  border:2px dashed #cbd5e1;border-radius:12px;padding:32px;text-align:center;cursor:pointer;
+  transition:all .15s;background:#f8fafc;position:relative;
+}
+.logo-zone:hover{border-color:#2d6fd4;background:#eff6ff;}
+.logo-zone.has-logo{border-style:solid;border-color:#bbf7d0;background:#f0fdf4;}
+.logo-preview{max-height:80px;max-width:240px;object-fit:contain;margin-bottom:10px;border-radius:6px;}
+
+/* Color picker row */
+.color-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.color-swatch{
+  width:44px;height:44px;border-radius:10px;border:2px solid #e2e8f0;cursor:pointer;overflow:hidden;position:relative;flex-shrink:0;
+}
+.color-swatch input[type=color]{width:100%;height:100%;cursor:pointer;border:none;padding:0;opacity:1;display:block;}
+.color-label{flex:1;}
+.color-label-name{font-size:.83rem;font-weight:600;color:#0d1f2d;}
+.color-label-sub{font-size:.72rem;color:#64748b;margin-top:1px;}
+.color-hex{
+  font-size:.78rem;font-family:monospace;color:#475569;font-weight:600;background:#f1f5f9;
+  padding:4px 10px;border-radius:7px;border:1px solid #e2e8f0;width:90px;
+}
+
+/* Preset themes */
+.theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.theme-card{
+  border:2px solid #e2e8f0;border-radius:10px;padding:12px 10px;cursor:pointer;text-align:center;transition:all .15s;
+}
+.theme-card:hover{border-color:#2d6fd4;transform:translateY(-1px);}
+.theme-card.selected{border-color:#2d6fd4;background:#eff6ff;}
+.theme-swatch{display:flex;gap:4px;justify-content:center;margin-bottom:8px;}
+.theme-dot{width:16px;height:16px;border-radius:50%;}
+.theme-name{font-size:.72rem;font-weight:700;color:#334155;}
+
+/* Font selector */
+.font-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.font-card{
+  border:2px solid #e2e8f0;border-radius:10px;padding:12px;cursor:pointer;transition:all .15s;text-align:center;
+}
+.font-card:hover{border-color:#2d6fd4;}
+.font-card.selected{border-color:#2d6fd4;background:#eff6ff;}
+.font-preview{font-size:1.1rem;font-weight:700;color:#0d1f2d;line-height:1;}
+.font-name{font-size:.68rem;color:#64748b;margin-top:4px;}
+
+/* Preview card */
+.brand-preview{
+  border-radius:12px;overflow:hidden;border:1.5px solid #e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,.08);
+}
+.preview-sidebar{
+  height:160px;padding:14px;display:flex;flex-direction:column;gap:8px;
+}
+.preview-item{height:10px;border-radius:5px;background:rgba(255,255,255,.25);}
+.preview-item.active{background:rgba(255,255,255,.6);width:70%;}
+
+/* Save button */
+.btn-save{
+  background:linear-gradient(135deg,#1a3570,#2d6fd4);color:#fff;border:none;border-radius:10px;
+  padding:11px 28px;font-size:.88rem;font-weight:700;cursor:pointer;transition:opacity .15s;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn-save:hover{opacity:.9;}
+
+@media (max-width:700px){
+  .theme-grid{grid-template-columns:repeat(2,1fr);}
+  .font-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width:560px){
+  .font-grid,.theme-grid{grid-template-columns:1fr;}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set s = settings %}
+
+<div class="stg-hero">
+  <div>
+    <div class="stg-hero-title"><i class="bi bi-gear-fill me-2" style="opacity:.7;"></i>{{ t.get('settings_title','Cilësimet') }}</div>
+    <div class="stg-hero-sub">Private label · Branding · Tema</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    {% if s.get('logo_filename') %}
+    <img src="/uploads/{{ s.logo_filename }}" alt="Logo" style="height:44px;width:auto;max-width:160px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,.1);padding:4px;">
+    {% else %}
+    <div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;">
+      <i class="bi bi-image" style="color:rgba(255,255,255,.5);font-size:1.2rem;"></i>
+    </div>
+    {% endif %}
+    <div>
+      <div style="font-size:.82rem;font-weight:700;color:#fff;">{{ s.get('practice_name', practice_name) }}</div>
+      <div style="font-size:.7rem;color:rgba(255,255,255,.5);">{{ t.get('misc_active','Active') }}</div>
+    </div>
+  </div>
+</div>
+
+<form method="POST" action="/settings" enctype="multipart/form-data" id="stgForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="stg-grid">
+
+    <!-- Left -->
+    <div class="stg-left">
+      <div class="stg-nav">
+        <div class="stg-nav-hdr">Navigim</div>
+        <a class="stg-nav-item active" href="#sec-branding" onclick="goToSection(event,'#sec-branding')">
+          <i class="bi bi-image"></i> {{ t.get('settings_branding','Marka & Logo') }}
+        </a>
+        <a class="stg-nav-item" href="#sec-colors" onclick="goToSection(event,'#sec-colors')">
+          <i class="bi bi-palette"></i> {{ t.get('settings_colors','Tema e Ngjyrave') }}
+        </a>
+        <a class="stg-nav-item" href="#sec-fonts" onclick="goToSection(event,'#sec-fonts')">
+          <i class="bi bi-type"></i> Fonti
+        </a>
+        <a class="stg-nav-item" href="#sec-locale" onclick="goToSection(event,'#sec-locale')">
+          <i class="bi bi-globe2"></i> Vendi & Monedha
+        </a>
+        <a class="stg-nav-item" href="#sec-preview" onclick="goToSection(event,'#sec-preview')">
+          <i class="bi bi-eye"></i> Pamja paraprake
+        </a>
+      </div>
+
+      <div class="stg-side-preview" id="sec-preview">
+        <div class="stg-side-preview-label">Pamja paraprake</div>
+        <div class="stg-preview-card">
+          <div class="brand-preview">
+            <div class="preview-sidebar" id="previewSidebar" style="background:{{ s.get('sidebar_color','#0c1a2e') }};">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                {% if s.get('logo_filename') %}
+                <img src="/uploads/{{ s.logo_filename }}" style="height:22px;width:auto;border-radius:3px;" id="previewLogo">
+                {% else %}
+                <div id="previewLogo" style="width:22px;height:22px;border-radius:50%;background:{{ s.get('primary_color','#2d6fd4') }};"></div>
+                {% endif %}
+                <div style="height:8px;width:80px;border-radius:4px;background:rgba(255,255,255,.3);"></div>
+              </div>
+              <div class="preview-item active" id="previewAccent" style="background:{{ s.get('primary_color','#2d6fd4') }};height:8px;border-radius:4px;width:70%;"></div>
+              <div class="preview-item"></div>
+              <div class="preview-item"></div>
+              <div class="preview-item"></div>
+            </div>
+            <div style="padding:12px;background:#f8fafc;">
+              <div style="height:8px;border-radius:4px;background:#e2e8f0;margin-bottom:6px;width:60%;"></div>
+              <div style="height:6px;border-radius:4px;background:#e2e8f0;width:80%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right -->
+    <div>
+
+      <div class="stg-panel" id="sec-branding">
+        <div class="stg-panel-hdr">
+          <i class="bi bi-image" style="color:#2d6fd4;font-size:1rem;"></i>
+          <div>
+            <div class="stg-panel-title">{{ t.get('settings_branding','Marka & Logo') }}</div>
+            <div class="stg-panel-sub">Ngarko logon e klinikës suaj</div>
+          </div>
+        </div>
+        <div class="stg-panel-body">
+
+          <div style="margin-bottom:20px;">
+            <label style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;display:block;margin-bottom:6px;">Emri i Praktikës</label>
+            <input type="text" name="practice_name" value="{{ s.get('practice_name', practice_name) }}"
+              style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;outline:none;font-family:inherit;color:#0d1f2d;transition:border-color .15s;"
+              onfocus="this.style.borderColor='#2d6fd4'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
+
+          <label style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;display:block;margin-bottom:8px;">Logo</label>
+
+          {% if s.get('logo_filename') %}
+          <div class="logo-zone has-logo" onclick="document.getElementById('logoInput').click()">
+            <img src="/uploads/{{ s.logo_filename }}" class="logo-preview" id="logoPreviewImg">
+            <div style="font-size:.78rem;color:#059669;font-weight:600;">✓ Logo e ngarkuar — kliko për ta ndryshuar</div>
+          </div>
+          <div style="margin-top:8px;">
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:.75rem;color:#dc2626;cursor:pointer;">
+              <input type="checkbox" name="remove_logo" value="1">
+              Hiq logon aktuale
+            </label>
+          </div>
+          {% else %}
+          <div class="logo-zone" id="logoZone" onclick="document.getElementById('logoInput').click()"
+               ondragover="event.preventDefault();this.style.borderColor='#2d6fd4';"
+               ondragleave="this.style.borderColor='#cbd5e1';"
+               ondrop="handleLogoDrop(event)">
+            <img id="logoPreviewImg" class="logo-preview" style="display:none;">
+            <i class="bi bi-cloud-arrow-up" style="font-size:2rem;color:#94a3b8;display:block;margin-bottom:10px;" id="logoUploadIcon"></i>
+            <div style="font-weight:700;font-size:.85rem;color:#334155;margin-bottom:4px;">Zvarrit logon këtu</div>
+            <div style="font-size:.75rem;color:#94a3b8;">SVG, PNG, JPG, WebP · Max 2MB</div>
+          </div>
+          {% endif %}
+
+          <input type="file" name="logo_file" id="logoInput" class="d-none" accept=".png,.jpg,.jpeg,.gif,.svg,.webp" onchange="previewLogo(this)">
+        </div>
+      </div>
+
+      <div class="stg-panel" id="sec-colors">
+        <div class="stg-panel-hdr">
+          <i class="bi bi-palette" style="color:#7c3aed;font-size:1rem;"></i>
+          <div>
+            <div class="stg-panel-title">{{ t.get('settings_colors','Tema e Ngjyrave') }}</div>
+            <div class="stg-panel-sub">Personalizoni ngjyrat e platformës</div>
+          </div>
+        </div>
+        <div class="stg-panel-body">
+
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:10px;">Tema të gatshme</div>
+          <div class="theme-grid">
+            {% set themes = [
+              ('Blu Klinik',  '#2d6fd4','#1a3570','#0c1a2e'),
+              ('Jeshile Mjek','#059669','#065f46','#0a2218'),
+              ('Vjollcë AI',  '#7c3aed','#4c1d95','#1a0a2e'),
+              ('Gri Steril',  '#475569','#1e293b','#0f172a'),
+              ('Kuq Urgjencë','#dc2626','#991b1b','#1a0505'),
+              ('Hiri Pastër', '#64748b','#334155','#1e293b'),
+              ('Petrol',      '#0891b2','#164e63','#082f3a'),
+              ('I errët',     '#334155','#1e293b','#0f172a'),
+            ] %}
+            {% for name, primary, accent, sidebar in themes %}
+            <div class="theme-card {% if s.get('primary_color') == primary %}selected{% endif %}" onclick="applyTheme('{{ primary }}','{{ accent }}','{{ sidebar }}',this,event)">
+              <div class="theme-swatch">
+                <div class="theme-dot" style="background:{{ sidebar }};"></div>
+                <div class="theme-dot" style="background:{{ accent }};"></div>
+                <div class="theme-dot" style="background:{{ primary }};"></div>
+              </div>
+              <div class="theme-name">{{ name }}</div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:14px;margin-top:4px;">Ngjyra të personalizuara</div>
+
+          {% for field, label, sub, default in [
+            ('primary_color', 'Ngjyra kryesore', 'Butonat, lidhjet aktive', '#2d6fd4'),
+            ('accent_color',  'Ngjyra plotësuese', 'Gradienti i sfondit', '#1a3570'),
+            ('sidebar_color', 'Ngjyra e shiritit anësor', 'Sfondi i navigimit', '#0c1a2e'),
+          ] %}
+          {% set current = s.get(field, default) %}
+          <div class="color-row">
+            <div class="color-swatch" id="swatch-{{ field }}">
+              <input type="color" name="{{ field }}" value="{{ current }}" id="color-{{ field }}" oninput="updateColor('{{ field }}', this.value)">
+            </div>
+            <div class="color-label">
+              <div class="color-label-name">{{ label }}</div>
+              <div class="color-label-sub">{{ sub }}</div>
+            </div>
+            <input type="text" class="color-hex" id="hex-{{ field }}" value="{{ current }}" onchange="syncHexToColor('{{ field }}', this.value)" maxlength="7">
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="stg-panel" id="sec-fonts">
+        <div class="stg-panel-hdr">
+          <i class="bi bi-type" style="color:#059669;font-size:1rem;"></i>
+          <div>
+            <div class="stg-panel-title">Fonti i Platformës</div>
+            <div class="stg-panel-sub">Zgjidhni fontin për ndërfaqen</div>
+          </div>
+        </div>
+        <div class="stg-panel-body">
+          <input type="hidden" name="font_family" id="fontInput" value="{{ s.get('font_family','system-ui') }}">
+          <div class="font-grid">
+            {% for font, label in [
+              ('system-ui', 'System'), ('Georgia','Georgia'),
+              ('Arial','Arial'), ('Verdana','Verdana'),
+              ('Trebuchet MS','Trebuchet'), ('Tahoma','Tahoma'),
+            ] %}
+            <div class="font-card {% if s.get('font_family','system-ui') == font %}selected{% endif %}" onclick="selectFont('{{ font }}', this, event)" style="font-family:'{{ font }}',sans-serif;">
+              <div class="font-preview">Aa</div>
+              <div class="font-name">{{ label }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="stg-panel" id="sec-locale">
+        <div class="stg-panel-hdr">
+          <div style="width:36px;height:36px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="bi bi-globe2" style="color:#059669;font-size:1rem;"></i>
+          </div>
+          <div>
+            <div class="stg-panel-title">Vendi & Monedha</div>
+            <div class="stg-panel-sub">Numri ID, kodi telefonit, monedha dhe formatimi</div>
+          </div>
+        </div>
+        <div class="stg-panel-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+            {% set cur_country = s.get('country_code','XK') %}
+
+            <label style="cursor:pointer;">
+              <input type="radio" name="country_code" value="XK" {% if cur_country == 'XK' %}checked{% endif %} style="display:none;" onchange="selectCountry(this.value)">
+              <div class="country-card {% if cur_country == 'XK' %}selected{% endif %}" id="cc-XK" onclick="this.previousElementSibling.checked=true;selectCountry('XK', event)">
+                <div style="font-size:2rem;margin-bottom:6px;">🇽🇰</div>
+                <div style="font-weight:700;font-size:.88rem;color:#0f172a;">Kosovë</div>
+                <div style="font-size:.72rem;color:#64748b;margin-top:3px;">€ Euro · +383</div>
+                <div style="font-size:.68rem;color:#94a3b8;margin-top:2px;">ID: 10 shifra</div>
+              </div>
+            </label>
+
+            <label style="cursor:pointer;">
+              <input type="radio" name="country_code" value="AL" {% if cur_country == 'AL' %}checked{% endif %} style="display:none;" onchange="selectCountry(this.value)">
+              <div class="country-card {% if cur_country == 'AL' %}selected{% endif %}" id="cc-AL" onclick="this.previousElementSibling.checked=true;selectCountry('AL', event)">
+                <div style="font-size:2rem;margin-bottom:6px;">🇦🇱</div>
+                <div style="font-weight:700;font-size:.88rem;color:#0f172a;">Shqipëri</div>
+                <div style="font-size:.72rem;color:#64748b;margin-top:3px;">L Lek · +355</div>
+                <div style="font-size:.68rem;color:#94a3b8;margin-top:2px;">ID: L+8+L</div>
+              </div>
+            </label>
+
+            <label style="cursor:pointer;">
+              <input type="radio" name="country_code" value="MK" {% if cur_country == 'MK' %}checked{% endif %} style="display:none;" onchange="selectCountry(this.value)">
+              <div class="country-card {% if cur_country == 'MK' %}selected{% endif %}" id="cc-MK" onclick="this.previousElementSibling.checked=true;selectCountry('MK', event)">
+                <div style="font-size:2rem;margin-bottom:6px;">🇲🇰</div>
+                <div style="font-weight:700;font-size:.88rem;color:#0f172a;">Maqedoni e Veriut</div>
+                <div style="font-size:.72rem;color:#64748b;margin-top:3px;">ден Denar · +389</div>
+                <div style="font-size:.68rem;color:#94a3b8;margin-top:2px;">ID: 13 shifra (EMBG)</div>
+              </div>
+            </label>
+          </div>
+
+          <div id="localePreview" style="margin-top:18px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px 20px;">
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8;margin-bottom:12px;">
+              <i class="bi bi-eye me-1"></i>Pamja paraprake — si do të shfaqen të dhënat
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;" id="localePreviewGrid">
+              {% set lp = locale %}
+              <div>
+                <div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Numri ID</div>
+                <div style="font-size:.84rem;font-weight:600;color:#0f172a;font-family:monospace;">{{ lp.id_placeholder }}</div>
+                <div style="font-size:.68rem;color:#64748b;">{{ lp.id_name }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Telefoni</div>
+                <div style="font-size:.84rem;font-weight:600;color:#0f172a;font-family:monospace;">{{ lp.phone_code }} {{ lp.phone_placeholder }}</div>
+                <div style="font-size:.68rem;color:#64748b;">Formati lokal</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Monedha</div>
+                <div style="font-size:.84rem;font-weight:600;color:#0f172a;">{{ lp.currency_symbol }} 1.234,00</div>
+                <div style="font-size:.68rem;color:#64748b;">{{ lp.currency_name }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Kodi Postar</div>
+                <div style="font-size:.84rem;font-weight:600;color:#0f172a;font-family:monospace;">{{ lp.postal_placeholder }}</div>
+                <div style="font-size:.68rem;color:#64748b;">{{ lp.postal_name }}</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Data</div>
+                <div style="font-size:.84rem;font-weight:600;color:#0f172a;font-family:monospace;">{{ lp.date_format }}</div>
+                <div style="font-size:.68rem;color:#64748b;">Formati i datës</div>
+              </div>
+              <div>
+                <div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Urgjenca</div>
+                <div style="font-size:.84rem;font-weight:600;color:#dc2626;font-family:monospace;">{{ lp.emergency_ambulance }}</div>
+                <div style="font-size:.68rem;color:#64748b;">Ambulanca</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px;">
+        <a href="/" style="padding:11px 20px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.85rem;font-weight:600;color:#64748b;text-decoration:none;">Anulo</a>
+        <button type="submit" class="btn-save"><i class="bi bi-check-circle"></i> Ruaj Cilësimet</button>
+      </div>
+
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function keepScroll(fn){
+  var x = window.scrollX || window.pageXOffset;
+  var y = window.scrollY || window.pageYOffset;
+
+  fn();
+
+  requestAnimationFrame(function(){
+    window.scrollTo(x, y);
+    requestAnimationFrame(function(){
+      window.scrollTo(x, y);
+    });
+  });
+}
+
+function noJump(e){
+  if(!e) return;
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function updateColor(field,val){
+  keepScroll(function(){
+    var hexEl=document.getElementById('hex-'+field);
+    if(hexEl) hexEl.value=val;
+
+    if(field==='sidebar_color'){
+      var ps=document.getElementById('previewSidebar');
+      if(ps) ps.style.background=val;
+    }
+    if(field==='primary_color'){
+      var pa=document.getElementById('previewAccent');
+      if(pa) pa.style.background=val;
+      var pl=document.getElementById('previewLogo');
+      if(pl && pl.tagName!=='IMG') pl.style.background=val;
+    }
+    document.documentElement.style.setProperty('--brand-'+field.replace('_color',''),val);
+  });
+}
+
+function syncHexToColor(field,val){
+  if(/^#[0-9a-fA-F]{6}$/.test(val)){
+    keepScroll(function(){
+      var picker=document.getElementById('color-'+field);
+      if(picker) picker.value=val;
+      updateColor(field,val);
+    });
+  }
+}
+
+function applyTheme(primary,accent,sidebar,el,e){
+  noJump(e);
+  keepScroll(function(){
+    ['primary_color','accent_color','sidebar_color'].forEach(function(f,i){
+      var val=[primary,accent,sidebar][i];
+      var inp=document.getElementById('color-'+f);
+      if(inp) inp.value=val;
+      updateColor(f,val);
+    });
+    document.querySelectorAll('.theme-card').forEach(function(c){c.classList.remove('selected');});
+    if(el) el.classList.add('selected');
+  });
+}
+
+function selectFont(font,el,e){
+  noJump(e);
+  keepScroll(function(){
+    document.getElementById('fontInput').value=font;
+    document.querySelectorAll('.font-card').forEach(function(c){c.classList.remove('selected');});
+    if(el) el.classList.add('selected');
+  });
+}
+
+function previewLogo(input){
+  var file=input.files && input.files[0];
+  if(!file) return;
+
+  var reader=new FileReader();
+  reader.onload=function(e){
+    keepScroll(function(){
+      var img=document.getElementById('logoPreviewImg');
+      if(img){
+        img.src=e.target.result;
+        img.style.display='block';
+      }
+
+      var zone=document.getElementById('logoZone');
+      if(zone){
+        zone.classList.add('has-logo');
+        var icon=document.getElementById('logoUploadIcon');
+        if(icon) icon.style.display='none';
+      }
+
+      var prev=document.getElementById('previewLogo');
+      if(prev){
+        if(prev.tagName==='IMG'){
+          prev.src=e.target.result;
+        }else{
+          prev.outerHTML='<img src="'+e.target.result+'" style="height:22px;width:auto;border-radius:3px;" id="previewLogo">';
+        }
+      }
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleLogoDrop(e){
+  e.preventDefault();
+  var input=document.getElementById('logoInput');
+  input.files=e.dataTransfer.files;
+  previewLogo(input);
+  var zone=document.getElementById('logoZone');
+  if(zone) zone.style.borderColor='#cbd5e1';
+}
+
+function goToSection(e,id){
+  e.preventDefault();
+  var el=document.querySelector(id);
+  if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+  document.querySelectorAll('.stg-nav-item').forEach(function(a){a.classList.remove('active');});
+  e.currentTarget.classList.add('active');
+}
+
+function selectCountry(code,e){
+  noJump(e);
+  keepScroll(function(){
+    document.querySelectorAll('.country-card').forEach(function(c){c.classList.remove('selected');});
+    var card=document.getElementById('cc-'+code);
+    if(card) card.classList.add('selected');
+
+    var previews={
+      'XK':{id:'1234567890',id_name:'Numri Personal',phone:'+383 044 123 456',currency:'€ 1.234,00',currency_name:'Euro',postal:'10000',postal_name:'Kodi Postar',date:'DD/MM/YYYY',emergency:'194'},
+      'AL':{id:'A12345678B',id_name:'Numri i Identitetit',phone:'+355 069 123 4567',currency:'1 234 L',currency_name:'Lek Shqiptar',postal:'1001',postal_name:'Kodi Postar',date:'DD.MM.YYYY',emergency:'127'},
+      'MK':{id:'2807993450058',id_name:'Numri Amë (EMBG)',phone:'+389 070 123 456',currency:'1.234 ден',currency_name:'Denar Maqedonas',postal:'1000',postal_name:'Kodi Postar',date:'DD.MM.YYYY',emergency:'194'}
+    };
+    var p=previews[code];
+    var g=document.getElementById('localePreviewGrid');
+    if(!p || !g) return;
+
+    g.innerHTML=
+      '<div><div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Numri ID</div><div style="font-size:.84rem;font-weight:600;color:#0f172a;font-family:monospace;">'+p.id+'</div><div style="font-size:.68rem;color:#64748b;">'+p.id_name+'</div></div>'+
+      '<div><div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Telefoni</div><div style="font-size:.84rem;font-weight:600;color:#0f172a;font-family:monospace;">'+p.phone+'</div><div style="font-size:.68rem;color:#64748b;">Formati lokal</div></div>'+
+      '<div><div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Monedha</div><div style="font-size:.84rem;font-weight:600;color:#0f172a;">'+p.currency+'</div><div style="font-size:.68rem;color:#64748b;">'+p.currency_name+'</div></div>'+
+      '<div><div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Kodi Postar</div><div style="font-size:.84rem;font-weight:600;color:#0f172a;font-family:monospace;">'+p.postal+'</div><div style="font-size:.68rem;color:#64748b;">'+p.postal_name+'</div></div>'+
+      '<div><div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Data</div><div style="font-size:.84rem;font-weight:600;color:#0f172a;font-family:monospace;">'+p.date+'</div><div style="font-size:.68rem;color:#64748b;">Formati i datës</div></div>'+
+      '<div><div style="font-size:.68rem;color:#94a3b8;margin-bottom:3px;">Urgjenca</div><div style="font-size:.84rem;font-weight:600;color:#dc2626;font-family:monospace;">'+p.emergency+'</div><div style="font-size:.68rem;color:#64748b;">Ambulanca</div></div>';
+  });
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  var checked=document.querySelector('input[name="country_code"]:checked');
+  if(checked) selectCountry(checked.value);
+
+  document.querySelectorAll('.theme-card, .font-card, .country-card').forEach(function(el){
+    el.setAttribute('tabindex','-1');
+    el.style.userSelect='none';
+    el.addEventListener('mousedown',function(e){
+      e.preventDefault();
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-folder2-open me-2 text-info"></i>Documents
+        <small class="text-muted fw-normal ms-2">{{ patient.first_name }} {{ patient.last_name }}</small>
+    </h5>
+    <a href="{{ '/patients/' + (patient.id)|string }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+    </a>
+</div>
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-upload me-2"></i>{{ t.h_upload_doc }}</div>
+            <div class="card-body">
+                <form method="POST" action="{{ '/patients/' + (patient.id)|string + '/documents/upload' }}" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_title }} *</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.lbl_doc_type }}</label>
+                        <select name="doc_type" class="form-select">
+                            <option>{{ t.opt_referral_letter }}</option><option>{{ t.opt_lab_result }}</option>
+                            <option>{{ t.opt_specialist_report }}</option><option>{{ t.opt_consent_form }}</option>
+                            <option>{{ t.opt_insurance }}</option><option>{{ t.opt_imaging }}</option>
+                            <option>{{ t.opt_other }}</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.misc_required }} *</label>
+                        <input type="file" name="doc_file" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ t.misc_notes }}</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-upload me-1"></i>Upload
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-files me-2"></i>Documents ({{ docs|length }})</div>
+            <div class="card-body p-0">
+                {% if docs %}
+                <table class="table table-hover mb-0">
+                    <thead><tr>
+                        <th class="ps-3">{{ t.th_title }}</th><th>{{ t.misc_type }}</th><th>{{ t.th_uploaded }}</th>
+                        <th>By</th><th class="text-end pe-3">{{ t.th_actions }}</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for doc in docs %}
+                    <tr>
+                        <td class="ps-3 fw-semibold">
+                            <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.title }}
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ doc.doc_type or '—' }}</span></td>
+                        <td class="text-muted" style="font-size:.85rem;">{{ doc.created_at.strftime('%d %b %Y') }}</td>
+                        <td class="text-muted" style="font-size:.85rem;">{{ doc.uploaded_by_name or '—' }}</td>
+                        <td class="text-end pe-3">
+                            <form method="POST" action="{{ '/documents/' + (doc.id)|string + '/delete' }}"
+                                  class="d-inline" onsubmit="return confirm('{{ t.confirm_delete }}')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="p-4 text-center text-muted">
+                    <i class="bi bi-folder2-open" style="font-size:2rem;"></i>
+                    <p class="mt-2">{{ t.empty_documents }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-person-lines-fill me-2 text-primary"></i>{{ t.h_address_book }}</h5>
+    <a href="/address-book/new" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Kontakt i Ri
+    </a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        {% if entries %}
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">{{ t.th_name }}</th><th>{{ t.th_specialty }}</th><th>{{ t.misc_phone }}</th>
+                <th>{{ t.th_email }}</th><th class="text-end pe-3">{{ t.th_actions }}</th>
+            </tr></thead>
+            <tbody>
+            {% for c in entries %}
+            <tr>
+                <td class="ps-3 fw-semibold">{{ c.name }}</td>
+                <td class="text-muted">{{ c.specialty or '—' }}</td>
+                <td class="text-muted">{{ c.phone or '—' }}</td>
+                <td class="text-muted">{{ c.email or '—' }}</td>
+                <td class="text-end pe-3">
+                    <a href="/address-book/{{ c.id }}/edit" class="btn btn-sm btn-outline-secondary me-1">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="POST" action="/address-book/{{ c.id }}/delete" class="d-inline"
+                          onsubmit="return confirm('Delete this contact?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-person-lines-fill" style="font-size:2rem;"></i>
+            <p class="mt-2">{{ t.empty_contacts }}</p>
+            <a href="/address-book/new" class="btn btn-primary btn-sm">{{ t.cta_add_contact }}</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

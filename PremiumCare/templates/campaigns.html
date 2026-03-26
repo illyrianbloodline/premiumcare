@@ -1,0 +1,562 @@
+{% extends "base.html" %}
+{% block page_title %}Rikujtime për Pacientë{% endblock %}
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+*,*::before,*::after{box-sizing:border-box;}
+:root{
+  --ink:#0b1120;--ink2:#1a2540;--muted:#6b7a99;--line:#e3e8f4;
+  --bg:#f0f3fa;--card:#fff;
+  --p1:#4f1d96;--p2:#7c3aed;--pL:#f0ebff;
+  --g1:#065f46;--g2:#059669;--gL:#ecfdf5;
+  --wa:#128C7E;--waB:#25D366;--vb:#7360f2;
+  --red:#dc2626;--redL:#fff1f2;--amber:#f59e0b;
+  --r:14px;
+}
+body{font-family:'Outfit',sans-serif;background:var(--bg);}
+.content-area{padding:0 !important;overflow:hidden;}
+.stepper{background:linear-gradient(135deg,#1a0533 0%,#2d1060 45%,#1a2a60 100%);padding:0 24px;min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:relative;overflow:hidden;}
+.stepper::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(124,58,237,.3) 0%,transparent 60%);pointer-events:none;}
+.stepper-steps{display:flex;align-items:center;flex:1;min-width:0;position:relative;z-index:1;}
+.step-item{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;}
+.step-circle{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.2);color:rgba(255,255,255,.4);font-size:.82rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
+.step-circle.done{background:var(--g2);border-color:var(--g2);color:#fff;}
+.step-circle.active{background:var(--p2);border-color:var(--p2);color:#fff;box-shadow:0 0 0 4px rgba(124,58,237,.3);}
+.step-label{font-size:.78rem;font-weight:700;color:rgba(255,255,255,.85);white-space:nowrap;}
+.step-sub{font-size:.67rem;color:rgba(255,255,255,.4);margin-top:1px;white-space:nowrap;}
+.step-line{flex:1;height:2px;background:rgba(255,255,255,.12);margin:0 10px;max-width:60px;}
+.step-line.done{background:var(--g2);}
+.reset-btn{flex-shrink:0;padding:7px 16px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);color:rgba(255,255,255,.65);border-radius:8px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:6px;white-space:nowrap;text-decoration:none;transition:all .15s;position:relative;z-index:1;}
+.reset-btn:hover{background:rgba(255,255,255,.2);color:#fff;}
+.pg-body{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:20px;align-items:start;padding:16px 24px 48px;}
+.main-col,.sidebar{min-width:0;}
+.sidebar{position:sticky;top:20px;display:flex;flex-direction:column;gap:14px;}
+.card{background:var(--card);border-radius:var(--r);border:1px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);}
+.card-head{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;}
+.card-badge{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;}
+.card-title{font-size:.95rem;font-weight:800;color:var(--ink);}
+.card-sub{font-size:.76rem;color:var(--muted);margin-top:2px;}
+.card-body{padding:22px 24px;}
+.plat-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+.plat-opt{flex:1;min-width:180px;padding:16px 18px;border-radius:12px;border:2px solid var(--line);cursor:pointer;display:flex;align-items:center;gap:14px;background:var(--bg);font-family:'Outfit',sans-serif;transition:all .2s;}
+.plat-opt.wa.active{border-color:var(--waB);background:#f0fdf4;}
+.plat-opt.vb.active{border-color:var(--vb);background:#f5f3ff;}
+.plat-logo{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.plat-logo.wa{background:var(--waB);}
+.plat-logo.vb{background:var(--vb);}
+.plat-name{font-size:.9rem;font-weight:800;color:var(--ink);}
+.plat-desc{font-size:.74rem;color:var(--muted);margin-top:2px;}
+.plat-check{margin-left:auto;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.plat-opt.active .plat-check{background:var(--g2);border-color:var(--g2);color:#fff;}
+.phone-fi{flex:1;min-width:200px;padding:10px 14px;border:2px solid var(--line);border-radius:10px;font-size:.9rem;outline:none;font-family:'Outfit',sans-serif;}
+.phone-fi:focus{border-color:var(--p2);}
+.phone-ok{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--gL);border:1px solid #6ee7b7;border-radius:8px;font-size:.8rem;font-weight:700;color:var(--g1);}
+.tpl-grid{display:grid;gap:8px;margin-bottom:16px;}
+.tpl-card{padding:14px 12px;background:var(--bg);border:2px solid var(--line);border-radius:12px;cursor:pointer;text-align:center;transition:all .18s;font-family:'Outfit',sans-serif;}
+.tpl-card:hover{background:var(--gL);border-color:#6ee7b7;}
+.tpl-card.active{background:var(--gL);border-color:var(--g2);}
+.tpl-emoji{font-size:1.5rem;margin-bottom:5px;}
+.tpl-name{font-size:.78rem;font-weight:800;color:var(--ink);}
+.tpl-desc{font-size:.68rem;color:var(--muted);margin-top:2px;}
+.compose-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.compose-fi{flex:1;min-width:160px;padding:10px 13px;border:2px solid var(--line);border-radius:10px;font-size:.86rem;outline:none;font-family:'Outfit',sans-serif;}
+.compose-fi:focus{border-color:var(--g2);}
+.msg-box{background:var(--gL);border:2px solid #6ee7b7;border-radius:12px;padding:16px;margin-top:14px;}
+.msg-box-lbl{font-size:.71rem;font-weight:700;color:var(--g2);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.msg-ta{width:100%;background:transparent;border:none;outline:none;font-size:.92rem;color:var(--ink);line-height:1.7;resize:vertical;min-height:80px;font-family:'Outfit',sans-serif;padding:0;}
+.msg-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.msg-btn{padding:7px 14px;background:#fff;border:1.5px solid #6ee7b7;color:var(--g1);border-radius:8px;font-size:.79rem;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .15s;display:inline-flex;align-items:center;gap:5px;text-decoration:none;}
+.msg-btn:hover{background:var(--g2);border-color:var(--g2);color:#fff;}
+.msg-btn.test-wa{background:var(--waB);border-color:var(--waB);color:#fff;}
+.filter-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.fl{display:flex;flex-direction:column;gap:5px;}
+.fl label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:5px;}
+.fi{width:100%;padding:9px 12px;border:2px solid var(--line);border-radius:9px;font-size:.85rem;color:var(--ink);outline:none;background:#fff;font-family:'Outfit',sans-serif;}
+.fi:focus{border-color:var(--p2);}
+.fi-pair{display:flex;gap:6px;align-items:center;}
+.fi-pair .fi{width:50%;}
+.check-row{display:flex;align-items:center;gap:9px;}
+.check-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--p2);cursor:pointer;}
+.check-row label{font-size:.83rem;color:var(--ink2);cursor:pointer;}
+.btn-primary{padding:11px 28px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-family:'Outfit',sans-serif;text-decoration:none;}
+.btn-green{padding:11px 28px;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-family:'Outfit',sans-serif;}
+.btn-back{padding:10px 18px;background:#f1f5f9;color:var(--ink2);border:1.5px solid var(--line);border-radius:10px;font-size:.86rem;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;display:inline-flex;align-items:center;gap:7px;text-decoration:none;}
+.btn-row{display:flex;gap:10px;margin-top:20px;align-items:center;flex-wrap:wrap;}
+.btn-save{padding:10px 20px;background:var(--p2);color:#fff;border:none;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;}
+.results-bar{background:var(--card);border-radius:var(--r);border:1px solid var(--line);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+.res-count{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;font-size:1.5rem;font-weight:800;width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.table-card{background:var(--card);border-radius:var(--r);border:1px solid var(--line);overflow:hidden;}
+.table-top{padding:12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.table-title{font-weight:800;font-size:.88rem;color:var(--ink);display:flex;align-items:center;gap:8px;}
+table{width:100%;border-collapse:collapse;}
+th{padding:9px 16px;text-align:left;font-size:.68rem;font-weight:700;color:var(--muted);border-bottom:1px solid var(--line);text-transform:uppercase;letter-spacing:.5px;background:#fafbfd;}
+td{padding:11px 16px;border-bottom:1px solid #f3f5fb;font-size:.84rem;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafbfd;}
+.p-name{font-weight:700;color:var(--ink);text-decoration:none;}
+.p-name:hover{color:var(--p2);}
+.p-cond{font-size:.71rem;color:var(--muted);max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;}
+.tag-never{display:inline-block;padding:2px 8px;border-radius:5px;font-size:.72rem;font-weight:600;background:var(--redL);color:var(--red);}
+.send-wa-btn,.send-vb-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:9px;font-size:.8rem;font-weight:700;text-decoration:none;transition:all .15s;white-space:nowrap;}
+.send-wa-btn{background:var(--waB);color:#fff;}
+.send-vb-btn{background:var(--vb);color:#fff;}
+.no-phone{font-size:.76rem;color:#cbd5e1;font-style:italic;}
+.cb-cell{width:40px;}
+.bulk-bar{display:none;position:sticky;bottom:0;background:linear-gradient(135deg,var(--p1),var(--p2));padding:14px 24px;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;box-shadow:0 -4px 20px rgba(79,29,150,.3);border-radius:0 0 var(--r) var(--r);}
+.bulk-bar.visible{display:flex;}
+.bulk-count{color:#fff;font-size:.88rem;font-weight:700;display:flex;align-items:center;gap:8px;}
+.bulk-count span{background:rgba(255,255,255,.25);padding:3px 10px;border-radius:6px;}
+.btn-bulk{padding:10px 22px;background:#fff;color:var(--p2);border:none;border-radius:10px;font-size:.88rem;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:'Outfit',sans-serif;}
+.btn-cc{padding:9px 16px;background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);border-radius:9px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;}
+.sb-card{background:var(--card);border-radius:var(--r);border:1px solid var(--line);padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.sb-card-title{font-size:.76rem;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;}
+.sb-step-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
+.sb-step-row:last-child{border-bottom:none;}
+.sb-dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);color:var(--muted);font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.sb-step-row.active .sb-dot{background:var(--p2);border-color:var(--p2);color:#fff;}
+.sb-step-row.done .sb-dot{background:var(--g2);border-color:var(--g2);color:#fff;}
+.sb-step-label{font-size:.82rem;font-weight:700;color:var(--ink);}
+.sb-step-val{font-size:.73rem;color:var(--muted);margin-top:2px;word-break:break-all;}
+.tip{font-size:.78rem;color:var(--ink2);padding:7px 0;border-bottom:1px solid var(--line);line-height:1.5;display:flex;align-items:flex-start;gap:7px;}
+.tip::before{content:'→';color:var(--p2);font-weight:700;flex-shrink:0;margin-top:1px;}
+.tip:last-child{border-bottom:none;}
+.pv-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;}
+.pv-overlay.on{display:flex;}
+@keyframes pvIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.pv-modal{background:#fff;border-radius:18px;width:560px;max-width:96vw;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);animation:pvIn .2s ease;}
+.pv-head{padding:18px 22px;background:linear-gradient(135deg,var(--p1),var(--p2));display:flex;align-items:center;justify-content:space-between;}
+.pv-title{color:#fff;font-weight:800;font-size:1rem;}
+.pv-sub{color:rgba(255,255,255,.7);font-size:.76rem;margin-top:2px;}
+.pv-x{background:rgba(255,255,255,.2);border:none;color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;}
+.pv-body{padding:20px 22px;overflow-y:auto;flex:1;}
+.bubble{background:#f0fdf4;border-radius:0 14px 14px 14px;padding:14px 16px;border:2px solid #6ee7b7;max-width:88%;margin-bottom:16px;position:relative;}
+.bubble::before{content:'';position:absolute;top:0;left:-9px;width:0;height:0;border-top:9px solid #6ee7b7;border-left:9px solid transparent;}
+.bubble-txt{font-size:.93rem;color:var(--ink);line-height:1.7;white-space:pre-wrap;}
+.bubble-meta{font-size:.67rem;color:var(--muted);text-align:right;margin-top:5px;}
+.rec-lbl{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.rec-row{display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--bg);border-radius:9px;margin-bottom:4px;font-size:.83rem;color:var(--ink2);transition:all .2s;}
+.rec-num{margin-left:auto;font-family:monospace;font-size:.78rem;color:var(--muted);}
+.rec-row.rec-cur{background:#ede9fe;border:1.5px solid #c4b5fd;}
+.rec-row.rec-done{background:var(--gL);opacity:.6;}
+.rec-row.rec-done::after{content:'✓';margin-left:auto;color:var(--g2);font-weight:700;}
+.prog-wrap{background:#e8edf5;border-radius:6px;height:8px;margin:10px 0;overflow:hidden;}
+.prog-fill{background:linear-gradient(90deg,var(--g2),#34d399);height:100%;border-radius:6px;transition:width .4s ease;}
+.pv-foot{padding:14px 22px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.btn-start{padding:10px 22px;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:'Outfit',sans-serif;}
+.btn-nxt{padding:10px 18px;background:var(--p2);color:#fff;border:none;border-radius:10px;font-size:.86rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:'Outfit',sans-serif;}
+@media(max-width:620px){.pg-body{grid-template-columns:1fr;}.sidebar{position:static;}}
+@media(max-width:600px){.tpl-grid{grid-template-columns:1fr 1fr;}.filter-grid{grid-template-columns:1fr;}}
+</style>
+
+<div class="stepper">
+  {% set s = current_step %}
+  <div class="stepper-steps">
+    <div class="step-item" onclick="window.location='/campaigns?step=1'">
+      <div class="step-circle {% if s > 1 %}done{% elif s == 1 %}active{% endif %}">
+        {% if s > 1 %}<i class="bi bi-check-lg"></i>{% else %}1{% endif %}
+      </div>
+      <div><div class="step-label">Platforma</div><div class="step-sub">WhatsApp / Viber</div></div>
+    </div>
+    <div class="step-line {% if s > 1 %}done{% endif %}"></div>
+    <div class="step-item" onclick="{% if s >= 2 %}window.location='/campaigns?step=2'{% endif %}">
+      <div class="step-circle {% if s > 2 %}done{% elif s == 2 %}active{% endif %}">
+        {% if s > 2 %}<i class="bi bi-check-lg"></i>{% else %}2{% endif %}
+      </div>
+      <div><div class="step-label">Mesazhi</div><div class="step-sub">Shkruaj ose gjenero</div></div>
+    </div>
+    <div class="step-line {% if s > 2 %}done{% endif %}"></div>
+    <div class="step-item" onclick="{% if s >= 3 %}window.location='/campaigns?step=3'{% endif %}">
+      <div class="step-circle {% if s > 3 %}done{% elif s == 3 %}active{% endif %}">
+        {% if s > 3 %}<i class="bi bi-check-lg"></i>{% else %}3{% endif %}
+      </div>
+      <div><div class="step-label">Pacientët</div><div class="step-sub">Filtro dhe gjej</div></div>
+    </div>
+    <div class="step-line {% if s > 3 %}done{% endif %}"></div>
+    <div class="step-item">
+      <div class="step-circle {% if s == 4 %}active{% endif %}">4</div>
+      <div><div class="step-label">Dërgo</div><div class="step-sub">WhatsApp / Viber</div></div>
+    </div>
+  </div>
+  <a href="/campaigns" class="reset-btn"><i class="bi bi-arrow-counterclockwise"></i> Fillo Nga E Para</a>
+</div>
+
+<div class="pg-body">
+  <div class="main-col">
+    <form method="POST" action="/campaigns" id="cForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" id="fAction" value="search">
+      <input type="hidden" name="message_topic" id="fTopic" value="">
+      <input type="hidden" name="doctor_phone" id="fPhone" value="{{ doctor_phone }}">
+      <input type="hidden" name="doctor_platform" id="fPlat" value="{{ doctor_platform or 'wa' }}">
+      <input type="hidden" name="edited_message" id="editedMessage" value="{{ message or '' }}">
+
+      {% if current_step == 1 %}
+      <div class="card">
+        <div class="card-head">
+          <div class="card-badge" style="background:#f0ebff;">📱</div>
+          <div>
+            <div class="card-title">Hapi 1 — Zgjidhni platformën dhe numrin tuaj</div>
+            <div class="card-sub">Ku dëshironi të dërgoni mesazhet?</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Platforma e dërgimit:</div>
+          <div class="plat-row">
+            <button type="button" class="plat-opt wa {% if not doctor_platform or doctor_platform=='wa' %}active{% endif %}" id="platWA" onclick="pickPlat('wa')">
+              <div class="plat-logo wa"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></div>
+              <div><div class="plat-name">WhatsApp</div><div class="plat-desc">Mesazhe falas, i përdorur gjerësisht</div></div>
+              <div class="plat-check"><i class="bi bi-check-lg" style="font-size:.75rem;"></i></div>
+            </button>
+            <button type="button" class="plat-opt vb {% if doctor_platform=='vb' %}active{% endif %}" id="platVB" onclick="pickPlat('vb')">
+              <div class="plat-logo vb"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M11.398.002C9.473.028 5.331.344 3.014 2.467 1.2 4.276.598 6.9.532 10.139c-.066 3.24-.132 9.31 5.7 10.97v2.516s-.038.999.621 1.2c.805.246 1.277-.519 2.045-1.347.42-.455.999-1.119 1.435-1.625 3.953.332 6.993-.427 7.341-.538.799-.26 5.322-.838 6.059-6.837.76-6.178-.368-10.077-2.988-11.822l-.001-.001c-.728-.502-3.297-1.724-8.257-1.656l-.089.003z"/></svg></div>
+              <div><div class="plat-name">Viber</div><div class="plat-desc">Popullar në rajon, falas</div></div>
+              <div class="plat-check"><i class="bi bi-check-lg" style="font-size:.75rem;"></i></div>
+            </button>
+          </div>
+          <div style="font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Numri juaj i <span id="platNameLbl">{% if doctor_platform=='vb' %}Viber{% else %}WhatsApp{% endif %}</span>:</div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="text" class="phone-fi" id="phoneInput" placeholder="+383 44 123 456" value="{{ doctor_phone }}" oninput="document.getElementById('fPhone').value=this.value">
+            <button type="submit" onclick="document.getElementById('fAction').value='save_phone'" class="btn-save"><i class="bi bi-check-lg me-1"></i>Ruaj &amp; Vazhdo</button>
+            {% if doctor_phone %}<span class="phone-ok"><i class="bi bi-check-circle-fill"></i>{{ doctor_phone }}</span>{% endif %}
+          </div>
+          <p style="font-size:.73rem;color:var(--muted);margin:8px 0 0;">Numri ruhet — nuk ndahet me pacientët.</p>
+          {% if doctor_phone %}
+          <div class="btn-row">
+            <a href="/campaigns?step=2" class="btn-save" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;color:#fff;"><i class="bi bi-arrow-right"></i> Vazhdo te Hapi 2</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% elif current_step == 2 %}
+      <div class="card">
+        <div class="card-head">
+          <div class="card-badge" style="background:#fef3c7;">✉️</div>
+          <div>
+            <div class="card-title">Hapi 2 — Kompozo mesazhin</div>
+            <div class="card-sub">{% if message and generated %}Mesazhi është gati — mund ta ndryshoni{% else %}Zgjidhni shabllonin ose shkruani temën{% endif %}</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Shabllone — zgjidhni situatën:</div>
+          <div class="tpl-grid" style="grid-template-columns:1fr 1fr 1fr;">
+            <button type="button" class="tpl-card {% if saved_topic and '6 muaj' in saved_topic %}active{% endif %}" onclick="pickTpl(this,'Pacienti nuk ka bere test gjaku ne 6 muajt e fundit, ftoje per kontroll dhe analize')"><div class="tpl-emoji">🧪</div><div class="tpl-name">Test Gjaku — 6 Muaj</div><div class="tpl-desc">Nuk ka bërë analizë prej 6 muajsh</div></button>
+            <button type="button" class="tpl-card {% if saved_topic and 'kontroll vjetor' in saved_topic %}active{% endif %}" onclick="pickTpl(this,'Pacienti nuk ka bere kontroll vjetor, e ftojme per vizite rutine te shëndetit')"><div class="tpl-emoji">🩺</div><div class="tpl-name">Kontroll Vjetor</div><div class="tpl-desc">Vizitë rutinë vjetore</div></button>
+            <button type="button" class="tpl-card {% if saved_topic and 'vaksin' in saved_topic %}active{% endif %}" onclick="pickTpl(this,'Sezoni i gripit eshte ketu, ftoje pacientin per vaksinim vjetor kunder gripit')"><div class="tpl-emoji">💉</div><div class="tpl-name">Vaksinim Gripi</div><div class="tpl-desc">Sezoni i vaksinimit</div></button>
+            <button type="button" class="tpl-card {% if saved_topic and 'diabet' in saved_topic %}active{% endif %}" onclick="pickTpl(this,'Pacienti me diabet nuk ka bere kontroll HbA1c prej 3 muajsh, eshte koha per vizite')"><div class="tpl-emoji">📊</div><div class="tpl-name">Diabeti — HbA1c</div><div class="tpl-desc">Kontroll 3-mujor diabeti</div></button>
+            <button type="button" class="tpl-card {% if saved_topic and 'presion' in saved_topic %}active{% endif %}" onclick="pickTpl(this,'Pacienti me hipertension nuk ka bere matje te presionit ne 2 muajt e fundit, ftoje per kontroll')"><div class="tpl-emoji">❤️</div><div class="tpl-name">Hipertensioni</div><div class="tpl-desc">Matje presioni — 2 muaj</div></button>
+            <button type="button" class="tpl-card" onclick="pickTpl(this,'')"><div class="tpl-emoji">✏️</div><div class="tpl-name">Temë e Lirë</div><div class="tpl-desc">Shkruani vetë poshtë</div></button>
+          </div>
+          <div class="compose-row">
+            <input type="text" id="topicInput" class="compose-fi" placeholder="Ose shkruani temën tuaj..." value="{{ saved_topic or '' }}">
+            <button type="button" onclick="genMsg()" class="btn-green"><i class="bi bi-send-fill"></i> Gjenero Mesazhin</button>
+          </div>
+          {% if message and generated %}
+          <div class="msg-box">
+            <div class="msg-box-lbl">
+              <span><i class="bi bi-check-circle-fill" style="color:var(--g2);"></i> &nbsp;Mesazhi i gjeneruar:</span>
+              <span style="font-size:.68rem;color:var(--g1);font-style:italic;"><i class="bi bi-pencil me-1"></i>klikoni për të ndryshuar</span>
+            </div>
+            <textarea class="msg-ta" id="msgTA" oninput="syncEditedMessage(this.value)">{{ message }}</textarea>
+            <div class="msg-actions">
+              <button type="button" class="msg-btn" onclick="copyMsg(event)"><i class="bi bi-clipboard"></i> Kopjo</button>
+              <button type="button" class="msg-btn" onclick="genMsg()"><i class="bi bi-arrow-clockwise"></i> Rigjeneroj</button>
+              {% if doctor_phone %}{% set dp = doctor_phone|replace(' ','')|replace('+','') %}<a href="https://wa.me/{{ dp }}?text={{ message|urlencode }}" target="_blank" class="msg-btn test-wa"><i class="bi bi-whatsapp"></i> Test në telefonin tim</a>{% endif %}
+            </div>
+          </div>
+          {% endif %}
+          <div class="btn-row">
+            <a href="/campaigns?step=1" class="btn-back"><i class="bi bi-arrow-left"></i> Kthehu</a>
+            {% if message and generated %}
+            <button type="submit" class="btn-save" onclick="beforeContinueToStep3()"><i class="bi bi-arrow-right me-1"></i>Vazhdo te Hapi 3</button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% elif current_step == 3 %}
+      <div class="card">
+        <div class="card-head">
+          <div class="card-badge" style="background:var(--gL);">👥</div>
+          <div>
+            <div class="card-title">Hapi 3 — Gjeni pacientët</div>
+            <div class="card-sub">Filtro sipas moshës, gjinisë, vizitës së fundit, diagnozës</div>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if message %}
+          <div style="background:var(--gL);border:1px solid #6ee7b7;border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:.83rem;color:var(--g1);display:flex;align-items:center;gap:10px;">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>Mesazhi: <b>{{ message[:80] }}{% if message|length > 80 %}...{% endif %}</b></span>
+            <a href="/campaigns?step=2" style="margin-left:auto;font-size:.75rem;color:var(--g1);font-weight:600;">Ndrysho</a>
+          </div>
+          {% endif %}
+          <div class="filter-grid">
+            <div class="fl"><label><i class="bi bi-person-badge" style="color:var(--p2);"></i> Mosha</label><div class="fi-pair"><input type="number" name="age_min" class="fi" placeholder="Nga" min="0" max="120" value="{{ filters.get('age_min','') }}"><span style="color:var(--muted);">—</span><input type="number" name="age_max" class="fi" placeholder="Deri" min="0" max="120" value="{{ filters.get('age_max','') }}"></div></div>
+            <div class="fl"><label><i class="bi bi-gender-ambiguous" style="color:var(--p2);"></i> Gjinia</label><select name="gender" class="fi"><option value="all" {% if filters.get('gender','all')=='all' %}selected{% endif %}>Të gjithë</option><option value="Mashkull" {% if filters.get('gender')=='Mashkull' %}selected{% endif %}>Mashkull</option><option value="Femër" {% if filters.get('gender')=='Femër' %}selected{% endif %}>Femër</option></select></div>
+            <div class="fl"><label><i class="bi bi-calendar-x" style="color:#ef4444;"></i> Nuk kanë ardhur</label><select name="no_visit_months" class="fi"><option value="">Çdo kohë</option>{% for m in [3,6,9,12,18,24] %}<option value="{{ m }}" {% if filters.get('no_visit_months')|string == m|string %}selected{% endif %}>Më shumë se {{ m }} muaj</option>{% endfor %}</select></div>
+            <div class="fl"><label><i class="bi bi-heart-pulse" style="color:var(--p2);"></i> Diagnoza</label><input type="text" name="diagnosis_contains" class="fi" placeholder="Diabet, Hipertension..." value="{{ filters.get('diagnosis_contains','') }}"></div>
+            <div class="fl"><label><i class="bi bi-file-medical" style="color:var(--p2);"></i> Kodi ICD</label><input type="text" name="icd_contains" class="fi" placeholder="E11, I10, J45..." value="{{ filters.get('icd_contains','') }}"></div>
+            <div class="fl" style="justify-content:flex-end;"><div class="check-row" style="margin-top:auto;padding-bottom:4px;"><input type="checkbox" name="has_phone_only" value="1" id="phoneOnly" {% if filters.get('has_phone_only') %}checked{% endif %}><label for="phoneOnly">Vetëm me numër telefoni</label></div></div>
+          </div>
+          <div class="btn-row">
+            <a href="/campaigns?step=2" class="btn-back"><i class="bi bi-arrow-left"></i> Kthehu</a>
+            <button type="submit" onclick="document.getElementById('fAction').value='search'" class="btn-primary"><i class="bi bi-search"></i> Kërko Pacientët</button>
+          </div>
+        </div>
+      </div>
+
+      {% elif current_step == 4 %}
+      {% if message %}
+      <div style="background:var(--gL);border:1.5px solid #6ee7b7;border-radius:12px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <i class="bi bi-chat-dots-fill" style="color:var(--g2);font-size:1.1rem;"></i>
+        <div style="flex:1;"><div style="font-size:.78rem;font-weight:700;color:var(--g1);">Mesazhi i zgjedhur:</div><div style="font-size:.88rem;color:var(--ink);margin-top:2px;">{{ message[:120] }}{% if message|length > 120 %}...{% endif %}</div></div>
+        <a href="/campaigns?step=2" style="padding:7px 14px;background:#fff;border:1.5px solid #6ee7b7;color:var(--g1);border-radius:8px;font-size:.78rem;font-weight:700;text-decoration:none;">Ndrysho</a>
+      </div>
+      {% endif %}
+      <div class="results-bar">
+        <div class="res-count">{{ results|length }}</div>
+        <div><div style="font-weight:700;font-size:.92rem;color:var(--ink);">pacientë u gjetën</div><div style="font-size:.75rem;color:var(--muted);">me filtrat e zgjedhur</div></div>
+        {% if results and message %}<button type="button" onclick="selectAllAndSend()" style="margin-left:auto;padding:10px 22px;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:'Outfit',sans-serif;"><i class="bi bi-send-fill"></i> Dërgo të Gjithë</button>{% endif %}
+      </div>
+      <div class="table-card">
+        <div class="table-top">
+          <div class="table-title"><i class="bi bi-people-fill" style="color:var(--p2);"></i> {{ results|length }} Pacientë</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span style="font-size:.73rem;color:var(--muted);">Platforma: <b>{% if doctor_platform=='vb' %}Viber{% else %}WhatsApp{% endif %}</b></span><a href="/campaigns?step=3" style="font-size:.75rem;color:var(--p2);font-weight:700;">← Ndrysho filtrat</a></div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th class="cb-cell"><input type="checkbox" id="selAll" onclick="toggleAll(this)"></th><th>Pacienti</th><th>Mosha</th><th>Telefoni</th><th>Vizita e Fundit</th><th>Dërgo</th></tr></thead>
+            <tbody>
+              {% for p in results %}
+              {% set raw0 = (p.phone or '')|replace(' ','')|replace('-','')|replace('(','')|replace(')','')|replace('+','') %}
+              {% if raw0.startswith('00') %}{% set pc = raw0[2:] %}{% elif raw0.startswith('0') %}{% set pc = '383' ~ raw0[1:] %}{% else %}{% set pc = raw0 %}{% endif %}
+              {% set last = p.last_visit if p.get('last_visit') else p.get('last_appt') %}
+              {% set me = message|urlencode if message else '' %}
+              <tr class="pat-row" data-phone="{% if p.get('phone') and pc %}{{ pc }}{% endif %}" data-name="{{ p.first_name }} {{ p.last_name }}">
+                <td class="cb-cell"><input type="checkbox" class="pat-cb" onchange="updateBulkBar()"></td>
+                <td><a href="/patients/{{ p.id }}" class="p-name">{{ p.first_name }} {{ p.last_name }}</a>{% if p.get('medical_history') %}<div class="p-cond">{{ p.medical_history }}</div>{% endif %}</td>
+                <td>{% if p.get('age') %}{{ p.age }}vj{% endif %}{% if p.get('gender') %} · {{ p.gender }}{% endif %}</td>
+                <td style="font-family:monospace;font-size:.82rem;">{{ p.phone if p.get('phone') else '—' }}</td>
+                <td>{% if last %}{{ last.strftime('%d/%m/%Y') }}{% else %}<span class="tag-never">Kurrë</span>{% endif %}</td>
+                <td>
+                  {% if p.get('phone') %}
+                    {% if doctor_platform == 'vb' %}<a href="viber://chat?number={{ pc }}{% if me %}&text={{ me }}{% endif %}" class="send-vb-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M11.398.002C9.473.028 5.331.344 3.014 2.467 1.2 4.276.598 6.9.532 10.139c-.066 3.24-.132 9.31 5.7 10.97v2.516s-.038.999.621 1.2c.805.246 1.277-.519 2.045-1.347.42-.455.999-1.119 1.435-1.625 3.953.332 6.993-.427 7.341-.538.799-.26 5.322-.838 6.059-6.837.76-6.178-.368-10.077-2.988-11.822l-.001-.001c-.728-.502-3.297-1.724-8.257-1.656l-.089.003z"/></svg>Dërgo</a>
+                    {% else %}<a href="https://wa.me/{{ pc }}{% if me %}?text={{ me }}{% endif %}" target="_blank" class="send-wa-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Dërgo</a>{% endif %}
+                  {% else %}<span class="no-phone">Pa numër</span>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <div class="bulk-bar" id="bulkBar">
+            <div class="bulk-count"><i class="bi bi-people-fill"></i><span id="bulkCount">0</span> pacientë të zgjedhur</div>
+            <div style="display:flex;gap:10px;">
+              <button type="button" onclick="deselectAll()" class="btn-cc"><i class="bi bi-x me-1"></i>Anulo</button>
+              <button type="button" onclick="openPreview()" class="btn-bulk"><i class="bi bi-eye-fill me-1"></i>Shiko &amp; Dërgo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="sidebar">
+    <div class="sb-card">
+      <div class="sb-card-title"><i class="bi bi-list-check me-2" style="color:var(--p2);"></i>Progresi juaj</div>
+      <div class="sb-step-row {% if current_step > 1 %}done{% elif current_step == 1 %}active{% endif %}"><div class="sb-dot">{% if current_step > 1 %}<i class="bi bi-check-lg"></i>{% else %}1{% endif %}</div><div><div class="sb-step-label">Platforma</div>{% if doctor_phone %}<div class="sb-step-val">{{ doctor_platform|upper }} · {{ doctor_phone }}</div>{% endif %}</div></div>
+      <div class="sb-step-row {% if current_step > 2 %}done{% elif current_step == 2 %}active{% endif %}"><div class="sb-dot">{% if current_step > 2 %}<i class="bi bi-check-lg"></i>{% else %}2{% endif %}</div><div><div class="sb-step-label">Mesazhi</div>{% if message %}<div class="sb-step-val">{{ message[:50] }}{% if message|length > 50 %}...{% endif %}</div>{% endif %}</div></div>
+      <div class="sb-step-row {% if current_step > 3 %}done{% elif current_step == 3 %}active{% endif %}"><div class="sb-dot">{% if current_step > 3 %}<i class="bi bi-check-lg"></i>{% else %}3{% endif %}</div><div><div class="sb-step-label">Pacientët</div>{% if searched %}<div class="sb-step-val">{{ results|length }} pacientë u gjetën</div>{% endif %}</div></div>
+      <div class="sb-step-row {% if current_step == 4 %}active{% endif %}"><div class="sb-dot">4</div><div><div class="sb-step-label">Dërgo</div></div></div>
+    </div>
+    <div class="sb-card">
+      <div class="sb-card-title"><i class="bi bi-lightbulb-fill me-2" style="color:var(--amber);"></i>Këshilla</div>
+      {% if current_step == 1 %}<div class="tip">Vendosni numrin tuaj personal të lidhur me WhatsApp ose Viber.</div><div class="tip">Numri ruhet automatikisht.</div>
+      {% elif current_step == 2 %}<div class="tip">Mesazhi nën 160 karaktere funksionon më mirë.</div><div class="tip">Klikoni "Test" për ta parë para dërgimit.</div>
+      {% elif current_step == 3 %}<div class="tip">Aktivizoni "Vetëm me numër telefoni".</div><div class="tip">Filloni me filtër të gjerë, pastaj ngushtoni.</div>
+      {% elif current_step == 4 %}<div class="tip">Klikoni "Dërgo të Gjithë" për modaljen me listën.</div><div class="tip">Hapet WhatsApp/Viber — ju vetëm shtypni Send.</div>{% endif %}
+    </div>
+    {% if current_step == 4 and results %}
+    <div class="sb-card">
+      <div class="sb-card-title"><i class="bi bi-bar-chart-fill me-2" style="color:var(--g2);"></i>Statistika</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;"><span style="color:var(--muted);">Gjithsej</span><b>{{ results|length }}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;"><span style="color:var(--muted);">Me numër</span><b>{{ results|selectattr('phone')|list|length }}</b></div>
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;"><span style="color:var(--muted);">Pa numër</span><b>{{ results|rejectattr('phone')|list|length }}</b></div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="pv-overlay" id="pvOverlay" onclick="if(event.target===this)closePreview()">
+  <div class="pv-modal">
+    <div class="pv-head">
+      <div><div class="pv-title"><i class="bi bi-eye-fill me-2"></i>Shiko &amp; Dërgo</div><div class="pv-sub" id="pvSub"></div></div>
+      <button type="button" class="pv-x" onclick="closePreview()">×</button>
+    </div>
+    <div class="pv-body">
+      <div style="font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;">Mesazhi:</div>
+      <div class="bubble"><div class="bubble-txt" id="pvMsg"></div><div class="bubble-meta" id="pvLen"></div></div>
+      <div class="rec-lbl"><i class="bi bi-people-fill me-1"></i>Marrësit — <span id="pvCnt">0</span></div>
+      <div id="pvList"></div>
+      <div id="pvProg" style="display:none;margin-top:14px;">
+        <div style="font-size:.82rem;font-weight:700;color:var(--ink);margin-bottom:5px;" id="pvStat"></div>
+        <div class="prog-wrap"><div class="prog-fill" id="pvBar" style="width:0%"></div></div>
+        <div style="font-size:.73rem;color:var(--muted);margin-top:3px;" id="pvHint"></div>
+      </div>
+    </div>
+    <div class="pv-foot">
+      <button type="button" class="btn-cc" style="background:#f1f5f9;color:var(--ink2);border-color:var(--line);" onclick="closePreview()"><i class="bi bi-x me-1"></i>Mbyll</button>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span id="pvCntr" style="font-size:.79rem;color:var(--muted);display:none;"><span id="pvSnt">0</span>/<span id="pvTot">0</span> dërguar</span>
+        <button type="button" class="btn-start" id="pvStart" onclick="startSending()"><i class="bi bi-send-fill"></i> Fillo Dërgimin</button>
+        <button type="button" class="btn-nxt" id="pvNxt" style="display:none;" onclick="sendNext()">Tjetri <i class="bi bi-arrow-right"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var _plat = {{ (doctor_platform or "wa")|tojson }};
+var _serverMessage = {{ (message or "")|tojson }};
+var _savedTopic = {{ (saved_topic or "")|tojson }};
+var _sl = [], _si = 0;
+
+function pickPlat(p){
+  _plat=p; document.getElementById('fPlat').value=p;
+  var wa=document.getElementById('platWA'),vb=document.getElementById('platVB');
+  if(wa) wa.classList.toggle('active',p==='wa');
+  if(vb) vb.classList.toggle('active',p==='vb');
+  var lbl=document.getElementById('platNameLbl');
+  if(lbl) lbl.textContent=p==='wa'?'WhatsApp':'Viber';
+}
+function pickTpl(card,topic){
+  document.querySelectorAll('.tpl-card').forEach(function(c){c.classList.remove('active');});
+  card.classList.add('active');
+  var ti=document.getElementById('topicInput');
+  if(ti) ti.value=topic;
+}
+function syncEditedMessage(val){
+  var h=document.getElementById('editedMessage');
+  if(h) h.value=val||'';
+}
+function beforeContinueToStep3(){
+  var ta=document.getElementById('msgTA');
+  if(ta) syncEditedMessage(ta.value);
+  document.getElementById('fAction').value='save_message_and_continue';
+}
+function genMsg(){
+  var ti=document.getElementById('topicInput');
+  var topic=ti?ti.value.trim():'';
+  if(!topic) topic=_savedTopic;
+  if(!topic){alert('Zgjidhni shabllonin ose shkruani temën.');return;}
+  document.getElementById('fTopic').value=topic;
+  document.getElementById('fAction').value='generate_message';
+  document.getElementById('cForm').submit();
+}
+function copyMsg(e){
+  var ta=document.getElementById('msgTA');
+  if(!ta) return;
+  var btn=e.currentTarget,orig=btn.innerHTML;
+  navigator.clipboard.writeText(ta.value).then(function(){
+    btn.innerHTML='<i class="bi bi-check-lg"></i> Kopjuar!';
+    setTimeout(function(){btn.innerHTML=orig;},2000);
+  });
+}
+function getCurrentMessage(){
+  var ta=document.getElementById('msgTA');
+  if(ta&&ta.value.trim()) return ta.value.trim();
+  var h=document.getElementById('editedMessage');
+  if(h&&h.value.trim()) return h.value.trim();
+  return _serverMessage||'';
+}
+function updateBulkBar(){
+  var sel=Array.from(document.querySelectorAll('.pat-cb')).filter(function(c){return c.checked&&c.closest('.pat-row').getAttribute('data-phone');});
+  var all=Array.from(document.querySelectorAll('.pat-cb')).filter(function(c){return c.closest('.pat-row').getAttribute('data-phone');});
+  var n=sel.length,bc=document.getElementById('bulkCount'),bar=document.getElementById('bulkBar'),sa=document.getElementById('selAll');
+  if(bc) bc.textContent=n;
+  if(bar) bar.classList.toggle('visible',n>0);
+  if(sa){sa.indeterminate=n>0&&n<all.length;sa.checked=all.length>0&&n===all.length;}
+}
+function toggleAll(cb){
+  document.querySelectorAll('.pat-cb').forEach(function(c){if(c.closest('.pat-row').getAttribute('data-phone')) c.checked=cb.checked;});
+  updateBulkBar();
+}
+function deselectAll(){
+  document.querySelectorAll('.pat-cb').forEach(function(c){c.checked=false;});
+  var sa=document.getElementById('selAll');
+  if(sa){sa.checked=false;sa.indeterminate=false;}
+  updateBulkBar();
+}
+function selectAllAndSend(){
+  document.querySelectorAll('.pat-cb').forEach(function(c){if(c.closest('.pat-row').getAttribute('data-phone')) c.checked=true;});
+  var sa=document.getElementById('selAll');
+  if(sa) sa.checked=true;
+  updateBulkBar();
+  openPreview();
+}
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function openPreview(){
+  _sl=[];
+  document.querySelectorAll('.pat-row').forEach(function(r){
+    var cb=r.querySelector('.pat-cb');
+    if(!cb||!cb.checked) return;
+    var ph=r.getAttribute('data-phone'),nm=r.getAttribute('data-name');
+    if(ph) _sl.push({phone:ph,name:nm});
+  });
+  if(!_sl.length){alert('Zgjidhni të paktën një pacient me numër telefoni.');return;}
+  var msg=getCurrentMessage();
+  if(!msg){alert('Nuk keni mesazh.');return;}
+  document.getElementById('pvMsg').textContent=msg;
+  document.getElementById('pvLen').textContent=msg.length+' karaktere';
+  document.getElementById('pvSub').textContent=_sl.length+' pacientë do të marrin këtë mesazh';
+  document.getElementById('pvCnt').textContent=_sl.length;
+  document.getElementById('pvTot').textContent=_sl.length;
+  var list=document.getElementById('pvList');list.innerHTML='';
+  _sl.forEach(function(p,i){
+    var d=document.createElement('div');d.className='rec-row';d.id='rv'+i;
+    d.innerHTML='<i class="bi bi-person-fill" style="color:var(--p2);"></i><span>'+escapeHtml(p.name)+'</span><span class="rec-num">+'+escapeHtml(p.phone)+'</span>';
+    list.appendChild(d);
+  });
+  _si=0;
+  document.getElementById('pvProg').style.display='none';
+  document.getElementById('pvCntr').style.display='none';
+  document.getElementById('pvStart').style.display='flex';
+  document.getElementById('pvNxt').style.display='none';
+  document.getElementById('pvBar').style.width='0%';
+  document.getElementById('pvOverlay').classList.add('on');
+}
+function closePreview(){document.getElementById('pvOverlay').classList.remove('on');}
+function startSending(){
+  document.getElementById('pvStart').style.display='none';
+  document.getElementById('pvCntr').style.display='block';
+  document.getElementById('pvProg').style.display='block';
+  _si=0;sendNext();
+}
+function sendNext(){
+  if(_si>=_sl.length){
+    document.getElementById('pvNxt').style.display='none';
+    document.getElementById('pvStat').textContent='Të gjithë mesazhet u dërguan!';
+    document.getElementById('pvHint').textContent='Mund ta mbyllni këtë dritare.';
+    document.getElementById('pvBar').style.width='100%';return;
+  }
+  var p=_sl[_si],msg=getCurrentMessage(),enc=encodeURIComponent(msg);
+  var url=_plat==='vb'?'viber://chat?number='+p.phone+(enc?'&text='+enc:''):'https://wa.me/'+p.phone+(enc?'?text='+enc:'');
+  window.open(url,'_blank');
+  document.getElementById('pvBar').style.width=Math.round(((_si+1)/_sl.length)*100)+'%';
+  document.getElementById('pvSnt').textContent=_si+1;
+  document.getElementById('pvStat').textContent='U hap '+(_plat==='vb'?'Viber':'WhatsApp')+' për: '+p.name;
+  document.getElementById('pvHint').textContent='Dërgoni mesazhin, pastaj klikoni "Tjetri".';
+  document.querySelectorAll('.rec-row').forEach(function(r){r.classList.remove('rec-cur');});
+  if(_si>0){var prev=document.getElementById('rv'+(_si-1));if(prev){prev.classList.remove('rec-cur');prev.classList.add('rec-done');}}
+  var cur=document.getElementById('rv'+_si);if(cur) cur.classList.add('rec-cur');
+  _si++;
+  var nb=document.getElementById('pvNxt');nb.style.display='flex';
+  nb.innerHTML=_si>=_sl.length?'<i class="bi bi-check-lg"></i> Përfundo':'Tjetri ('+_si+'/'+_sl.length+') <i class="bi bi-arrow-right"></i>';
+}
+pickPlat(_plat);
+</script>
+{% endblock %}

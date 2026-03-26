@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold">
+        <i class="bi bi-eyedropper me-2 text-danger"></i>Lab Tests
+        <small class="text-muted fw-normal ms-2">{{ patient.first_name }} {{ patient.last_name }}</small>
+    </h5>
+    <div class="d-flex gap-2">
+        <a href="{{ '/patients/' + (patient.id)|string + '/labs/new' }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Order Test
+        </a>
+        <a href="{{ '/patients/' + (patient.id)|string }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+        </a>
+    </div>
+</div>
+<div class="card">
+    <div class="card-body p-0">
+        {% if items %}
+        <table class="table table-hover mb-0">
+            <thead><tr>
+                <th class="ps-3">{{ t.th_test }}</th><th>{{ t.misc_type }}</th><th>{{ t.th_ordered }}</th>
+                <th>{{ t.th_status }}</th><th>{{ t.th_result }}</th><th>{{ t.th_range }}</th>
+                <th>{{ t.th_doctor }}</th><th class="text-end pe-3">{{ t.th_actions }}</th>
+            </tr></thead>
+            <tbody>
+            {% for lab in items %}
+            <tr {% if lab.is_abnormal %}class="table-danger"{% endif %}>
+                <td class="ps-3 fw-semibold">
+                    {{ lab.test_name }}
+                    {% if lab.is_abnormal %}<span class="badge bg-danger ms-1">{{ t.misc_abnormal }}</span>{% endif %}
+                </td>
+                <td class="text-muted">{{ lab.test_type or '—' }}</td>
+                <td class="text-muted" style="font-size:.85rem;">{{ lab.ordered_date.strftime('%d %b %Y') if lab.ordered_date else '—' }}</td>
+                <td>
+                    <span class="badge
+                        {% if lab.status=='resulted' %}bg-success
+                        {% elif lab.status=='ordered' %}bg-warning text-dark
+                        {% elif lab.status=='collected' %}bg-info
+                        {% else %}bg-secondary{% endif %}">
+                        {{ lab.status }}
+                    </span>
+                </td>
+                <td>{{ lab.result_value or '—' }}</td>
+                <td class="text-muted" style="font-size:.85rem;">{{ lab.reference_range or '—' }}</td>
+                <td class="text-muted" style="font-size:.85rem;">{{ lab.doctor_name or '—' }}</td>
+                <td class="text-end pe-3">
+                    {% if lab.status != 'resulted' %}
+                    <button class="btn btn-sm btn-outline-success me-1"
+                            data-bs-toggle="modal" data-bs-target="#resultModal{{ lab.id }}">
+                        <i class="bi bi-clipboard-check"></i>
+                    </button>
+                    {% endif %}
+                    <form method="POST" action="{{ '/labs/' + (lab.id)|string + '/delete' }}"
+                          class="d-inline" onsubmit="return confirm('{{ t.confirm_delete }}')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            <!-- Result Modal -->
+            <div class="modal fade" id="resultModal{{ lab.id }}" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Enter Result — {{ lab.test_name }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form method="POST" action="{{ '/labs/' + (lab.id)|string + '/result' }}" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">{{ t.lbl_result_date }}</label>
+                                    <input type="date" name="result_date" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">{{ t.lbl_result_value }}</label>
+                                    <input type="text" name="result_value" class="form-control" placeholder="{{ t.ph_result_value }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">{{ t.lbl_ref_range }}</label>
+                                    <input type="text" name="reference_range" class="form-control" placeholder="{{ t.ph_ref_range }}">
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" name="is_abnormal" class="form-check-input" id="abn{{ lab.id }}">
+                                    <label class="form-check-label fw-semibold text-danger" for="abn{{ lab.id }}">
+                                        Flag as Abnormal
+                                    </label>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">{{ t.misc_upload_result }}</label>
+                                    <input type="file" name="result_file" class="form-control">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ t.btn_cancel }}</button>
+                                <button type="submit" class="btn btn-success">{{ t.btn_save_result }}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-eyedropper" style="font-size:2rem;"></i>
+            <p class="mt-2">{{ t.empty_lab_tests }}</p>
+            <a href="{{ '/patients/' + (patient.id)|string + '/labs/new' }}" class="btn btn-primary btn-sm">{{ t.cta_order_test }}</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

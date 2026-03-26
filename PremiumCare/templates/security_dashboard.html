@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Monitorimi i Sigurisë — {{ practice_name }}{% endblock %}
+{% block page_title %}<i class="bi bi-shield-check me-2 text-danger"></i>Monitorimi i Sigurisë{% endblock %}
+
+{% block content %}
+<style>
+  .sec-card { background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:16px; }
+  .sec-card-hd { font-size:.72rem;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;display:flex;align-items:center;gap:7px; }
+  .kpi-row { display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px; }
+  .kpi { background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px;text-align:center; }
+  .kpi-num { font-size:2rem;font-weight:900;line-height:1; }
+  .kpi-lbl { font-size:.72rem;color:#6b7280;margin-top:4px; }
+  .kpi.ok { border-color:#bbf7d0;background:#f0fdf4; }
+  .kpi.ok .kpi-num { color:#047857; }
+  .kpi.warn { border-color:#fde68a;background:#fffbeb; }
+  .kpi.warn .kpi-num { color:#b45309; }
+  .kpi.danger { border-color:#fecdd3;background:#fff1f2; }
+  .kpi.danger .kpi-num { color:#be123c; }
+  .log-row { display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #f3f4f6;font-size:.82rem; }
+  .log-row:last-child { border-bottom:none; }
+  .log-time { color:#9ca3af;font-size:.72rem;white-space:nowrap;min-width:120px;font-family:monospace; }
+  .log-user { font-weight:600;color:#374151;min-width:100px; }
+  .log-action { color:#1d4ed8;font-weight:600; }
+  .log-detail { color:#6b7280;flex:1; }
+  .tab-btns { display:flex;gap:8px;margin-bottom:16px; }
+  .tab-btn { padding:8px 18px;border:1.5px solid #e5e7eb;border-radius:9px;background:#fff;font-size:.82rem;font-weight:600;color:#374151;cursor:pointer;transition:all .12s; }
+  .tab-btn.on { background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8; }
+  .tab-body { display:none; }
+  .tab-body.on { display:block; }
+</style>
+
+<!-- KPI Row -->
+<div class="kpi-row">
+  <div class="kpi {% if summary.get('total_locked',0) > 0 %}danger{% else %}ok{% endif %}">
+    <div class="kpi-num">{{ summary.get('total_locked', 0) }}</div>
+    <div class="kpi-lbl"><i class="bi bi-lock-fill me-1"></i>IP të Bllokuara</div>
+  </div>
+  <div class="kpi {% if not summary.get('argon2_available', True) %}danger{% else %}ok{% endif %}">
+    <div class="kpi-num" style="font-size:1.4rem;">{{ '✓' if summary.get('argon2_available', True) else '✗' }}</div>
+    <div class="kpi-lbl"><i class="bi bi-key-fill me-1"></i>Hash Fjalëkalimeve</div>
+  </div>
+  <div class="kpi {% if not summary.get('fernet_available', True) %}warn{% else %}ok{% endif %}">
+    <div class="kpi-num" style="font-size:1.4rem;">{{ '✓' if summary.get('fernet_available', True) else '○' }}</div>
+    <div class="kpi-lbl"><i class="bi bi-shield-lock-fill me-1"></i>Enkriptimi MFA</div>
+  </div>
+  <div class="kpi ok">
+    <div class="kpi-num">{{ audit|length }}</div>
+    <div class="kpi-lbl"><i class="bi bi-journal-text me-1"></i>Aktivitete të Fundit</div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-btns">
+  <button class="tab-btn on" onclick="showTab('audit',this)"><i class="bi bi-journal-text me-1"></i>Regjistri i Aktivitetit</button>
+  <button class="tab-btn" onclick="showTab('security',this)"><i class="bi bi-shield-exclamation me-1"></i>Ngjarje Sigurie</button>
+</div>
+
+<!-- Audit tab -->
+<div class="tab-body on" id="tab-audit">
+  <div class="sec-card">
+    <div class="sec-card-hd"><i class="bi bi-journal-text" style="color:#1d4ed8;"></i>Regjistri i Aktivitetit (50 të fundit)</div>
+    <input type="text" placeholder="Kërko..." oninput="filterLog(this.value)"
+           style="width:100%;padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:.82rem;margin-bottom:12px;outline:none;">
+    <div id="auditList">
+      {% if audit %}
+        {% for log in audit %}
+        <div class="log-row" data-search="{{ (log.staff_name or '') ~ ' ' ~ (log.action or '') ~ ' ' ~ (log.detail or '') | lower }}">
+          <span class="log-time">{{ log.created_at.strftime('%d/%m %H:%M') if log.created_at else '—' }}</span>
+          <span class="log-user">{{ log.staff_name or 'Sistem' }}</span>
+          <span class="log-action">{{ log.action or '—' }}</span>
+          <span class="log-detail">{{ (log.detail or '')[:80] }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="text-align:center;padding:32px;color:#9ca3af;">Asnjë aktivitet i regjistruar.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Security events tab -->
+<div class="tab-body" id="tab-security">
+  <div class="sec-card">
+    <div class="sec-card-hd"><i class="bi bi-shield-exclamation" style="color:#dc2626;"></i>Ngjarje Sigurie (24 orët e fundit)</div>
+    {% if events %}
+      {% for ev in events %}
+      <div class="log-row">
+        <span class="log-time">{{ ev.created_at.strftime('%d/%m %H:%M') if ev.created_at else '—' }}</span>
+        <span class="log-user">{{ ev.staff_name or 'Sistem' }}</span>
+        <span class="log-action" style="color:#dc2626;">{{ ev.action or '—' }}</span>
+        <span class="log-detail">{{ (ev.detail or '')[:100] }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div style="text-align:center;padding:32px;color:#9ca3af;">
+        <i class="bi bi-shield-check" style="font-size:2rem;display:block;margin-bottom:8px;color:#bbf7d0;"></i>
+        Asnjë ngjarje sigurie e dyshimtë.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- MFA Rotation Card -->
+<div class="sec-card" style="border:1.5px solid #ddd6fe;background:#faf8ff;">
+  <div class="sec-card-hd"><i class="bi bi-arrow-repeat" style="color:#7c3aed;"></i>Rotacioni i Çelësave MFA</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div style="font-size:.84rem;color:#374151;max-width:500px;line-height:1.6;">
+      <strong style="color:#5b21b6;">Çdo të Dielë automatikisht</strong> — sistemi ri-enkripton të gjitha sekretet MFA me çelës të ri.<br>
+      <span style="color:#6b7280;font-size:.78rem;">Shtypeni butonin nëse dëshironi ta ekzekutoni manualisht tani.</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div id="rotateStatus" style="font-size:.78rem;display:none;"></div>
+      <button onclick="doRotation(this)" id="rotateBtn"
+              style="padding:10px 22px;background:linear-gradient(135deg,#5b21b6,#7c3aed);color:#fff;border:none;border-radius:9px;font-size:.84rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .15s;"
+              onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+        <i class="bi bi-arrow-repeat"></i>Ekzekuto Tani
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('on'); });
+  document.querySelectorAll('.tab-body').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  document.getElementById('tab-' + name).classList.add('on');
+}
+function filterLog(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('#auditList .log-row').forEach(function(r){
+    r.style.display = r.dataset.search.includes(q) ? '' : 'none';
+  });
+}
+function doRotation(btn) {
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" style="width:.75rem;height:.75rem;border-width:2px;"></span>Duke ekzekutuar...';
+  fetch('/api/mfa-rotation', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]') ? document.querySelector('meta[name=csrf-token]').content : ''}
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    var st = document.getElementById('rotateStatus');
+    st.style.display = 'block';
+    if (d.ok) {
+      st.style.color = '#047857';
+      st.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Rotacioni u krye me sukses! Rotuar: ' + (d.rotated||0);
+    } else {
+      st.style.color = '#be123c';
+      st.innerHTML = '<i class="bi bi-x-circle-fill me-1"></i>Gabim: ' + (d.error || 'E panjohur');
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>Ekzekuto Tani';
+  })
+  .catch(function(){
+    var st = document.getElementById('rotateStatus');
+    st.style.display = 'block';
+    st.style.color = '#be123c';
+    st.textContent = 'Gabim në lidhje';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>Ekzekuto Tani';
+  });
+}
+</script>
+{% endblock %}

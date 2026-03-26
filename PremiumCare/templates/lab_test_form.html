@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="topbar">
+    <h5 class="mb-0 fw-bold"><i class="bi bi-eyedropper me-2 text-danger"></i>{{ t.h_order_test }}</h5>
+    <a href="{{ '/patients/' + (patient.id)|string + '/labs' }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>{{ t.back }}
+    </a>
+</div>
+<div class="card" style="max-width:640px;">
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">{{ t.lbl_test_name }} *</label>
+                    <input type="text" name="test_name" class="form-control" required autofocus>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">{{ t.lbl_test_type }}</label>
+                    <select name="test_type" class="form-select">
+                        <option>{{ t.opt_blood }}</option><option>{{ t.opt_urine }}</option><option>{{ t.opt_stool }}</option>
+                        <option>{{ t.opt_imaging }}</option><option>{{ t.opt_microbiology }}</option>
+                        <option>{{ t.opt_pathology }}</option><option>{{ t.opt_other }}</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ t.lbl_ordered_date }}</label>
+                    <input type="date" name="ordered_date" class="form-control" value="{{ today }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">{{ t.th_status }}</label>
+                    <select name="status" class="form-select">
+                        <option value="ordered" selected>Ordered</option>
+                        <option value="collected">Sample Collected</option>
+                        <option value="resulted">Result Available</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">{{ t.misc_notes }}</label>
+                    <textarea name="notes" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Order Test
+                    </button>
+                    <a href="{{ '/patients/' + (patient.id)|string + '/labs' }}" class="btn btn-outline-secondary">{{ t.cancel }}</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
